@@ -117,7 +117,3 @@ Part moyenne des suites de trois mots répétées dans des fenêtres locales.
 # Taux de répétition non filtré
 
 Part des mots qui reprennent un lemme précédent, mots-outils compris.
-
-# Lisibilité Flesch
-
-Indice de lisibilité adapté au français à partir de la longueur des phrases et du nombre de syllabes. Une valeur élevée indique généralement un texte plus facile à lire.
