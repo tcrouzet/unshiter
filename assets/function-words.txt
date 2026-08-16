@@ -1,0 +1,20 @@
+# Base modifiable des mots-outils exclus du taux de répétition filtré.
+# Formats acceptés : "catégorie:nom", "mot:graphie", "lemme:lemme" et "garder:graphie".
+# "garder:" permet de corriger une catégorie générale pour un mot particulier.
+
+catégorie:conjonction
+catégorie:déterminant
+catégorie:interjection
+catégorie:pronom
+catégorie:préposition
+
+# Négations et auxiliaires grammaticaux exclus des répétitions.
+mot:ne
+mot:pas
+mot:te
+lemme:être
+lemme:avoir
+
+# Corrections facultatives, par exemple :
+# mot:machin       -> toujours exclure « machin »
+# garder:personne  -> conserver « personne », même si Morphalou le classe pronom
