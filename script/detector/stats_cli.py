@@ -24,7 +24,7 @@ from .config import (
     STANDARD_DEVIATION_MAXIMA,
     TEXT_ENCODING,
 )
-from .stats import WORD_RE, ai_score, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions, uniformity_score
+from .stats import WORD_RE, ai_score, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
 
 
 FULL_DOCUMENT_FIELDS = {
@@ -32,6 +32,11 @@ FULL_DOCUMENT_FIELDS = {
     "lexical_word_count", "unique_lemma_count", "relative_clause_count",
     "subordinate_clause_count", "nominal_sentence_count",
 }
+
+
+def french_typography(text: str) -> str:
+    """Applique l’espace insécable française avant le signe pour cent."""
+    return text.replace(" %", "\u00a0%")
 
 
 def source_windows(text: str, size: int) -> list[str]:
@@ -82,12 +87,11 @@ def output_paths(source: Path) -> tuple[Path, Path]:
     return OUTPUT_DIR / f"{stem}{MARKDOWN_EXTENSION}", OUTPUT_DIR / f"{stem}{JSON_EXTENSION}"
 
 
-def statistic_rows(stats, uniformity: float, comparison: dict | None = None) -> list[tuple[str, object]]:
+def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, object]]:
     percent = lambda value: f"{value * 100:.0f} %"
     score = ai_score(stats, stats.stylistic_repetition_rate)
     rows = [
         ("IA[^1]", f"{score} %" if score is not None else "indisponible"),
-        ("Diversité syntaxique[^7]", f"{100 - uniformity} %"),
         ("Mots", stats.word_count), ("Phrases", stats.sentence_count), ("Paragraphes", stats.paragraph_count),
         ("Longueur moyenne des mots (caractères)", f"{stats.avg_word_length:.1f}"),
         ("Longueur moyenne des phrases (caractères)", f"{stats.avg_sentence_length:.1f}"),
@@ -98,7 +102,7 @@ def statistic_rows(stats, uniformity: float, comparison: dict | None = None) -> 
         ("Écart-type des phrases (caractères)", f"{stats.sentence_length_std_dev:.1f}"),
         ("Amplitude (caractères)", f"{stats.sentence_length_amplitude:.1f}"),
         ("Variation des phrases (mots)", f"{stats.sentence_word_std_dev:.1f}"),
-        ("Burstiness[^2]", f"{stats.burstiness:.2f}".replace(".", ",")),
+        ("Burstiness[^2]", f"{stats.burstiness:.2f}"),
         ("Répétitions stylistiques[^9]", f"{stats.stylistic_repetition_rate * 100:.1f} %".replace(".", ",")),
         ("Répétitions lexicales[^10]", f"{(comparison['filtered'] if comparison else stats.filtered_repetition_rate) * 100:.0f} %"),
         ("Répétitions familiales[^11]", f"{(comparison['family'] if comparison else stats.family_repetition_rate) * 100:.0f} %"),
@@ -114,6 +118,7 @@ def statistic_rows(stats, uniformity: float, comparison: dict | None = None) -> 
         ("Compression gzip[^5]", f"{stats.gzip_compression_ratio * 100:.0f} %"),
         ("Relatives et subordonnées[^6]", f"{(stats.relative_clause_ratio + stats.subordinate_clause_ratio) * 100:.0f} %" if stats.relative_clause_ratio is not None and stats.subordinate_clause_ratio is not None else "indisponible"),
         ("Ponctuation (signes/300 mots)", f"{stats.punctuation_per_300_words:.1f}"),
+        ("Diversité de ponctuation", f"{stats.punctuation_diversity * 100:.0f} %"),
         ("Phrases nominales[^15]", f"{stats.nominal_sentence_ratio * 100:.0f} %" if stats.nominal_sentence_ratio is not None else "indisponible"),
         ("Écart-type des paragraphes (mots)", f"{stats.paragraph_length_std_dev:.1f}"),
         ("Profondeur syntaxique[^18]", f"{stats.average_syntactic_depth:.1f}" if stats.average_syntactic_depth is not None else "indisponible"),
@@ -121,22 +126,19 @@ def statistic_rows(stats, uniformity: float, comparison: dict | None = None) -> 
     rows += [
         ("Diversité des formes", f"{stats.moving_type_token_ratio * 100:.0f} %"),
         ("Diversité lemmatisée", f"{stats.lemma_richness * 100:.0f} %"),
-        ("Diversité de ponctuation", f"{stats.punctuation_diversity * 100:.0f} %"),
         ("Variété des débuts de phrase", f"{stats.sentence_start_diversity * 100:.0f} %"),
         ("Mots employés une seule fois", f"{stats.hapax_ratio * 100:.0f} %"),
         ("Répétition globale des trigrammes", f"{stats.trigram_repetition * 100:.0f} %"),
         ("Répétition locale des trigrammes", f"{stats.moving_trigram_repetition * 100:.0f} %"),
         ("Taux de répétition non filtré", f"{(comparison['absolute'] if comparison else stats.absolute_repetition_rate) * 100:.0f} %"),
         ("Fenêtres de répétition analysées", comparison["count"] if comparison else 1),
-        ("Longueur moyenne des paragraphes", f"{stats.avg_paragraph_length:.1f}"),
-        ("Lisibilité Flesch", f"{stats.flesch:.0f}"),
+        ("Longueur moyenne des paragraphes (mots)", f"{stats.avg_paragraph_length:.1f}"),
     ]
     return rows
 
 
 IMPORTANT_LABELS = {
     "IA",
-    "Diversité syntaxique",
     "Répétition des structures",
     "Diversité des structures",
     "Relatives et subordonnées",
@@ -158,7 +160,7 @@ TECHNICAL_LABELS = {
     "Longueur P90 des phrases (caractères)",
     "Écart-type des phrases (caractères)",
     "Écart-type des paragraphes (mots)",
-    "Longueur moyenne des paragraphes",
+    "Longueur moyenne des paragraphes (mots)",
     "Fenêtres de répétition analysées",
 }
 
@@ -292,7 +294,7 @@ def grammatical_distribution_chart(analyses: list[tuple[Path, object]]) -> str:
         parts.append(f'<rect x="{x:.1f}" y="375" width="16" height="16" rx="2" fill="{color}"/>')
         parts.append(f'<text class="legend" x="{x + 23:.1f}" y="388">{html.escape(label)}</text>')
     parts.append("</svg>")
-    return "\n".join(parts)
+    return french_typography("\n".join(parts))
 
 
 def notes(titles: list[str]) -> list[str]:
@@ -314,8 +316,8 @@ def display_name(source: Path) -> str:
     return name[:1].upper() + name[1:]
 
 
-def markdown_stats(source: Path, stats, uniformity: float) -> str:
-    rows = statistic_rows(stats, uniformity)
+def markdown_stats(source: Path, stats) -> str:
+    rows = statistic_rows(stats)
     important, details = split_rows(rows)
     numbered, note_titles = number_notes(important + details)
     important, details = numbered[:len(important)], numbered[len(important):]
@@ -326,7 +328,7 @@ def markdown_stats(source: Path, stats, uniformity: float) -> str:
     lines += ["", "## Répartition grammaticale", ""]
     lines += grammatical_distribution_table(display_name(source), stats)
     lines += [""] + notes(note_titles)
-    return "\n".join(lines)
+    return french_typography("\n".join(lines))
 
 
 def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]] | None = None, window: int | None = None) -> str:
@@ -343,7 +345,6 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         }
         for source, stats in analyses
     ]
-    uniformities = [uniformity_score(stats, repetition["filtered"]) if stats.word_count >= 40 and stats.sentence_count >= 3 else 0 for (_, stats), repetition in zip(analyses, repetitions)]
     headers = [display_name(source) for source, _ in analyses]
     deviation_indexes = [
         index for index, (source, _) in enumerate(analyses)
@@ -353,13 +354,13 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     deviation_maxima = {
         "Variation des phrases (mots)": sum(stats.avg_sentence_word_count for stats in reference_stats) / len(reference_stats)
     }
-    rows_by_file = [statistic_rows(stats, uniformity, repetition) for (_, stats), uniformity, repetition in zip(analyses, uniformities, repetitions)]
+    rows_by_file = [statistic_rows(stats, repetition) for (_, stats), repetition in zip(analyses, repetitions)]
     important_by_file, details_by_file = [], []
     for rows in rows_by_file:
         important, details = split_rows(rows)
         important_by_file.append(important)
         details_by_file.append(details)
-    numbered, note_titles = number_notes(important_by_file[0] + details_by_file[0], ["Delta"])
+    numbered, note_titles = number_notes(important_by_file[0] + details_by_file[0], ["Δ"])
     important_count = len(important_by_file[0])
     number_map = {
         re.sub(r"\[\^\d+\]$", "", label): label
@@ -377,7 +378,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     lines += markdown_table(headers, details_by_file, show_deviation=True, deviation_indexes=deviation_indexes, deviation_maxima=deviation_maxima)
     lines += ["", "## Répartition grammaticale par document", "", f"![Répartition grammaticale]({GRAMMATICAL_DISTRIBUTION_CHART.name})", ""]
     lines += [""] + notes(note_titles)
-    return "\n".join(lines)
+    return french_typography("\n".join(lines))
 
 
 def markdown_structure_report(source: Path) -> str:
@@ -449,16 +450,15 @@ def main(argv=None) -> int:
         return 0
     source = Path(args.source)
     stats = compute_stats(source.read_text(encoding=TEXT_ENCODING))
-    uniformity = uniformity_score(stats) if stats.word_count >= 40 and stats.sentence_count >= 3 else 0
     markdown_output, json_output = output_paths(source)
     lemma_output = OUTPUT_DIR / f"{source.stem}{LEMMA_REPORT_SUFFIX}{MARKDOWN_EXTENSION}"
-    markdown_output.write_text(markdown_stats(source, stats, uniformity) + "\n", encoding=TEXT_ENCODING)
+    markdown_output.write_text(markdown_stats(source, stats) + "\n", encoding=TEXT_ENCODING)
     lemma_output.write_text(markdown_lemma_report(source) + "\n", encoding=TEXT_ENCODING)
     score = ai_score(stats)
-    payload = {"source": str(source), "ai_score": score, "syntactic_diversity": 100 - uniformity, "stats": asdict(stats)}
+    payload = {"source": str(source), "ai_score": score, "stats": asdict(stats)}
     json_output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding=TEXT_ENCODING)
     print(markdown_output)
     print(json_output)
     print(lemma_output)
-    print(f"IA {score if score is not None else 'indisponible'} — diversité syntaxique {100 - uniformity} % — {stats.word_count} mots")
+    print(f"IA {score if score is not None else 'indisponible'} — {stats.word_count} mots")
     return 0

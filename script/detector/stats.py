@@ -699,7 +699,6 @@ def ai_score(s: TextStats, filtered_repetition: float | None = None) -> int | No
         # dans le tableau : burstiness à deux décimales, taux au pourcent près.
         "structure_repetition": displayed_percent(s.structural_repetition_rate),
         "structure_diversity": displayed_percent(s.structural_diversity),
-        "syntactic_diversity": displayed_percent((100 - uniformity_score(s)) / 100),
         "punctuation_density": float(f"{s.punctuation_per_300_words:.1f}"),
         "punctuation_diversity": displayed_percent(s.punctuation_diversity),
         "sentence_start_diversity": displayed_percent(s.sentence_start_diversity),
