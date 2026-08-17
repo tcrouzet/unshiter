@@ -96,11 +96,11 @@ Ces tableaux sont un instantané du dernier corpus analysé. Ils ne sont pas rec
 | Fenêtres analysées | 1 | 28 | 16 | 12 | 49 | 31 | — |
 | Longueur moyenne des paragraphes (mots) | 52.8 | 66.5 | 127.0 | 150.8 | 126.5 | 234.9 | — |
 
-![Profils comparatifs](./assets/readme/kiviat.png)
+![Profils comparatifs](./assets/readme/kiviat-github.png)
 
-![Surface des profils](./assets/readme/kiviat_areas.png)
+![Surface des profils](./assets/readme/kiviat-areas-github.png)
 
-![Répartition grammaticale](./assets/readme/grammatical_distribution.png)
+![Répartition grammaticale](./assets/readme/grammatical-distribution-github.png)
 
 [^1]: La colonne σ indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure presque constante ; un σ élevé, une mesure qui distingue davantage les textes présents. σ décrit uniquement ce corpus.
 
