@@ -117,7 +117,11 @@ def write_comparison_cache(fingerprint: str) -> None:
 
 
 def source_windows(text: str, size: int, minimum_final_ratio: float = 0.7) -> list[str]:
-    """Fenêtres non chevauchantes d’environ ``size`` mots, bornées par les paragraphes."""
+    """Fenêtres non chevauchantes bornées par les paragraphes.
+
+    Une dernière fenêtre trop courte est ignorée, sauf lorsqu'elle constitue
+    l'unique fenêtre disponible pour le texte.
+    """
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n", text) if part.strip()]
     if not paragraphs:
         return [text]
@@ -132,9 +136,7 @@ def source_windows(text: str, size: int, minimum_final_ratio: float = 0.7) -> li
             current, current_words = [], 0
     if current:
         fragment = "\n\n".join(current)
-        if windows and current_words < size * minimum_final_ratio:
-            windows[-1] += "\n\n" + fragment
-        else:
+        if not windows or current_words >= size * minimum_final_ratio:
             windows.append(fragment)
     return windows or [text]
 

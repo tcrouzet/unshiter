@@ -5,13 +5,13 @@
 <text class="label" x="145" y="80" text-anchor="end">IA</text>
 <rect x="170" y="58" width="136.4" height="30" rx="4" fill="#4a2c20" fill-opacity="0.72"/>
 <text class="label" x="145" y="138" text-anchor="end">Duras</text>
-<rect x="170" y="116" width="208.2" height="30" rx="4" fill="#3478b8" fill-opacity="0.72"/>
+<rect x="170" y="116" width="208.1" height="30" rx="4" fill="#3478b8" fill-opacity="0.72"/>
 <text class="label" x="145" y="196" text-anchor="end">Houellebecq</text>
-<rect x="170" y="174" width="382.9" height="30" rx="4" fill="#8b55a2" fill-opacity="0.72"/>
+<rect x="170" y="174" width="383.1" height="30" rx="4" fill="#8b55a2" fill-opacity="0.72"/>
 <text class="label" x="145" y="254" text-anchor="end">Crouzet</text>
-<rect x="170" y="232" width="414.3" height="30" rx="4" fill="#d13c36" fill-opacity="0.72"/>
+<rect x="170" y="232" width="413.8" height="30" rx="4" fill="#d13c36" fill-opacity="0.72"/>
 <text class="label" x="145" y="312" text-anchor="end">Echenoz</text>
-<rect x="170" y="290" width="419.7" height="30" rx="4" fill="#57a052" fill-opacity="0.72"/>
+<rect x="170" y="290" width="420.1" height="30" rx="4" fill="#57a052" fill-opacity="0.72"/>
 <text class="label" x="145" y="370" text-anchor="end">Michon</text>
 <rect x="170" y="348" width="670.0" height="30" rx="4" fill="#e19a2d" fill-opacity="0.72"/>
 </svg>

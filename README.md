@@ -51,20 +51,20 @@ Ce tableau est un instantané du dernier corpus analysé. Il n’est pas recalcu
 | Mesure | IA | Crouzet | Duras | Echenoz | Houellebecq | Michon | σ[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Ponctuation (signes/300 mots)[^2] | 36.1 | 57.9 | 50.2 | 43.4 | 52.7 | 50.6 | 14.4 % |
-| Diversité de ponctuation[^3] | 40 % | 61 % | 40 % | 45 % | 64 % | 58 % | 19.6 % |
+| Diversité de ponctuation[^3] | 40 % | 61 % | 40 % | 45 % | 64 % | 58 % | 19.5 % |
 | Diversité des structures[^4] | 42 % | 48 % | 53 % | 61 % | 53 % | 65 % | 14.3 % |
 | Rythme des structures[^5] | 41 % | 49 % | 51 % | 53 % | 47 % | 59 % | 11.0 % |
-| Profondeur syntaxique[^6] | 3.7 | 3.2 | 3.5 | 5.1 | 3.7 | 4.5 | 16.2 % |
-| Diversité des débuts de phrase[^7] | 52 % | 72 % | 59 % | 78 % | 76 % | 76 % | 14.0 % |
-| Burstiness[^8] | 0.69 | 0.68 | 0.79 | 0.60 | 0.58 | 0.87 | 14.6 % |
+| Profondeur syntaxique[^6] | 3.7 | 3.2 | 3.5 | 5.1 | 3.7 | 4.5 | 16.1 % |
+| Diversité des débuts de phrase[^7] | 52 % | 72 % | 59 % | 78 % | 76 % | 76 % | 14.1 % |
+| Burstiness[^8] | 0.69 | 0.67 | 0.79 | 0.60 | 0.58 | 0.87 | 14.6 % |
 | Ratio noms/verbes[^9] | 1.56 | 2.09 | 1.88 | 2.17 | 2.06 | 2.20 | 5.4 % |
-| Répétitions lexicales[^10] | 9 % | 10 % | 16 % | 12 % | 12 % | 9 % | 11.3 % |
+| Répétitions lexicales[^10] | 9 % | 10 % | 16 % | 12 % | 12 % | 9 % | 11.5 % |
 
-![Profils comparatifs](assets/readme/kiviat.svg)
+![Profils comparatifs](./assets/readme/kiviat.png)
 
-![Surface des profils](assets/readme/kiviat_areas.svg)
+![Surface des profils](./assets/readme/kiviat_areas.png)
 
-![Répartition grammaticale](assets/readme/grammatical_distribution.svg)
+![Répartition grammaticale](./assets/readme/grammatical_distribution.png)
 
 [^1]: σ mesure la dispersion dans ce corpus. Les valeurs aberrantes situées à plus de 1,5 fois l’intervalle interquartile sont retirées du calcul, mais restent affichées dans le tableau. L’écart-type restant est divisé par la moyenne.
 
@@ -92,7 +92,7 @@ Une empreinte SHA-256 des sources, du code et des configurations éditables est 
 
 Les textes n’ont pas tous la même taille. Pour éviter qu’un roman bénéficie simplement d’un plus grand échantillon, les mesures dérivées sont calculées sur des fenêtres non chevauchantes ayant pour cible le nombre de mots du texte le plus court.
 
-Une fenêtre se termine toujours à la fin d’un paragraphe. Elle peut donc dépasser légèrement la cible. Si la dernière fenêtre contient moins de 70 % de la cible, elle est fusionnée avec la précédente. Les mesures des fenêtres sont ensuite moyennées pour chaque document.
+Une fenêtre se termine toujours à la fin d’un paragraphe. Elle peut donc dépasser légèrement la cible. Si la dernière fenêtre contient moins de 70 % de la cible, elle n’est pas prise en compte. Lorsqu’un texte entier est plus court que ce seuil et ne fournit aucune autre fenêtre, il reste analysé comme un seul bloc. Les mesures des fenêtres retenues sont ensuite moyennées pour chaque document.
 
 Gzip suit une règle différente : ses blocs sont découpés en octets UTF-8 et ont exactement la taille du texte le plus court en octets. Les comptages techniques — mots, phrases et paragraphes — décrivent toujours le document complet.
 

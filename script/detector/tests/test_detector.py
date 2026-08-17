@@ -168,6 +168,17 @@ class DetectorTests(unittest.TestCase):
         self.assertNotIn("fin", windows[0])
         self.assertIn("fin", windows[1])
 
+    def test_short_final_window_is_discarded(self):
+        from detector.stats_cli import source_windows
+        paragraphs = ["mot " * 10, "reste " * 3]
+        windows = source_windows("\n\n".join(paragraphs), 10, minimum_final_ratio=.7)
+        self.assertEqual(len(windows), 1)
+        self.assertNotIn("reste", windows[0])
+
+    def test_only_short_window_is_still_analyzed(self):
+        from detector.stats_cli import source_windows
+        self.assertEqual(source_windows("court texte", 10), ["court texte"])
+
     def test_gzip_windows_have_equal_byte_lengths(self):
         from detector.stats_cli import byte_windows
         windows = byte_windows("é" * 20, 10)

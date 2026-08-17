@@ -14,14 +14,14 @@
 <text class="title" x="540" y="28" text-anchor="middle">Crouzet</text>
 <path d="M 540 170 L 540.00 50.00 A 120 120 0 0 1 627.59 252.03 Z" fill="#3d70a3"/>
 <text class="value" x="611.56" y="138.97" text-anchor="middle">37 %</text>
-<path d="M 540 170 L 627.59 252.03 A 120 120 0 0 1 599.29 274.33 Z" fill="#75a843"/>
-<text class="value" x="588.28" y="231.26" text-anchor="middle">5 %</text>
-<path d="M 540 170 L 599.29 274.33 A 120 120 0 0 1 500.67 283.37 Z" fill="#efb349"/>
-<text class="value" x="547.12" y="247.67" text-anchor="middle">14 %</text>
-<path d="M 540 170 L 500.67 283.37 A 120 120 0 0 1 461.70 79.07 Z" fill="#ca4038"/>
-<text class="value" x="463.38" y="184.62" text-anchor="middle">33 %</text>
-<path d="M 540 170 L 461.70 79.07 A 120 120 0 0 1 539.97 50.00 Z" fill="#835692"/>
-<text class="value" x="512.85" y="96.88" text-anchor="middle">11 %</text>
+<path d="M 540 170 L 627.59 252.03 A 120 120 0 0 1 599.36 274.29 Z" fill="#75a843"/>
+<text class="value" x="588.30" y="231.24" text-anchor="middle">5 %</text>
+<path d="M 540 170 L 599.36 274.29 A 120 120 0 0 1 500.75 283.40 Z" fill="#efb349"/>
+<text class="value" x="547.17" y="247.67" text-anchor="middle">14 %</text>
+<path d="M 540 170 L 500.75 283.40 A 120 120 0 0 1 461.68 79.08 Z" fill="#ca4038"/>
+<text class="value" x="463.39" y="184.65" text-anchor="middle">33 %</text>
+<path d="M 540 170 L 461.68 79.08 A 120 120 0 0 1 539.95 50.00 Z" fill="#835692"/>
+<text class="value" x="512.83" y="96.88" text-anchor="middle">11 %</text>
 <text class="title" x="900" y="28" text-anchor="middle">Duras</text>
 <path d="M 900 170 L 900.00 50.00 A 120 120 0 0 1 1002.46 232.46 Z" fill="#3d70a3"/>
 <text class="value" x="968.01" y="131.81" text-anchor="middle">34 %</text>
@@ -33,16 +33,16 @@
 <path d="M 900 170 L 826.27 75.33 A 120 120 0 0 1 899.81 50.00 Z" fill="#835692"/>
 <text class="value" x="874.60" y="96.25" text-anchor="middle">11 %</text>
 <text class="title" x="180" y="368" text-anchor="middle">Echenoz</text>
-<path d="M 180 510 L 180.00 390.00 A 120 120 0 0 1 277.71 579.67 Z" fill="#3d70a3"/>
-<text class="value" x="249.34" y="474.28" text-anchor="middle">35 %</text>
-<path d="M 180 510 L 277.71 579.67 A 120 120 0 0 1 237.59 615.28 Z" fill="#75a843"/>
-<text class="value" x="231.78" y="568.33" text-anchor="middle">7 %</text>
-<path d="M 180 510 L 237.59 615.28 A 120 120 0 0 1 123.63 615.93 Z" fill="#efb349"/>
-<text class="value" x="180.45" y="588.00" text-anchor="middle">16 %</text>
-<path d="M 180 510 L 123.63 615.93 A 120 120 0 0 1 104.77 416.51 Z" fill="#ca4038"/>
-<text class="value" x="102.35" y="517.34" text-anchor="middle">31 %</text>
-<path d="M 180 510 L 104.77 416.51 A 120 120 0 0 1 180.06 390.00 Z" fill="#835692"/>
-<text class="value" x="154.10" y="436.43" text-anchor="middle">11 %</text>
+<path d="M 180 510 L 180.00 390.00 A 120 120 0 0 1 278.03 579.21 Z" fill="#3d70a3"/>
+<text class="value" x="249.26" y="474.12" text-anchor="middle">35 %</text>
+<path d="M 180 510 L 278.03 579.21 A 120 120 0 0 1 238.20 614.94 Z" fill="#75a843"/>
+<text class="value" x="232.09" y="568.06" text-anchor="middle">7 %</text>
+<path d="M 180 510 L 238.20 614.94 A 120 120 0 0 1 123.18 615.70 Z" fill="#efb349"/>
+<text class="value" x="180.51" y="588.00" text-anchor="middle">16 %</text>
+<path d="M 180 510 L 123.18 615.70 A 120 120 0 0 1 105.41 416.00 Z" fill="#ca4038"/>
+<text class="value" x="102.31" y="516.91" text-anchor="middle">31 %</text>
+<path d="M 180 510 L 105.41 416.00 A 120 120 0 0 1 180.06 390.00 Z" fill="#835692"/>
+<text class="value" x="154.35" y="436.34" text-anchor="middle">11 %</text>
 <text class="title" x="540" y="368" text-anchor="middle">Houellebecq</text>
 <path d="M 540 510 L 540.00 390.00 A 120 120 0 0 1 623.25 596.43 Z" fill="#3d70a3"/>
 <text class="value" x="612.34" y="480.83" text-anchor="middle">38 %</text>
