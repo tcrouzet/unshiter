@@ -263,6 +263,14 @@ class DetectorTests(unittest.TestCase):
         self.assertEqual(stats.noun_verb_ratio, 2)
         self.assertEqual(stats.form_lemma_ratio, .9)
 
+    def test_lexical_window_is_300_words(self):
+        from detector.config import LEXICAL_WINDOW_SIZE
+        self.assertEqual(LEXICAL_WINDOW_SIZE, 300)
+
+    def test_hapax_are_counted_on_morphalou_lemmas(self):
+        from detector.stats import lemma_hapax_ratio
+        self.assertEqual(lemma_hapax_ratio(["fleur", "fleurs", "arbre"]), .5)
+
     def test_repetitive_text_compresses_better(self):
         from detector.stats import compute_stats
         repetitive = compute_stats(("bonjour monde " * 200).strip())

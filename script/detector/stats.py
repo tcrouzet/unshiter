@@ -413,6 +413,13 @@ def filtered_lemmas(words: list[str]) -> list[str]:
     return result
 
 
+def lemma_hapax_ratio(words: list[str]) -> float:
+    """Part des lemmes lexicaux distincts qui n'apparaissent qu'une fois."""
+    lemmas = filtered_lemmas(words)
+    frequencies = Counter(lemmas)
+    return sum(count == 1 for count in frequencies.values()) / len(frequencies) if frequencies else 0
+
+
 def _structure_tokens(sentence: str) -> list[str]:
     tokens = []
     for raw_token in STRUCTURE_TOKEN_RE.findall(sentence.lower().replace("’", "'")):
@@ -705,7 +712,7 @@ def compute_stats(text: str) -> TextStats:
         global_lemma_richness=r(global_lemma_richness), lemma_richness=r(lemma_richness),
         morphalou_coverage=r(morphalou_coverage), lexical_word_count=lexical_word_count,
         unique_lemma_count=unique_lemma_count,
-        hapax_ratio=r(sum(count == 1 for count in frequencies.values()) / len(frequencies)),
+        hapax_ratio=r(lemma_hapax_ratio(words)),
         function_word_ratio=r(_function_word_ratio(words)),
         trigram_repetition=r(repetition), moving_trigram_repetition=r(_moving_trigram_repetition(words)),
         avg_paragraph_length=r(paragraph_mean), paragraph_length_std_dev=r(paragraph_std),
@@ -714,7 +721,7 @@ def compute_stats(text: str) -> TextStats:
         sentence_start_diversity=r(_moving_ttr(starts, 20)),
         noun_ratio=r(noun_ratio), verb_ratio=r(verb_ratio), adjective_ratio=r(adjective_ratio),
         adverb_ratio=r(adverb_ratio), noun_verb_ratio=r(noun_ratio / verb_ratio if verb_ratio else 0),
-        form_lemma_ratio=r(_moving_ttr(words) / lemma_richness if lemma_richness else 0),
+        form_lemma_ratio=r(_moving_ttr(words, LEXICAL_WINDOW_SIZE) / lemma_richness if lemma_richness else 0),
         absolute_repetition_rate=r(local_repetition_rate(repetition_words, filtered=False)),
         filtered_repetition_rate=r(local_repetition_rate(repetition_words, filtered=True)),
         family_repetition_rate=r(local_repetition_rate(repetition_words, filtered=True, mode="family")),
