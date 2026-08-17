@@ -3,6 +3,7 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+README_FILE = PROJECT_ROOT / "README.md"
 
 SCRIPT_DIR = PROJECT_ROOT / "script"
 SOURCE_DIR = PROJECT_ROOT / "sources"
@@ -31,6 +32,8 @@ GRAMMATICAL_DISTRIBUTION_CHART = OUTPUT_DIR / "grammatical_distribution.svg"
 KIVIAT_CHART = OUTPUT_DIR / "kiviat.svg"
 KIVIAT_AREA_CHART = OUTPUT_DIR / "kiviat_areas.svg"
 STATS_CACHE_MANIFEST = TEMP_DIR / "stats-cache.json"
+README_STATS_START = "<!-- STATS:START -->"
+README_STATS_END = "<!-- STATS:END -->"
 MORPHALOU_BATCH_SIZE = 10_000
 MORPHALOU_SCHEMA_VERSION = "2"
 DEMONETTE_DIR = ASSETS_DIR / "demonette"

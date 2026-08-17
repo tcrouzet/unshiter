@@ -19,6 +19,9 @@ from .config import (
     GRAMMATICAL_DISTRIBUTION_CHART,
     MARKDOWN_EXTENSION,
     OUTPUT_DIR,
+    README_FILE,
+    README_STATS_END,
+    README_STATS_START,
     SOURCE_DIR,
     SOURCE_MARKDOWN_PATTERN,
     STATS_CACHE_MANIFEST,
@@ -28,7 +31,7 @@ from .config import (
     STRUCTURE_REPORT_SUFFIX,
     TEXT_ENCODING,
 )
-from .stats import WORD_RE, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
+from .stats import TextStats, WORD_RE, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
 
 
 FULL_DOCUMENT_FIELDS = {
@@ -81,7 +84,7 @@ def corpus_fingerprint(sources: list[Path]) -> str:
     detector_dir = Path(__file__).resolve().parent
     paths = list(sources)
     paths.extend(sorted(detector_dir.glob("*.py")))
-    paths.extend([STATS_NOTES_FILE, STATS_NOTES_FILE.parent / "function-words.txt"])
+    paths.append(STATS_NOTES_FILE.parent / "function-words.txt")
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: str(item)):
         digest.update(str(path.resolve()).encode(TEXT_ENCODING))
@@ -101,19 +104,37 @@ def comparison_output_paths(sources: list[Path]) -> list[Path]:
     return outputs
 
 
-def comparison_cache_hit(sources: list[Path], fingerprint: str) -> bool:
+def read_comparison_cache(sources: list[Path], fingerprint: str):
+    """Restitue les calculs, indépendamment des notes et du rendu Markdown."""
     if not STATS_CACHE_MANIFEST.exists():
-        return False
+        return None
     try:
         manifest = json.loads(STATS_CACHE_MANIFEST.read_text(encoding=TEXT_ENCODING))
-    except (OSError, json.JSONDecodeError):
-        return False
-    return manifest.get("fingerprint") == fingerprint and all(path.exists() for path in comparison_output_paths(sources))
+        if manifest.get("fingerprint") != fingerprint:
+            return None
+        analyses = [
+            (Path(item["source"]), TextStats(**item["stats"]))
+            for item in manifest["analyses"]
+        ]
+        return analyses, int(manifest["window"])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return None
 
 
-def write_comparison_cache(fingerprint: str) -> None:
+def write_comparison_cache(fingerprint: str, analyses, window: int) -> None:
     STATS_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    STATS_CACHE_MANIFEST.write_text(json.dumps({"fingerprint": fingerprint}, indent=2) + "\n", encoding=TEXT_ENCODING)
+    payload = {
+        "fingerprint": fingerprint,
+        "window": window,
+        "analyses": [
+            {"source": str(source), "stats": asdict(stats)}
+            for source, stats in analyses
+        ],
+    }
+    STATS_CACHE_MANIFEST.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding=TEXT_ENCODING,
+    )
 
 
 def source_windows(text: str, size: int, minimum_final_ratio: float = 0.7) -> list[str]:
@@ -672,6 +693,40 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     return french_typography("\n".join(lines))
 
 
+def sync_readme(report: str, readme_path: Path = README_FILE) -> None:
+    """Remplace l'instantané du README par le dernier rapport rendu."""
+    readme = readme_path.read_text(encoding=TEXT_ENCODING)
+    report_start = report.index("## Synthèse")
+    snapshot = report[report_start:]
+    snapshot = re.sub(r"(?m)^## ", "### ", snapshot)
+    snapshot = snapshot.replace(
+        "![Diagramme de Kiviat](kiviat.svg)",
+        "![Profils comparatifs](./assets/readme/kiviat-github.png)",
+    ).replace(
+        "![Surface des profils du radar](kiviat_areas.svg)",
+        "![Surface des profils](./assets/readme/kiviat-areas-github.png)",
+    ).replace(
+        "![Répartition grammaticale](grammatical_distribution.svg)",
+        "![Répartition grammaticale](./assets/readme/grammatical-distribution-github.png)",
+    )
+    generated = (
+        f"{README_STATS_START}\n"
+        "## Dernier résultat\n\n"
+        "Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.\n\n"
+        f"{snapshot.strip()}\n"
+        f"{README_STATS_END}"
+    )
+    if README_STATS_START in readme and README_STATS_END in readme:
+        before, remainder = readme.split(README_STATS_START, 1)
+        _, after = remainder.split(README_STATS_END, 1)
+        updated = before + generated + after
+    else:
+        start = readme.index("## Dernier résultat")
+        end = readme.index("Une empreinte SHA-256", start)
+        updated = readme[:start] + generated + "\n\n" + readme[end:]
+    readme_path.write_text(updated, encoding=TEXT_ENCODING)
+
+
 def markdown_structure_report(source: Path) -> str:
     sentences = split_structure_units(read_source(source))
     structures = sentence_structure_signatures(sentences)
@@ -720,7 +775,12 @@ def main(argv=None) -> int:
         if not sources:
             parser.error(f"aucun fichier {SOURCE_MARKDOWN_PATTERN} dans {SOURCE_DIR}")
         fingerprint = corpus_fingerprint(sources)
-        if comparison_cache_hit(sources, fingerprint):
+        cached = read_comparison_cache(sources, fingerprint)
+        if cached is not None:
+            compared_analyses, window = cached
+            comparison = markdown_comparison(sources, compared_analyses, window)
+            STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
+            sync_readme(comparison)
             print(STATS_COMPARISON_FILE)
             print(f"{len(sources)} fichiers comparés — cache utilisé")
             print(KIVIAT_CHART)
@@ -728,7 +788,9 @@ def main(argv=None) -> int:
             print(GRAMMATICAL_DISTRIBUTION_CHART)
             return 0
         compared_analyses, window = comparable_analyses(sources)
-        STATS_COMPARISON_FILE.write_text(markdown_comparison(sources, compared_analyses, window) + "\n", encoding=TEXT_ENCODING)
+        comparison = markdown_comparison(sources, compared_analyses, window)
+        STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
+        sync_readme(comparison)
         KIVIAT_CHART.write_text(kiviat_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         KIVIAT_AREA_CHART.write_text(kiviat_area_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         GRAMMATICAL_DISTRIBUTION_CHART.write_text(grammatical_distribution_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
@@ -741,7 +803,7 @@ def main(argv=None) -> int:
             lemma_report = OUTPUT_DIR / f"{source.stem}{LEMMA_REPORT_SUFFIX}{MARKDOWN_EXTENSION}"
             lemma_report.write_text(markdown_lemma_report(source) + "\n", encoding=TEXT_ENCODING)
             lemma_reports.append(lemma_report)
-        write_comparison_cache(fingerprint)
+        write_comparison_cache(fingerprint, compared_analyses, window)
         print(STATS_COMPARISON_FILE)
         print(f"{len(sources)} fichiers comparés")
         print(KIVIAT_CHART)
