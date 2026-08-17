@@ -101,12 +101,14 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Longueur P90 des phrases (caractères)", f"{stats.sentence_length_p90:.1f}"),
         ("Écart-type des phrases (caractères)", f"{stats.sentence_length_std_dev:.1f}"),
         ("Amplitude (caractères)", f"{stats.sentence_length_amplitude:.1f}"),
-        ("Variation des phrases (mots)", f"{stats.sentence_word_std_dev:.1f}"),
         ("Burstiness[^2]", f"{stats.burstiness:.2f}"),
         ("Répétitions stylistiques[^9]", f"{stats.stylistic_repetition_rate * 100:.1f} %".replace(".", ",")),
         ("Répétitions lexicales[^10]", f"{(comparison['filtered'] if comparison else stats.filtered_repetition_rate) * 100:.0f} %"),
         ("Répétitions familiales[^11]", f"{(comparison['family'] if comparison else stats.family_repetition_rate) * 100:.0f} %"),
         ("Répétitions sonores[^12]", f"{(comparison['phonetic'] if comparison else stats.phonetic_repetition_rate) * 100:.0f} %"),
+        ("Répétitions non filtrée", f"{(comparison['absolute'] if comparison else stats.absolute_repetition_rate) * 100:.0f} %"),
+        ("Répétition globale des trigrammes", f"{stats.trigram_repetition * 100:.0f} %"),
+        ("Répétition locale des trigrammes", f"{stats.moving_trigram_repetition * 100:.0f} %"),
         ("Mots-outils[^13]", percent(stats.function_word_ratio)),
         ("Noms", f"{stats.noun_ratio * 100:.0f} %"),
         ("Verbes", f"{stats.verb_ratio * 100:.0f} %"),
@@ -114,6 +116,7 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Adverbes", f"{stats.adverb_ratio * 100:.0f} %"),
         ("Répétition des structures[^3]", f"{stats.structural_repetition_rate * 100:.0f} %"),
         ("Diversité des structures[^4]", f"{stats.structural_diversity * 100:.0f} %"),
+        ("Variation des phrases (mots)", f"{stats.sentence_word_std_dev:.1f}"),
         ("Rythme des structures[^14]", f"{stats.structural_rhythm * 100:.0f} %"),
         ("Compression gzip[^5]", f"{stats.gzip_compression_ratio * 100:.0f} %"),
         ("Relatives et subordonnées[^6]", f"{(stats.relative_clause_ratio + stats.subordinate_clause_ratio) * 100:.0f} %" if stats.relative_clause_ratio is not None and stats.subordinate_clause_ratio is not None else "indisponible"),
@@ -128,9 +131,6 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Diversité lemmatisée", f"{stats.lemma_richness * 100:.0f} %"),
         ("Variété des débuts de phrase", f"{stats.sentence_start_diversity * 100:.0f} %"),
         ("Mots employés une seule fois", f"{stats.hapax_ratio * 100:.0f} %"),
-        ("Répétition globale des trigrammes", f"{stats.trigram_repetition * 100:.0f} %"),
-        ("Répétition locale des trigrammes", f"{stats.moving_trigram_repetition * 100:.0f} %"),
-        ("Taux de répétition non filtré", f"{(comparison['absolute'] if comparison else stats.absolute_repetition_rate) * 100:.0f} %"),
         ("Fenêtres de répétition analysées", comparison["count"] if comparison else 1),
         ("Longueur moyenne des paragraphes (mots)", f"{stats.avg_paragraph_length:.1f}"),
     ]
@@ -141,6 +141,7 @@ IMPORTANT_LABELS = {
     "IA",
     "Répétition des structures",
     "Diversité des structures",
+    "Variation des phrases (mots)",
     "Relatives et subordonnées",
     "Ponctuation (signes/300 mots)",
     "Diversité de ponctuation",
@@ -163,6 +164,8 @@ TECHNICAL_LABELS = {
     "Longueur moyenne des paragraphes (mots)",
     "Fenêtres de répétition analysées",
 }
+
+NO_DEVIATION_LABELS = TECHNICAL_LABELS
 
 
 def split_rows(rows: list[tuple[str, object]]) -> tuple[list[tuple[str, object]], list[tuple[str, object]]]:
@@ -228,7 +231,7 @@ def markdown_table(headers: list[str], rows_by_file: list[list[tuple[str, object
         plain_label = re.sub(r"\[\^\d+\]$", "", label)
         reference_values = [values[index] for index in (deviation_indexes or range(len(values)))]
         deviation = [
-            "—" if plain_label in TECHNICAL_LABELS else normalized_range(
+            "—" if plain_label in NO_DEVIATION_LABELS else normalized_range(
                 reference_values, (deviation_maxima or {}).get(plain_label, STANDARD_DEVIATION_MAXIMA.get(plain_label))
             )
         ] if show_deviation else []

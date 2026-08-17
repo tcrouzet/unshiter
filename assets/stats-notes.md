@@ -1,10 +1,10 @@
 # Δ
 
-Différence entre texte IA de référence et la moyenne des textes humains confirmés. Cette différence est divisée par la valeur maximale possible de la mesure et exprimée en pourcentage. Lorsqu’aucun maximum théorique n’est défini, le maximum observé sert de référence. Une valeur proche de 0 % indique des mesures peu discriminante. Δ n’est pas affiché pour les données techniques.
+Écart de mesure entre textes IA et humains. Cette différence est divisée par la valeur maximale possible de la mesure et exprimée en pourcentage. Une valeur proche de 0 % indique des mesures peu discriminantes. Δ n’est pas affiché pour les données techniques comme nombre de caractères d'un document.
 
 # IA
 
-Plus cet indice est élevé, plus le texte serait susceptible d'être généré par une IA. Poids actuels : répétition des structures 25 %, faible diversité des structures 20 %, faible densité de ponctuation 15 %, faible diversité de ponctuation 15 %, faible variété des débuts de phrase 15 %, faible taux de phrases nominales 5 %, relatives et subordonnées 5 %. Ces poids sont ajustés sur le petit corpus présent et ne constituent pas une probabilité.
+Plus cet indice est élevé, plus le texte serait susceptible d’être généré par une IA. Poids actuels : répétition des structures 20 %, faible diversité des structures 15 %, faible variation relative de la longueur des phrases 10 %, faible densité de ponctuation 15 %, faible diversité de ponctuation 15 %, faible variété des débuts de phrase 15 %, faible taux de phrases nominales 5 %, grand nombre de relatives et subordonnées 5 %. Ces poids sont ajustés sur un petit corpus et ne constituent pas une probabilité fiable.
 
 # Répétition des structures
 
@@ -12,11 +12,15 @@ Décompte les structures syntaxiques et repère celles qui se répètent.
 
 # Diversité des structures
 
-Nombre de patrons syntaxiques différents divisé par le nombre de phrases analysées. Une valeur faible indique qu’un petit nombre de patrons domine le texte (style monotone).
+Nombre de patrons syntaxiques différents divisé par le nombre de phrases analysées. Une valeur faible indique qu’un petit nombre de patrons domine le texte : style monotone.
+
+# Variation des phrases (mots)
+
+Écart-type de la longueur des phrases en nombre de mots.
 
 # Relatives et subordonnées
 
-Nombre de propositions relatives et subordonnées rapporté au nombre de phrases. La valeur peut dépasser 100 % parce qu’une même phrase peut contenir à la fois des relatives et une ou des subordonnées. Les IA ont tendance à abuser des relatives et subordonnées (mais un prompt habile peut les limiter).
+Nombre de propositions relatives et subordonnées rapporté au nombre de phrases. La valeur peut dépasser 100 % parce qu’une même phrase peut contenir à la fois des relatives et une ou des subordonnées. Les IA ont tendance à abuser des relatives et subordonnées (un prompt habile peut les limiter).
 
 # Ponctuation (signes/300 mots)
 
@@ -38,10 +42,6 @@ Diversité des premiers mots des phrases. Les IA ont tendance à écrire des phr
 
 L’amplitude mesure la diversité globale des longueurs de phrases, en nombre de caractères.
 
-# Variation des phrases (mots)
-
-Écart-type de la longueur des phrases en nombre de mots.
-
 # Burstiness
 
 La burstiness est l’écart moyen en caractères entre des phrases consécutives, divisé par la longueur moyenne des phrases. Plus la valeur est élevée, plus le rythme présente de diversité.
@@ -52,7 +52,7 @@ Cet indice mesure la pression des chaînes répétitives dans un empan de 300 mo
 
 # Répétitions lexicales
 
-Part des mots qui reprennent un des 300 lemmes précédents. Par exemple marche, marches et marchent sont regroupés sous marcher. Le taux filtré ne compte pas les déterminants, conjonctions, prépositions, pronoms et interjections dans les répétitions. Les calculs comparatifs restent effectués sur des fenêtres de la taille du texte le plus court.
+Part des mots qui reprennent un des 300 lemmes précédents. Par exemple « marche », « marches » et « marchent » sont regroupés sous « marcher ». Le taux filtré ne compte pas les déterminants, conjonctions, prépositions, pronoms et interjections dans les répétitions. Les calculs comparatifs restent effectués sur des fenêtres de la taille du texte le plus court.
 
 # Répétitions familiales
 
@@ -61,6 +61,18 @@ Regroupent les lemmes appartenant à une même famille morphologique dans Démon
 # Répétitions sonores
 
 Les répétitions sonores rapprochent les mots qui partagent une séquence phonétique significative dans les 300 mots précédents. Elles mesurent les échos perceptibles à l’oreille, même lorsque les lemmes diffèrent.
+
+# Répétitions non filtrées
+
+Part des mots qui reprennent un lemme précédent, mots-outils compris.
+
+# Répétition globale des trigrammes
+
+Part des suites de trois mots qui apparaissent plusieurs fois dans le texte analysé.
+
+# Répétition locale des trigrammes
+
+Part moyenne des suites de trois mots répétées dans des fenêtres locales.
 
 # Mots-outils
 
@@ -92,7 +104,7 @@ Taille du texte compressé divisée par sa taille originale. Une valeur faible i
 
 # Profondeur syntaxique
 
-La profondeur syntaxique est la moyenne, pour chaque phrase, du plus grand nombre de liens entre un mot et la racine de son arbre de dépendances. Elle est calculée par le modèle français `fr_core_news_sm` de spaCy. Une valeur élevée indique des phrases dont les dépendances grammaticales sont plus imbriquées.
+La profondeur syntaxique est la moyenne, pour chaque phrase, du plus grand nombre de liens entre un mot et la racine de son arbre de dépendances. Elle est calculée par le modèle français de spaCy. Une valeur élevée indique des phrases dont les dépendances grammaticales sont plus imbriquées.
 
 # Diversité des formes
 
@@ -105,15 +117,3 @@ Part moyenne de lemmes différents dans les fenêtres analysées.
 # Mots employés une seule fois
 
 Part des formes qui n’apparaissent qu’une fois dans la fenêtre analysée.
-
-# Répétition globale des trigrammes
-
-Part des suites de trois mots qui apparaissent plusieurs fois dans le texte analysé.
-
-# Répétition locale des trigrammes
-
-Part moyenne des suites de trois mots répétées dans des fenêtres locales.
-
-# Taux de répétition non filtré
-
-Part des mots qui reprennent un lemme précédent, mots-outils compris.

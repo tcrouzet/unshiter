@@ -52,8 +52,9 @@ SPACY_FRENCH_MODEL = "fr_core_news_lg"
 SPACY_RELATIVE_DEPENDENCIES = {"acl:relcl"}
 SPACY_SUBORDINATE_DEPENDENCIES = {"acl", "advcl", "ccomp", "csubj", "xcomp"}
 AI_SCORE_FEATURES = {
-    "structure_repetition": {"weight": 25, "low": 0.30, "high": 0.70, "inverse": False},
-    "structure_diversity": {"weight": 20, "low": 0.30, "high": 0.80, "inverse": True},
+    "structure_repetition": {"weight": 20, "low": 0.30, "high": 0.70, "inverse": False},
+    "structure_diversity": {"weight": 15, "low": 0.30, "high": 0.80, "inverse": True},
+    "sentence_variation": {"weight": 10, "low": 0.50, "high": 0.75, "inverse": True},
     "punctuation_density": {"weight": 15, "low": 36.0, "high": 54.0, "inverse": True},
     "punctuation_diversity": {"weight": 15, "low": 0.35, "high": 0.60, "inverse": True},
     "sentence_start_diversity": {"weight": 15, "low": 0.50, "high": 0.75, "inverse": True},
