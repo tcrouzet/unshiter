@@ -6,7 +6,7 @@ import gzip
 import math
 import re
 
-from .config import AI_SCORE_FEATURES, FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
+from .config import FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
 from .demonette import family_map, phonetic_map
 from .morphalou import lemma_map, lexical_map
 from .syntax_depth import analyze_contextual_tokens, analyze_syntax
@@ -95,6 +95,8 @@ class TextStats:
     verb_ratio: float = 0
     adjective_ratio: float = 0
     adverb_ratio: float = 0
+    noun_verb_ratio: float = 0
+    form_lemma_ratio: float = 0
     absolute_repetition_rate: float = 0
     filtered_repetition_rate: float = 0
     family_repetition_rate: float = 0
@@ -542,10 +544,78 @@ def structure_is_eligible(signature: str) -> bool:
     return content != ["INCONNU"]
 
 
+def structural_subpatterns(signature: str) -> list[str]:
+    """Découpe une phrase en patrons de propositions comparables.
+
+    Les subordonnées et coordinations ouvrent une nouvelle unité. Les virgules
+    et points restent attachés aux propositions ordinaires ; une subordonnée
+    conserve le même patron où qu'elle apparaisse afin que leur empilement soit
+    effectivement compté comme une répétition.
+    """
+    units: list[str] = []
+    current: list[str] = []
+
+    def flush(boundary: str | None = None) -> None:
+        if current:
+            suffix = [boundary] if boundary else []
+            unit = " ".join(current + suffix)
+            if structure_is_eligible(unit):
+                units.append(unit)
+            current.clear()
+
+    for token in signature.split():
+        if token in STRUCTURE_PUNCTUATION:
+            flush(token)
+        elif token == "PROPOSITION_SUBORDONNÉE":
+            flush()
+            units.append(token)
+        elif token == "CONJONCTION":
+            flush()
+            current.append(token)
+        else:
+            current.append(token)
+    flush()
+    return units
+
+
+def _structural_profile_distance(left: tuple, right: tuple) -> float:
+    """Distance modérée entre deux comptages de propositions."""
+    left_counts, right_counts = dict(left), dict(right)
+    left_total, right_total = sum(left_counts.values()), sum(right_counts.values())
+    keys = left_counts.keys() | right_counts.keys()
+    composition = .5 * sum(abs(
+        left_counts.get(key, 0) / left_total - right_counts.get(key, 0) / right_total
+    ) for key in keys)
+    count_distance = sum(abs(left_counts.get(key, 0) - right_counts.get(key, 0)) for key in keys) / (left_total + right_total)
+    # Deux structures minuscules ne suffisent pas à établir une opposition
+    # maximale. Le bénéfice des architectures développées progresse jusqu'à
+    # douze propositions cumulées, sans rendre leur patron automatiquement unique.
+    information_weight = min(1, math.sqrt((left_total + right_total) / 12))
+    return (.75 * composition + .25 * count_distance) * information_weight
+
+
 def structural_diversity(signatures: list[str]) -> float:
-    """Patrons syntaxiques distincts divisés par toutes les phrases."""
-    eligible = [signature for signature in signatures if structure_is_eligible(signature)]
-    return len(set(eligible)) / len(signatures) if signatures else 0
+    """Distance moyenne modérée entre les profils structurels des phrases."""
+    profiles = []
+    for signature in signatures:
+        if not structure_is_eligible(signature):
+            continue
+        patterns = structural_subpatterns(signature)
+        if not patterns:
+            continue
+        counts = Counter(patterns)
+        profiles.append(tuple(sorted(counts.items())))
+    if len(profiles) < 2:
+        return 0
+    profile_counts = Counter(profiles)
+    weighted_distance = 0.0
+    unique_profiles = list(profile_counts)
+    for left_index, left in enumerate(unique_profiles):
+        for right in unique_profiles[left_index + 1:]:
+            distance = _structural_profile_distance(left, right)
+            weighted_distance += distance * profile_counts[left] * profile_counts[right]
+    pair_count = len(profiles) * (len(profiles) - 1) / 2
+    return weighted_distance / pair_count
 
 
 def _sequence_distance(left: list[str], right: list[str]) -> float:
@@ -643,7 +713,8 @@ def compute_stats(text: str) -> TextStats:
         punctuation_per_300_words=r(len(PUNCTUATION_MARK_RE.findall(text)) / len(words) * 300),
         sentence_start_diversity=r(_moving_ttr(starts, 20)),
         noun_ratio=r(noun_ratio), verb_ratio=r(verb_ratio), adjective_ratio=r(adjective_ratio),
-        adverb_ratio=r(adverb_ratio),
+        adverb_ratio=r(adverb_ratio), noun_verb_ratio=r(noun_ratio / verb_ratio if verb_ratio else 0),
+        form_lemma_ratio=r(_moving_ttr(words) / lemma_richness if lemma_richness else 0),
         absolute_repetition_rate=r(local_repetition_rate(repetition_words, filtered=False)),
         filtered_repetition_rate=r(local_repetition_rate(repetition_words, filtered=True)),
         family_repetition_rate=r(local_repetition_rate(repetition_words, filtered=True, mode="family")),
@@ -687,32 +758,6 @@ def uniformity_components(s: TextStats, filtered_repetition: float | None = None
 def uniformity_score(s: TextStats, filtered_repetition: float | None = None) -> float:
     components = uniformity_components(s, filtered_repetition)
     return round(sum(components.values()) / len(components) * 100) if components else 0
-
-
-def ai_score(s: TextStats, filtered_repetition: float | None = None) -> int | None:
-    """Indice IA v2 pondéré, indicatif et non probabiliste."""
-    if s.relative_clause_ratio is None or s.subordinate_clause_ratio is None:
-        return None
-    displayed_percent = lambda value: float(f"{value * 100:.0f}") / 100
-    values = {
-        # La formule v1 s'applique aux valeurs telles qu'elles apparaissent
-        # dans le tableau : burstiness à deux décimales, taux au pourcent près.
-        "structure_repetition": displayed_percent(s.structural_repetition_rate),
-        "structure_diversity": displayed_percent(s.structural_diversity),
-        "sentence_variation": s.sentence_word_std_dev / s.avg_sentence_word_count if s.avg_sentence_word_count else 0,
-        "punctuation_density": float(f"{s.punctuation_per_300_words:.1f}"),
-        "punctuation_diversity": displayed_percent(s.punctuation_diversity),
-        "sentence_start_diversity": displayed_percent(s.sentence_start_diversity),
-        "nominal_sentence_ratio": displayed_percent(s.nominal_sentence_ratio or 0),
-        "clause_density": displayed_percent(s.relative_clause_ratio + s.subordinate_clause_ratio),
-    }
-    total = 0.0
-    for name, settings in AI_SCORE_FEATURES.items():
-        normalized = max(0.0, min((values[name] - settings["low"]) / (settings["high"] - settings["low"]), 1.0))
-        if settings["inverse"]:
-            normalized = 1 - normalized
-        total += settings["weight"] * normalized
-    return round(total)
 
 
 if __name__ == "__main__":

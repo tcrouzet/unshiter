@@ -1,119 +1,109 @@
-# Δ
+# Dispersion
 
-Écart de mesure entre textes IA et humains. Cette différence est divisée par la valeur maximale possible de la mesure et exprimée en pourcentage. Une valeur proche de 0 % indique des mesures peu discriminantes. Δ n’est pas affiché pour les données techniques comme nombre de caractères d'un document.
-
-# IA
-
-Plus cet indice est élevé, plus le texte serait susceptible d’être généré par une IA. Poids actuels : répétition des structures 20 %, faible diversité des structures 15 %, faible variation relative de la longueur des phrases 10 %, faible densité de ponctuation 15 %, faible diversité de ponctuation 15 %, faible variété des débuts de phrase 15 %, faible taux de phrases nominales 5 %, grand nombre de relatives et subordonnées 5 %. Ces poids sont ajustés sur un petit corpus et ne constituent pas une probabilité fiable.
-
-# Répétition des structures
-
-Décompte les structures syntaxiques et repère celles qui se répètent.
-
-# Diversité des structures
-
-Nombre de patrons syntaxiques différents divisé par le nombre de phrases analysées. Une valeur faible indique qu’un petit nombre de patrons domine le texte : style monotone.
-
-# Variation des phrases (mots)
-
-Écart-type de la longueur des phrases en nombre de mots.
-
-# Relatives et subordonnées
-
-Nombre de propositions relatives et subordonnées rapporté au nombre de phrases. La valeur peut dépasser 100 % parce qu’une même phrase peut contenir à la fois des relatives et une ou des subordonnées. Les IA ont tendance à abuser des relatives et subordonnées (un prompt habile peut les limiter).
+La colonne σ indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure presque constante ; un σ élevé, une mesure qui distingue davantage les textes présents. σ décrit uniquement ce corpus.
 
 # Ponctuation (signes/300 mots)
 
-Nombre total de signes de ponctuation pour 300 mots. Les IA ont tendance à utiliser moins de ponctuation que les humains.
+Nombre de signes de ponctuation relevés, divisé par le nombre de mots, puis multiplié par 300. Les signes comptés sont le point, la virgule, le point-virgule, les deux-points, les points d’interrogation et d’exclamation, les points de suspension, les tirets, les parenthèses et les guillemets. L’unité est donc « signes pour 300 mots ».
 
 # Diversité de ponctuation
 
-Diversité des ponctuations employées. Les IA sont moins éclectiques que les humains par défaut.
+Répartition des signes entre dix familles : point, virgule, point-virgule, deux-points, interrogation, exclamation, tiret, parenthèses, guillemets et points de suspension. Le calcul utilise l’entropie de cette répartition, ramenée entre 0 et 100 %. Employer presque toujours le même signe produit une valeur basse ; répartir la ponctuation entre plusieurs familles produit une valeur haute. La quantité totale de ponctuation est mesurée séparément.
 
-# Phrases nominales
+# Diversité des structures
 
-Les IA utilisent peu de phrases nominales par défaut.
+Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions ne constituent pas des rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.
 
-# Variété des débuts de phrase
-
-Diversité des premiers mots des phrases. Les IA ont tendance à écrire des phrases qui se ressemblent.
-
-# Amplitude (caractères)
-
-L’amplitude mesure la diversité globale des longueurs de phrases, en nombre de caractères.
-
-# Burstiness
-
-La burstiness est l’écart moyen en caractères entre des phrases consécutives, divisé par la longueur moyenne des phrases. Plus la valeur est élevée, plus le rythme présente de diversité.
-
-# Répétitions stylistiques
-
-Cet indice mesure la pression des chaînes répétitives dans un empan de 300 mots. Chaque paire de graphies identiques compte pleinement ; deux flexions d’un même lemme ou deux mots d’une même famille comptent pour un quart. Les mots-outils et les noms propres sont écartés. Une série concentrée pèse ainsi davantage que plusieurs répétitions isolées. Cet indice s’inspire du fonctionnement documenté d’Antidote sans prétendre reproduire son filtre propriétaire.
-
-# Répétitions lexicales
-
-Part des mots qui reprennent un des 300 lemmes précédents. Par exemple « marche », « marches » et « marchent » sont regroupés sous « marcher ». Le taux filtré ne compte pas les déterminants, conjonctions, prépositions, pronoms et interjections dans les répétitions. Les calculs comparatifs restent effectués sur des fenêtres de la taille du texte le plus court.
-
-# Répétitions familiales
-
-Regroupent les lemmes appartenant à une même famille morphologique dans Démonette, par exemple écrire, écrivain et écriture.
-
-# Répétitions sonores
-
-Les répétitions sonores rapprochent les mots qui partagent une séquence phonétique significative dans les 300 mots précédents. Elles mesurent les échos perceptibles à l’oreille, même lorsque les lemmes diffèrent.
-
-# Répétitions non filtrées
-
-Part des mots qui reprennent un lemme précédent, mots-outils compris.
-
-# Répétition globale des trigrammes
-
-Part des suites de trois mots qui apparaissent plusieurs fois dans le texte analysé.
-
-# Répétition locale des trigrammes
-
-Part moyenne des suites de trois mots répétées dans des fenêtres locales.
-
-# Mots-outils
-
-Déterminants, pronoms, prépositions, conjonctions, interjections. Leur pourcentage indique la place occupée par ces mots dans le texte. Il renseigne sur la densité syntaxique.
-
-# Noms
-
-Part des noms parmi les mots classés comme noms, verbes, adjectifs ou adverbes.
-
-# Verbes
-
-Part des verbes parmi les mots classés comme noms, verbes, adjectifs ou adverbes.
-
-# Adjectifs
-
-Part des adjectifs parmi les mots classés comme noms, verbes, adjectifs ou adverbes.
-
-# Adverbes
-
-Part des adverbes parmi les mots classés comme noms, verbes, adjectifs ou adverbes.
+Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
 
 # Rythme des structures
 
-Le rythme des structures mesure la différence moyenne entre deux patrons syntaxiques consécutifs. Le calcul compare les ajouts, suppressions et remplacements de rôles syntaxiques, puis rapporte cette différence à la longueur du patron le plus long : 0 % signifie que les mêmes structures se succèdent ; une valeur élevée indique de fortes variations structurelles d’une phrase à la suivante.
+Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
+
+# Diversité des débuts de phrase
+
+Pour chaque phrase, le premier mot est relevé après tokenisation. Le calcul examine des fenêtres glissantes de vingt phrases et mesure, dans chacune, le nombre de premiers mots différents divisé par vingt. Le rapport affiche la moyenne de ces fenêtres. Si le texte compte moins de vingt phrases, le calcul porte sur toutes ses phrases. 100 % signifie qu’aucun début ne se répète dans la fenêtre considérée.
+
+# Burstiness
+
+Pour chaque paire de phrases consécutives, le calcul prend la différence absolue de longueur en caractères. La moyenne de ces différences est divisée par la longueur moyenne des phrases : `moyenne(|longueur suivante − longueur précédente|) / longueur moyenne`. Une valeur de 0 indique des phrases successives de même longueur. La division par la moyenne permet de comparer des textes composés de phrases globalement courtes ou longues.
+
+# Ratio noms/verbes
+
+Nombre de noms reconnu par Morphalou divisé par le nombre de verbes reconnu par Morphalou. Une valeur de 2 signifie que le texte contient deux noms pour un verbe. Si aucun verbe n’est reconnu, la valeur est fixée à 0 pour éviter une division impossible.
+
+# Répétitions lexicales
+
+Pour chaque mot, le programme cherche le même lemme parmi les 300 mots précédents. Les flexions sont donc regroupées : `marche`, `marches` et `marchaient` peuvent renvoyer au même lemme. Le pourcentage est le nombre de mots ayant un antécédent divisé par le nombre total de mots analysés. Les mots-outils et les graphies de moins de deux caractères ne peuvent pas être signalés, mais le dénominateur reste l’ensemble des mots retenus. La lemmatisation contextuelle vient de spaCy, avec Morphalou comme repli.
+
+# Diversité stylistique
+
+Cette valeur vaut `100 % − répétitions stylistiques`. Les répétitions stylistiques examinent les 300 mots précédents et additionnent une pression de 1 pour une graphie identique, 0,25 pour le même lemme et 0,25 pour la même famille morphologique. Les mots-outils et noms propres sont écartés. La pression totale est divisée par le nombre de mots puis plafonnée à 100 %. Une diversité stylistique élevée signifie donc une faible pression de ces répétitions locales.
+
+# Répétitions familiales
+
+Même calcul local que les répétitions lexicales, mais deux mots sont aussi rapprochés lorsqu’ils appartiennent à une même famille morphologique dans Démonette, par exemple `écrire`, `écrivain` et `écriture`. Pour chaque mot, une ou plusieurs correspondances dans les 300 mots précédents comptent comme une seule répétition.
+
+# Répétitions sonores
+
+Pour chaque mot, le programme cherche dans les 300 mots précédents une prononciation partageant une suite continue d’au moins trois phonèmes. Cette suite doit couvrir au moins 60 % de la prononciation la plus courte. Le pourcentage indique la part des mots pour lesquels un tel écho a été trouvé. Cette approximation phonétique ne remplace pas une lecture à voix haute.
+
+# Répétitions non filtrées
+
+Même calcul que les répétitions lexicales, mais en conservant les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée que la version filtrée.
+
+# Mots-outils
+
+Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
+
+# Répétition globale des trigrammes
+
+Un trigramme est une suite de trois mots consécutifs. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
+
+# Répétition locale des trigrammes
+
+Même proportion de trigrammes distincts répétés, calculée dans des fenêtres glissantes de 200 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité. Pour un texte de 200 mots ou moins, elle est identique à la répétition globale.
+
+# Noms
+
+Nombre de mots classés comme noms par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale. Les quatre lignes noms, verbes, adjectifs et adverbes ne totalisent pas nécessairement 100 %, car le dénominateur comprend aussi d’autres catégories.
+
+# Verbes
+
+Nombre de mots classés comme verbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+
+# Adjectifs
+
+Nombre de mots classés comme adjectifs par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+
+# Adverbes
+
+Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+
+# Diversité de longueurs de phrase (mots)
+
+Écart-type du nombre de mots par phrase. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues. Cette ligne reste dans le tableau détaillé, car la diversité des structures intègre déjà une partie de cette information en accordant progressivement davantage de poids aux phrases contenant plusieurs propositions.
 
 # Compression gzip
 
-Taille du texte compressé divisée par sa taille originale. Une valeur faible indique un texte plus répétitif et prévisible, donc plus facile à compresser.
+Le texte UTF-8 est compressé avec gzip. La taille compressée est divisée par la taille originale et affichée en pourcentage. Une valeur basse signifie que les octets du texte sont plus prévisibles et se compressent mieux. Pour comparer les documents, le programme utilise des blocs non chevauchants ayant exactement la taille en octets du texte le plus court, puis moyenne leurs rapports.
+
+# Relatives et subordonnées
+
+spaCy compte les dépendances de relative (`acl:relcl`) et les autres dépendances subordonnées configurées (`acl`, `advcl`, `ccomp`, `csubj`, `xcomp`). Leur somme est divisée par le nombre de phrases. La valeur peut dépasser 100 % : une phrase peut contenir plusieurs subordonnées. Ce résultat dépend de l’analyse du modèle spaCy.
+
+# Phrases nominales
+
+Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
 
 # Profondeur syntaxique
 
-La profondeur syntaxique est la moyenne, pour chaque phrase, du plus grand nombre de liens entre un mot et la racine de son arbre de dépendances. Elle est calculée par le modèle français de spaCy. Une valeur élevée indique des phrases dont les dépendances grammaticales sont plus imbriquées.
+Pour chaque phrase, spaCy construit un arbre de dépendances. Le programme mesure le plus grand nombre de liens entre un mot et la racine de cet arbre, puis moyenne cette profondeur maximale sur les phrases. Une valeur élevée correspond à des dépendances plus imbriquées. Elle ne mesure ni directement la longueur ni la qualité littéraire.
 
-# Diversité des formes
+# Formes par lemme
 
-Part moyenne de formes graphiques différentes dans les fenêtres analysées.
-
-# Diversité lemmatisée
-
-Part moyenne de lemmes différents dans les fenêtres analysées.
+Dans chaque fenêtre, le programme calcule d’une part la diversité mobile des formes graphiques et d’autre part la diversité mobile des lemmes lexicaux, sur des sous-fenêtres de 50 mots. La valeur affichée est `diversité des formes / diversité des lemmes`, avant arrondi. Une valeur élevée indique que les mêmes lemmes apparaissent sous davantage de flexions ou de graphies. Le nom de la mesure est une simplification : ce n’est pas un comptage brut des formes de chaque lemme.
 
 # Mots employés une seule fois
 
-Part des formes qui n’apparaissent qu’une fois dans la fenêtre analysée.
+Nombre de formes graphiques dont la fréquence vaut exactement 1, divisé par le nombre de formes graphiques différentes. Il s’agit de la part des types qui sont des hapax, et non de la part des mots du texte n’apparaissant qu’une fois.

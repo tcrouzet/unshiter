@@ -1,11 +1,24 @@
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from detector.config import OUTPUT_DIR, SOURCE_DIR
-from detector.stats_cli import display_name, markdown_comparison, markdown_lemma_report, markdown_stats, output_paths as stats_output_paths
+from detector.stats_cli import (
+    comparison_sources,
+    comparison_documents,
+    corpus_fingerprint,
+    display_name,
+    markdown_comparison,
+    markdown_lemma_report,
+    markdown_stats,
+    kiviat_chart,
+    normalize_source_text,
+    output_paths as stats_output_paths,
+    read_source,
+)
 
 
 class DetectorTests(unittest.TestCase):
@@ -15,139 +28,151 @@ class DetectorTests(unittest.TestCase):
         self.assertEqual(json, OUTPUT_DIR / "exemple_stats.json")
 
     def test_comparison_uses_filenames_as_columns(self):
-        sources = sorted(SOURCE_DIR.glob("*.md"))
+        sources = comparison_sources()
         report = markdown_comparison(sources)
         self.assertNotIn(" %", report)
         self.assertIn("\u00a0%", report)
         report = report.replace("\u00a0", " ")
-        self.assertIn("| Mesure | " + " | ".join(display_name(source) for source in sources) + " | Δ[^1] |", report)
+        displayed_sources = [source for source, _ in comparison_documents(sources)]
+        self.assertIn("| Mesure | " + " | ".join(display_name(source) for source in displayed_sources) + " | σ[^1] |", report)
         self.assertRegex(report, r"(?m)^\[\^1\]: .+")
-        self.assertIn("| IA[^2] |", report)
+        self.assertNotRegex(report, r"(?m)^\| IA(?:\[\^\d+\])? \|")
+        self.assertNotIn("Rang IA", report)
         self.assertNotIn("Diversité syntaxique", report)
-        self.assertRegex(report, r"\| IA\[\^2\] \| (?:\d+ %|indisponible)")
         self.assertNotIn("Richesse lexicale globale", report)
         self.assertNotIn("Mots lexicaux", report)
         self.assertNotIn("Richesse comparable", report)
-        self.assertIn("La burstiness est", report)
-        self.assertIn("répétition des structures", report)
+        self.assertIn("moyenne(|longueur suivante", report)
+        self.assertNotIn("| Répétition des structures", report)
         self.assertIn("## Synthèse", report)
         self.assertIn("## Détails", report)
-        self.assertIn("Répétitions stylistiques[^13]", report)
-        self.assertIn("Répétitions lexicales[^14]", report)
-        self.assertIn("Répétitions familiales[^15]", report)
-        self.assertIn("Répétitions sonores[^16]", report)
-        self.assertIn("ne compte pas les déterminants", report)
-        self.assertNotIn("score heuristique", report)
-        self.assertIn("Diversité lemmatisée", report)
-        self.assertRegex(report, r"\| Burstiness\[\^12\] \| \d+\.\d{2}")
-        self.assertRegex(report, r"\| Répétitions stylistiques\[\^13\] \| \d+,\d %")
+        self.assertRegex(report, r"Diversité stylistique\[\^\d+\]")
+        self.assertRegex(report, r"Répétitions lexicales\[\^\d+\]")
+        self.assertRegex(report, r"Répétitions familiales\[\^\d+\]")
+        self.assertRegex(report, r"Répétitions sonores\[\^\d+\]")
+        self.assertIn("Les mots-outils", report)
         summary, details = report.split("## Détails", 1)
         self.assertNotIn("| Mots |", summary)
         self.assertIn("| Mots |", details)
         self.assertNotIn("Lisibilité Flesch", report)
-        self.assertNotIn("| Amplitude (caractères)[^11] |", summary)
-        self.assertIn("| Amplitude (caractères)[^11] |", details)
-        self.assertNotIn("| Mots-outils[^20] |", summary)
-        self.assertIn("| Mots-outils[^20] |", details)
-        self.assertNotIn("| Noms[^21] |", summary)
-        self.assertIn("| Noms[^21] |", details)
-        self.assertNotIn("| Verbes[^22] |", summary)
-        self.assertIn("| Verbes[^22] |", details)
-        self.assertNotIn("| Adjectifs[^23] |", summary)
-        self.assertIn("| Adjectifs[^23] |", details)
-        self.assertNotIn("| Adverbes[^24] |", summary)
-        self.assertIn("| Adverbes[^24] |", details)
-        self.assertNotIn("Diversité syntaxique", summary)
-        self.assertNotIn("Diversité syntaxique", details)
-        self.assertNotIn("| Répétitions stylistiques[^13] |", summary)
-        self.assertIn("| Répétitions stylistiques[^13] |", details)
-        self.assertIn("| Répétition des structures[^3] |", summary)
-        self.assertNotIn("| Répétition des structures[^3] |", details)
-        self.assertIn("| Diversité des structures[^4] |", summary)
-        self.assertNotIn("| Rythme des structures[^25] |", summary)
-        self.assertIn("| Rythme des structures[^25] |", details)
-        self.assertNotIn("| Compression gzip[^26] |", summary)
-        self.assertIn("| Compression gzip[^26] |", details)
-        self.assertIn("| Relatives et subordonnées[^6] |", summary)
-        self.assertRegex(summary, r"\| Relatives et subordonnées\[\^6\] \| (?:\d+ %|indisponible)")
-        self.assertRegex(summary, r"\| Relatives et subordonnées\[\^6\] \| .* \| \d+,\d % \|")
-        self.assertIn("| Ponctuation (signes/300 mots)[^7] |", summary)
-        self.assertIn("| Diversité de ponctuation[^8] |", summary)
-        self.assertIn("| Variété des débuts de phrase[^10] |", summary)
-        self.assertIn("| Phrases nominales[^9] |", summary)
-        self.assertNotIn("| Écart-type des paragraphes (mots) |", summary)
-        self.assertNotIn("| Phrases nominales[^9] |", details)
+        self.assertRegex(summary, r"\| Ratio noms/verbes\[\^\d+\] \| \d+\.\d{2}")
+        self.assertRegex(details, r"\| Formes par lemme\[\^\d+\] \| \d+\.\d{2}")
+        self.assertNotIn("| Diversité de longueurs de phrase (mots)", summary)
+        self.assertRegex(details, r"\| Diversité de longueurs de phrase \(mots\)\[\^\d+\] \|")
+        self.assertNotIn("| Compression gzip", summary)
+        self.assertIn("| Diversité des débuts de phrase", summary)
+        self.assertIn("| Burstiness", summary)
+        self.assertNotIn("| Répétitions stylistiques", report)
+        self.assertIn("Nombre de noms divisé par le nombre de verbes", report)
+        self.assertIn("diversité des formes / diversité des lemmes", report)
+        self.assertRegex(summary, r"\| Diversité des structures\[\^\d+\] \|")
         self.assertNotIn("Burstiness des paragraphes", report)
         self.assertIn("| Écart-type des paragraphes (mots) |", details)
-        self.assertNotIn("| Profondeur syntaxique[^27] |", summary)
-        self.assertIn("| Profondeur syntaxique[^27] |", details)
+        self.assertRegex(summary, r"\| Profondeur syntaxique\[\^\d+\] \|")
+        self.assertIn("## Profil comparatif", report)
+        self.assertIn("![Diagramme de Kiviat](kiviat.svg)", report)
         self.assertIn("## Répartition grammaticale par document", report)
         self.assertIn("![Répartition grammaticale](grammatical_distribution.svg)", report)
         self.assertNotIn("| Noms propres |", report)
         self.assertNotIn("| Catégorie | Part |", report)
-        self.assertIn("| Écart-type des phrases (caractères) |", details)
-        self.assertNotRegex(report, r"(?m)^\| .*points d’uniformité")
-        self.assertIn("| Variation des phrases (mots)[^5] |", summary)
-        self.assertNotIn("| Variation des phrases (mots)[^5] |", details)
-        self.assertRegex(report, r"\| Variation des phrases \(mots\)\[\^5\] \| .* \| \d+,\d % \|")
+        self.assertNotIn("Écart-type des phrases (caractères)", report)
         self.assertIn("| Longueur moyenne des phrases (mots) |", report)
-        self.assertIn("| Diversité des formes[^28] |", report)
-        self.assertIn("| Diversité lemmatisée[^29] |", report)
-        self.assertIn("| Mots employés une seule fois[^30] |", report)
-        self.assertIn("| Répétition globale des trigrammes[^18] |", report)
-        self.assertIn("| Répétition locale des trigrammes[^19] |", report)
-        self.assertIn("| Répétitions non filtrée[^17] |", report)
-        self.assertIn("Répétition des structures[^3]", report)
-        self.assertIn("| Diversité de ponctuation[^8] |", report)
-        self.assertIn("| Variété des débuts de phrase[^10] |", report)
         self.assertNotIn("Plus longue série de phrases proches", report)
-        self.assertIn("| Noms[^21] |", report)
-        self.assertIn("| Verbes[^22] |", report)
-        self.assertIn("| Adjectifs[^23] |", report)
-        self.assertRegex(report, r"\| Compression gzip\[\^26\] \| .* \| \d+,\d % \|")
-        self.assertRegex(report, r"\| Mots \| .* \| — \|")
-        self.assertGreater(details.index("| Mots |"), details.index("| Répétitions non filtrée[^17] |"))
-        self.assertGreater(details.index("| Fenêtres de répétition analysées |"), details.index("| Répétitions non filtrée[^17] |"))
+        self.assertGreater(details.index("| Mots |"), details.index("Répétitions non filtrées"))
+        self.assertGreater(details.index("| Fenêtres analysées |"), details.index("Répétitions non filtrées"))
         self.assertIn("| Longueur moyenne des paragraphes (mots) |", details)
-        statistical_tables = report.split("## Répartition grammaticale", 1)[0]
-        measure_lines = [
-            line for line in statistical_tables.splitlines()
-            if line.startswith("| ") and not line.startswith("| Mesure") and not line.startswith("|---")
-        ]
-        self.assertTrue(all("[^" in line for line in measure_lines if " | — |" not in line))
 
     def test_single_markdown_report_has_summary_and_details(self):
         from detector.stats import compute_stats
         source = sorted(SOURCE_DIR.glob("*.md"))[0]
-        stats = compute_stats(source.read_text(encoding="utf-8"))
+        stats = compute_stats(read_source(source))
         report = markdown_stats(source, stats)
         self.assertNotIn(" %", report)
         self.assertIn("\u00a0%", report)
         report = report.replace("\u00a0", " ")
         self.assertIn("## Synthèse", report)
         self.assertIn("## Détails", report)
-        self.assertIn("Répétitions stylistiques[^12]", report)
+        self.assertRegex(report, r"Diversité stylistique\[\^\d+\]")
 
-    def test_stylistic_repetition_matches_reference_order(self):
+    def test_stylistic_repetition_detects_repeated_content(self):
         from detector.stats import compute_stats
-        values = {
-            stem: compute_stats((SOURCE_DIR / f"{stem}.md").read_text(encoding="utf-8")).stylistic_repetition_rate
-            for stem in ("lettre1", "lettre2", "reponse")
-        }
-        self.assertGreater(values["lettre1"], values["reponse"])
-        self.assertAlmostEqual(values["lettre1"], .096, delta=.01)
-        self.assertAlmostEqual(values["lettre2"], .152, delta=.01)
-        self.assertAlmostEqual(values["reponse"], .064, delta=.01)
+        repetitive = compute_stats("Le marin regarde la mer. " * 40).stylistic_repetition_rate
+        varied = compute_stats("Le marin observe la mer puis rejoint le port. Une tempête surprend son équipage.").stylistic_repetition_rate
+        self.assertGreater(repetitive, varied)
+
+    def test_source_normalization_collapses_excess_blank_lines(self):
+        self.assertEqual(normalize_source_text("un\n\ndeux"), "un\n\ndeux")
+        self.assertEqual(normalize_source_text("un\n\n\n\n deux"), "un\n\n deux")
+        self.assertEqual(normalize_source_text("un\r\n\r\n\r\ndeux"), "un\n\ndeux")
 
     def test_source_display_names(self):
         self.assertEqual(display_name(Path("lettre1.md")), "Lettre 1")
+        self.assertEqual(display_name(Path("_Crouzet.md")), "Crouzet")
         self.assertEqual(display_name(Path("mon_roman-12.md")), "Mon roman 12")
 
-    def test_range_is_normalized_by_possible_or_observed_maximum(self):
-        from detector.stats_cli import normalized_range
-        self.assertEqual(normalized_range(["10 %", "20 %"]), "10,0 %")
-        self.assertEqual(normalized_range(["0 %", "1 %", "0 %"]), "0,5 %")
-        self.assertEqual(normalized_range(["10", "20"]), "50,0 %")
+    def test_comparison_sources_put_ai_before_alphabetical_humans(self):
+        sources = comparison_sources()
+        human_index = next((index for index, source in enumerate(sources) if source.stem.startswith("_")), len(sources))
+        self.assertTrue(all(not source.stem.startswith("_") for source in sources[:human_index]))
+        self.assertTrue(all(source.stem.startswith("_") for source in sources[human_index:]))
+        self.assertEqual(
+            [display_name(source) for source in sources[human_index:]],
+            sorted((display_name(source) for source in sources[human_index:]), key=str.casefold),
+        )
+
+    def test_ai_sources_are_merged_into_one_document(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ai_b = root / "second.md"
+            human = root / "_Humain.md"
+            ai_a = root / "premier.md"
+            ai_a.write_text("Premier texte IA.", encoding="utf-8")
+            ai_b.write_text("Second texte IA.", encoding="utf-8")
+            human.write_text("Texte humain.", encoding="utf-8")
+            documents = comparison_documents([ai_a, ai_b, human])
+        self.assertEqual([source.name for source, _ in documents], ["IA.md", "_Humain.md"])
+        self.assertEqual(documents[0][1], "Premier texte IA.\n\nSecond texte IA.")
+
+    def test_corpus_fingerprint_changes_with_source_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "texte.md"
+            source.write_text("Première version.", encoding="utf-8")
+            first = corpus_fingerprint([source])
+            source.write_text("Deuxième version.", encoding="utf-8")
+            second = corpus_fingerprint([source])
+        self.assertNotEqual(first, second)
+
+    def test_dispersion_is_standard_deviation_over_mean(self):
+        from detector.stats_cli import coefficient_dispersions
+        rows = [[("Mesure", "10")], [("Mesure", "20")], [("Mesure", "30")]]
+        self.assertEqual(coefficient_dispersions(rows)["Mesure"], "40.8 %")
+
+    def test_dispersion_ignores_tukey_outlier(self):
+        from detector.stats_cli import coefficient_dispersions
+        rows = [[("Mesure", str(value))] for value in (.1, .3, .3, .5, .7, 1.6)]
+        self.assertEqual(coefficient_dispersions(rows)["Mesure"], "53.7 %")
+
+    def test_kiviat_always_contains_noun_verb_ratio(self):
+        from detector.stats import TextStats
+        analyses = [
+            (Path("IA.md"), TextStats(noun_verb_ratio=1.5, structural_diversity=.2, structural_rhythm=.3, sentence_word_std_dev=4, punctuation_per_300_words=30, punctuation_diversity=.3, stylistic_repetition_rate=.1, function_word_ratio=.4, form_lemma_ratio=.9, gzip_compression_ratio=.4)),
+            (Path("_Auteur.md"), TextStats(noun_verb_ratio=2.2, structural_diversity=.8, structural_rhythm=.7, sentence_word_std_dev=12, punctuation_per_300_words=60, punctuation_diversity=.7, stylistic_repetition_rate=.2, function_word_ratio=.3, form_lemma_ratio=.98, gzip_compression_ratio=.5)),
+        ]
+        self.assertIn("Ratio noms/verbes", kiviat_chart(analyses))
+
+    def test_windows_do_not_overlap_and_end_on_paragraphs(self):
+        from detector.stats_cli import source_windows
+        paragraphs = ["mot " * 6, "suite " * 6, "fin " * 6]
+        windows = source_windows("\n\n".join(paragraphs), 10, minimum_final_ratio=.5)
+        self.assertEqual(len(windows), 2)
+        self.assertNotIn("fin", windows[0])
+        self.assertIn("fin", windows[1])
+
+    def test_gzip_windows_have_equal_byte_lengths(self):
+        from detector.stats_cli import byte_windows
+        windows = byte_windows("é" * 20, 10)
+        self.assertTrue(windows)
+        self.assertTrue(all(len(window) == 10 for window in windows))
 
     def test_equivalent_sentence_structures_are_repeated(self):
         from detector.stats import sentence_structure_signatures, structural_repetition_rate
@@ -185,12 +210,31 @@ class DetectorTests(unittest.TestCase):
         self.assertEqual(short, "SUJET VERBE COMPLÉMENT .")
 
     def test_structural_diversity_and_rhythm(self):
-        from detector.stats import structural_diversity, structural_rhythm
+        from detector.stats import structural_diversity, structural_rhythm, structural_subpatterns
         signatures = ["SUJET VERBE .", "SUJET VERBE .", "VERBE COMPLÉMENT ."]
-        self.assertAlmostEqual(structural_diversity(signatures), 2 / 3)
-        self.assertEqual(structural_diversity(["INCONNU .", "SUJET VERBE ."]), .5)
+        self.assertGreater(structural_diversity(signatures), 0)
+        self.assertLess(structural_diversity(signatures), 2 / 3)
+        self.assertEqual(structural_diversity(["INCONNU .", "SUJET VERBE ."]), 0)
+        chained = "SUJET VERBE COMPLÉMENT PROPOSITION_SUBORDONNÉE PROPOSITION_SUBORDONNÉE ."
+        self.assertEqual(structural_subpatterns(chained), [
+            "SUJET VERBE COMPLÉMENT", "PROPOSITION_SUBORDONNÉE", "PROPOSITION_SUBORDONNÉE",
+        ])
+        self.assertGreater(structural_diversity([
+            chained, chained, "SUJET VERBE COMPLÉMENT .",
+        ]), 0)
         self.assertGreater(structural_rhythm(signatures), 0)
         self.assertEqual(structural_rhythm(["SUJET VERBE .", "SUJET VERBE ."]), 0)
+
+    def test_repeated_subordinates_count_less_than_distinct_structures(self):
+        from detector.stats import _structural_profile_distance
+        simple = (("PRINCIPALE", 1), ("SUBORDONNÉE", 1))
+        repeated = (("PRINCIPALE", 1), ("SUBORDONNÉE", 5))
+        varied = tuple((f"STRUCTURE {index}", 1) for index in range(6))
+        self.assertGreater(_structural_profile_distance(simple, repeated), 0)
+        self.assertLess(
+            _structural_profile_distance(simple, repeated),
+            _structural_profile_distance(simple, varied),
+        )
 
     def test_uniformity_uses_all_diversity_signals(self):
         from detector.stats import TextStats, uniformity_components
@@ -200,14 +244,13 @@ class DetectorTests(unittest.TestCase):
             "structure_repetition", "structure_similarity", "structure_rhythm",
         })
 
-    def test_ai_score_v1_formula(self):
-        from detector.stats import TextStats, ai_score
-        stats = TextStats(
-            burstiness=.83, gzip_compression_ratio=.52,
-            structural_diversity=.60, filtered_repetition_rate=.10,
-            relative_clause_ratio=0, subordinate_clause_ratio=1,
-        )
-        self.assertIsInstance(ai_score(stats), int)
+    def test_noun_verb_and_form_lemma_ratios(self):
+        from detector.stats import TextStats
+        stats = TextStats(noun_ratio=.4, verb_ratio=.2, moving_type_token_ratio=.9, lemma_richness=1.0)
+        stats.noun_verb_ratio = stats.noun_ratio / stats.verb_ratio
+        stats.form_lemma_ratio = stats.moving_type_token_ratio / stats.lemma_richness
+        self.assertEqual(stats.noun_verb_ratio, 2)
+        self.assertEqual(stats.form_lemma_ratio, .9)
 
     def test_repetitive_text_compresses_better(self):
         from detector.stats import compute_stats
@@ -239,7 +282,7 @@ class DetectorTests(unittest.TestCase):
         self.assertGreater(local_repetition_rate(words, filtered=True), 0)
 
     def test_lemma_report_bolds_repeated_inflections(self):
-        report = markdown_lemma_report(SOURCE_DIR / "reponse.md")
+        report = markdown_lemma_report(SOURCE_DIR / "IA.md")
         self.assertIn("**", report)
 
         from detector.stats import repetition_lemma_annotations
