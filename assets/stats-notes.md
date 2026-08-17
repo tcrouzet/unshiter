@@ -16,6 +16,10 @@ Chaque phrase est d’abord transformée en propositions simplifiées, par exemp
 
 Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
 
+<!-- Proposition de Codex :
+La diversité des longueurs entre directement dans le calcul : les phrases comportant davantage de propositions reçoivent progressivement plus de poids, jusqu’à douze propositions cumulées. Cet avantage reste modéré par la variété réelle des constructions : répéter cinq subordonnées identiques apporte moins de diversité que cinq constructions différentes.
+-->
+
 # Rythme des structures
 
 Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
@@ -98,12 +102,12 @@ Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infi
 
 # Profondeur syntaxique
 
-Pour chaque phrase, spaCy construit un arbre de dépendances. Le programme mesure le plus grand nombre de liens entre un mot et la racine de cet arbre, puis moyenne cette profondeur maximale sur les phrases. Une valeur élevée correspond à des dépendances plus imbriquées. Elle ne mesure ni directement la longueur ni la qualité littéraire.
+Mesure la complexité hiérarchique des phrases reconnue par spaCy. Plus des groupes et propositions sont emboîtés les uns dans les autres, plus les mots les plus éloignés nécessitent de relations pour rejoindre le verbe principal, et plus la profondeur augmente.
 
 # Formes par lemme
 
-Dans chaque fenêtre, le programme calcule d’une part la diversité mobile des formes graphiques et d’autre part la diversité mobile des lemmes lexicaux, sur des sous-fenêtres de 50 mots. La valeur affichée est `diversité des formes / diversité des lemmes`, avant arrondi. Une valeur élevée indique que les mêmes lemmes apparaissent sous davantage de flexions ou de graphies. Le nom de la mesure est une simplification : ce n’est pas un comptage brut des formes de chaque lemme.
+Dans chaque fenêtre mobiles de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes.
 
 # Mots employés une seule fois
 
-Nombre de formes graphiques dont la fréquence vaut exactement 1, divisé par le nombre de formes graphiques différentes. Il s’agit de la part des types qui sont des hapax, et non de la part des mots du texte n’apparaissant qu’une fois.
+Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.

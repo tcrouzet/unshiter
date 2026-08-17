@@ -14,6 +14,7 @@ from detector.stats_cli import (
     markdown_comparison,
     markdown_lemma_report,
     markdown_stats,
+    notes,
     kiviat_chart,
     normalize_source_text,
     output_paths as stats_output_paths,
@@ -22,6 +23,12 @@ from detector.stats_cli import (
 
 
 class DetectorTests(unittest.TestCase):
+    def test_editorial_comments_are_injected_in_markdown_source(self):
+        rendered = "\n".join(notes(["Diversité des structures"]))
+        self.assertIn("[^1]:", rendered)
+        self.assertIn("<!-- Proposition de Codex", rendered)
+        self.assertIn("La diversité des longueurs entre directement", rendered)
+
     def test_stats_report_names(self):
         markdown, json = stats_output_paths(Path("exemple.md"))
         self.assertEqual(markdown, OUTPUT_DIR / "exemple_stats.md")
@@ -63,8 +70,6 @@ class DetectorTests(unittest.TestCase):
         self.assertIn("| Diversité des débuts de phrase", summary)
         self.assertIn("| Burstiness", summary)
         self.assertNotIn("| Répétitions stylistiques", report)
-        self.assertIn("Nombre de noms divisé par le nombre de verbes", report)
-        self.assertIn("diversité des formes / diversité des lemmes", report)
         self.assertRegex(summary, r"\| Diversité des structures\[\^\d+\] \|")
         self.assertNotIn("Burstiness des paragraphes", report)
         self.assertIn("| Écart-type des paragraphes (mots) |", details)

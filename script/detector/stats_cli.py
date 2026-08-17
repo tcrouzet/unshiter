@@ -279,16 +279,23 @@ def split_rows(rows: list[tuple[str, object]]) -> tuple[list[tuple[str, object]]
     return important, details
 
 
-def note_sections() -> dict[str, str]:
+def markdown_sections(path: Path) -> dict[str, str]:
+    """Lit un fichier Markdown organisé en sections de premier niveau."""
+    if not path.exists():
+        return {}
     sections: dict[str, list[str]] = {}
     current_title = None
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+    for line in path.read_text(encoding=TEXT_ENCODING).splitlines():
         if line.startswith("# "):
             current_title = line[2:].strip()
             sections[current_title] = []
         elif current_title is not None:
             sections[current_title].append(line)
     return {title: "\n".join(content).strip() for title, content in sections.items()}
+
+
+def note_sections() -> dict[str, str]:
+    return markdown_sections(STATS_NOTES_FILE)
 
 
 def number_notes(rows: list[tuple[str, object]], prefix_titles: list[str] | None = None) -> tuple[list[tuple[str, object]], list[str]]:
