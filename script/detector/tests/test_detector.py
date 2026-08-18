@@ -276,6 +276,30 @@ class DetectorTests(unittest.TestCase):
         from detector.stats import lemma_hapax_ratio
         self.assertEqual(lemma_hapax_ratio(["fleur", "fleurs", "arbre"]), .5)
 
+    def test_active_voice_distinguishes_compound_past_from_passive(self):
+        from detector.syntax_depth import analyze_syntax
+        active = analyze_syntax("Il était allé à Paris.")
+        passive = analyze_syntax("Le chien est poursuivi par le chat.")
+        self.assertEqual(active["active_voice_ratio"], 1)
+        self.assertEqual(passive["active_voice_ratio"], 0)
+
+    def test_metaphorical_comme_excludes_circumstantial_clause(self):
+        from detector.syntax_depth import analyze_syntax
+        comparison = analyze_syntax("Il courait comme un chien enragé.")
+        verbal_comparison = analyze_syntax("Il courait comme Charlot courait.")
+        circumstance = analyze_syntax("Comme il pleuvait, il restait chez lui.")
+        self.assertEqual(comparison["metaphorical_comme_ratio"], 1)
+        self.assertEqual(verbal_comparison["metaphorical_comme_ratio"], 1)
+        self.assertEqual(circumstance["metaphorical_comme_ratio"], 0)
+        self.assertEqual(analyze_syntax("Il courait vite.")["metaphorical_comme_ratio"], 0)
+
+    def test_comparison_phrases_are_counted_per_sentence(self):
+        from detector.syntax_depth import analyze_syntax
+        analysis = analyze_syntax(
+            "Il parlait à la manière de son père. Elle avançait à la façon d'une reine. Rien ne bougeait."
+        )
+        self.assertAlmostEqual(analysis["metaphorical_comme_ratio"], 2 / 3)
+
     def test_repetitive_text_compresses_better(self):
         from detector.stats import compute_stats
         repetitive = compute_stats(("bonjour monde " * 200).strip())

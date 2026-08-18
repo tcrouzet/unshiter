@@ -32,6 +32,7 @@ from .config import (
     TEXT_ENCODING,
 )
 from .stats import TextStats, WORD_RE, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
+from .syntax_depth import analyze_syntax
 
 
 FULL_DOCUMENT_FIELDS = {
@@ -84,7 +85,7 @@ def corpus_fingerprint(sources: list[Path]) -> str:
     detector_dir = Path(__file__).resolve().parent
     paths = list(sources)
     paths.extend(sorted(detector_dir.glob("*.py")))
-    paths.append(STATS_NOTES_FILE.parent / "function-words.txt")
+    paths.extend([STATS_NOTES_FILE.parent / "function-words.txt", STATS_NOTES_FILE.parent / "comparison-markers.txt"])
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: str(item)):
         digest.update(str(path.resolve()).encode(TEXT_ENCODING))
@@ -188,12 +189,15 @@ def comparable_stats(text: str, full_stats, window: int, gzip_window: int):
         numeric = [value for value in values if value is not None]
         updates[field.name] = sum(numeric) / len(numeric) if numeric else None
     words = tokenize(text)
+    full_syntax = analyze_syntax(text)
     updates.update({
         "word_count": len(words),
         "unique_word_count": len(set(words)),
         "sentence_count": len(split_sentences(text)),
         "paragraph_count": len([part for part in re.split(r"\n\s*\n", text) if part.strip()]),
         "gzip_compression_ratio": gzip_window_ratio(text, gzip_window),
+        "active_voice_ratio": full_syntax["active_voice_ratio"] if full_syntax else None,
+        "metaphorical_comme_ratio": full_syntax["metaphorical_comme_ratio"] if full_syntax else None,
     })
     return replace(base, **updates)
 
@@ -248,6 +252,8 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Ponctuation (signes/300 mots)", f"{stats.punctuation_per_300_words:.1f}"),
         ("Diversité de ponctuation", f"{stats.punctuation_diversity * 100:.0f} %"),
         ("Phrases nominales[^15]", f"{stats.nominal_sentence_ratio * 100:.0f} %" if stats.nominal_sentence_ratio is not None else "indisponible"),
+        ("Voix active", f"{stats.active_voice_ratio * 100:.0f} %" if stats.active_voice_ratio is not None else "indisponible"),
+        ("Comparaisons métaphoriques", f"{stats.metaphorical_comme_ratio * 100:.1f} %" if stats.metaphorical_comme_ratio is not None else "indisponible"),
         ("Écart-type des paragraphes (mots)", f"{stats.paragraph_length_std_dev:.1f}"),
         ("Profondeur syntaxique[^18]", f"{stats.average_syntactic_depth:.1f}" if stats.average_syntactic_depth is not None else "indisponible"),
     ]
@@ -358,6 +364,8 @@ def statistic_numeric_values(stats, comparison: dict | None = None) -> dict[str,
         "Ponctuation (signes/300 mots)": stats.punctuation_per_300_words,
         "Diversité de ponctuation": percent(stats.punctuation_diversity),
         "Phrases nominales": percent(stats.nominal_sentence_ratio or 0),
+        "Voix active": percent(stats.active_voice_ratio or 0),
+        "Comparaisons métaphoriques": percent(stats.metaphorical_comme_ratio or 0),
         "Profondeur syntaxique": stats.average_syntactic_depth,
         "Formes par lemme": stats.form_lemma_ratio,
         "Diversité des débuts de phrase": percent(stats.sentence_start_diversity),

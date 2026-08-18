@@ -1,0 +1,6 @@
+# Locutions comparatives comptées comme comparaisons métaphoriques.
+# Une locution par ligne, en minuscules.
+à la manière
+à la façon
+à l'image
+à l'instar

@@ -82,8 +82,10 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.
 | Compression gzip[^23] | 42 % | 46 % | 41 % | 45 % | 45 % | 46 % | 4.2 % |
 | Relatives et subordonnées[^24] | 131 % | 104 % | 135 % | 279 % | 118 % | 207 % | 37.7 % |
 | Phrases nominales[^25] | 7 % | 21 % | 10 % | 10 % | 10 % | 10 % | 3.6 % |
-| Formes par lemme[^26] | 0.83 | 0.85 | 0.91 | 0.87 | 0.88 | 0.86 | 1.9 % |
-| Mots employés une seule fois[^27] | 72 % | 76 % | 66 % | 75 % | 74 % | 77 % | 2.3 % |
+| Voix active[^26] | 81 % | 66 % | 70 % | 77 % | 73 % | 77 % | 6.9 % |
+| Comparaisons métaphoriques[^27] | 2.1 % | 3.4 % | 6.3 % | 9.9 % | 3.2 % | 12.8 % | 61.8 % |
+| Formes par lemme[^28] | 0.83 | 0.85 | 0.91 | 0.87 | 0.88 | 0.86 | 1.9 % |
+| Mots employés une seule fois[^29] | 72 % | 76 % | 66 % | 75 % | 74 % | 77 % | 2.3 % |
 | Mots | 1743 | 49880 | 29454 | 22614 | 91510 | 58784 | — |
 | Phrases | 134 | 4088 | 1972 | 877 | 4811 | 1336 | — |
 | Paragraphes | 33 | 834 | 248 | 153 | 889 | 282 | — |
@@ -172,9 +174,13 @@ La diversité des longueurs entre directement dans le calcul : les phrases compo
 
 [^25]: Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
 
-[^26]: Dans chaque fenêtre mobiles de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes.
+[^26]: Pourcentage des phrases du document contenant une construction verbale active et aucune construction passive. Le passif est reconnu par une dépendance `aux:pass`, un sujet `nsubj:pass` ou la marque morphologique `Voice=Pass`. La présence de l’auxiliaire « être » ne suffit pas : dans « il était allé », « était » construit un temps composé actif. 100 % signifie que toutes les phrases sont verbales et actives. Cette mesure est calculée sur le document entier, sans fenêtre.
 
-[^27]: Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
+[^27]: Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
+
+[^28]: Dans chaque fenêtre mobiles de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes.
+
+[^29]: Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
 <!-- STATS:END -->
 
 Une empreinte SHA-256 des sources, du code de calcul et des configurations qui influencent les mesures est enregistrée dans `_temp/stats-cache.json`. Les statistiques calculées sont conservées avec cette empreinte. Modifier `assets/stats-notes.md` ne l’invalide pas : `./stats.sh` régénère alors le rapport et le README depuis les valeurs en cache, sans recommencer l’analyse spaCy.

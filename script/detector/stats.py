@@ -113,6 +113,8 @@ class TextStats:
     subordinate_clause_ratio: float | None = None
     nominal_sentence_count: int | None = None
     nominal_sentence_ratio: float | None = None
+    active_voice_ratio: float | None = None
+    metaphorical_comme_ratio: float | None = None
     pos_common_noun_ratio: float | None = None
     pos_proper_noun_ratio: float | None = None
     pos_verb_ratio: float | None = None
@@ -738,6 +740,8 @@ def compute_stats(text: str) -> TextStats:
         subordinate_clause_ratio=r(syntax["subordinate_clause_ratio"]) if syntax else None,
         nominal_sentence_count=syntax["nominal_sentence_count"] if syntax else None,
         nominal_sentence_ratio=r(syntax["nominal_sentence_ratio"]) if syntax else None,
+        active_voice_ratio=r(syntax["active_voice_ratio"]) if syntax and syntax["active_voice_ratio"] is not None else None,
+        metaphorical_comme_ratio=r(syntax["metaphorical_comme_ratio"]) if syntax and syntax["metaphorical_comme_ratio"] is not None else None,
         pos_common_noun_ratio=r(syntax["pos_distribution"]["common_nouns"]) if syntax else None,
         pos_proper_noun_ratio=r(syntax["pos_distribution"]["proper_nouns"]) if syntax else None,
         pos_verb_ratio=r(syntax["pos_distribution"]["verbs"]) if syntax else None,
