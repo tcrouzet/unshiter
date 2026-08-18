@@ -17,9 +17,25 @@ from .config import (
     MORPHALOU_SCHEMA_VERSION,
 )
 
+_CONTEXTUAL_LEMMA_CACHE: dict[tuple[str, str, str], str] = {}
+
 
 def normalize_form(value: str) -> str:
     return unicodedata.normalize("NFC", value.strip().lower().replace("’", "'"))
+
+
+def _edit_distance(left: str, right: str) -> int:
+    previous = list(range(len(right) + 1))
+    for left_index, left_character in enumerate(left, 1):
+        current = [left_index]
+        for right_index, right_character in enumerate(right, 1):
+            current.append(min(
+                current[-1] + 1,
+                previous[right_index] + 1,
+                previous[right_index - 1] + (left_character != right_character),
+            ))
+        previous = current
+    return previous[-1]
 
 
 def _archive_signature() -> str:
@@ -87,6 +103,55 @@ def ensure_index() -> None:
 
 def lemma_map(forms: Iterable[str]) -> dict[str, str]:
     return {form: data[0] for form, data in lexical_map(forms).items()}
+
+
+def contextual_lemma_map(items: Iterable[tuple[str, str, str]]) -> dict[str, str]:
+    """Combine catégorie contextuelle et familles de flexions Morphalou."""
+    normalized_items = [
+        (normalize_form(form), category.lower(), normalize_form(suggested))
+        for form, category, suggested in items if form
+    ]
+    forms = sorted({form for form, _, _ in normalized_items})
+    if not forms:
+        return {}
+    ensure_index()
+    direct: dict[str, tuple[str, str]] = {}
+    with closing(sqlite3.connect(MORPHALOU_INDEX)) as connection:
+        for start in range(0, len(forms), 900):
+            chunk = forms[start:start + 900]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = connection.execute(f"SELECT form, lemma, category FROM lexicon WHERE form IN ({placeholders})", chunk)
+            for form, lemma, category in rows:
+                direct[form] = (lemma, category.lower())
+        result = {}
+        for form, contextual_category, suggested in normalized_items:
+            cache_key = (form, contextual_category, suggested)
+            if cache_key in _CONTEXTUAL_LEMMA_CACHE:
+                result[form] = _CONTEXTUAL_LEMMA_CACHE[cache_key]
+                continue
+            stored = direct.get(form)
+            if stored and stored[1].startswith(contextual_category):
+                result[form] = stored[0]
+                _CONTEXTUAL_LEMMA_CACHE[cache_key] = result[form]
+                continue
+            if suggested and suggested != form:
+                result[form] = suggested
+                _CONTEXTUAL_LEMMA_CACHE[cache_key] = result[form]
+                continue
+            inferred = None
+            for prefix_length in range(len(form) - 1, 2, -1):
+                prefix = form[:prefix_length]
+                rows = connection.execute(
+                    "SELECT lemma, category FROM lexicon WHERE form >= ? AND form < ?",
+                    (prefix, prefix + "\uffff"),
+                ).fetchall()
+                rows = [row for row in rows if row[1].lower().startswith(contextual_category)]
+                if rows:
+                    inferred = min((row[0] for row in rows), key=lambda lemma: (_edit_distance(form, lemma), len(lemma), lemma))
+                    break
+            result[form] = inferred or (stored[0] if stored else suggested or form)
+            _CONTEXTUAL_LEMMA_CACHE[cache_key] = result[form]
+    return result
 
 
 def lexical_map(forms: Iterable[str]) -> dict[str, tuple[str, str]]:

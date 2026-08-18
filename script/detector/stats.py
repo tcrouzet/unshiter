@@ -8,7 +8,7 @@ import re
 
 from .config import FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
 from .demonette import family_map, phonetic_map
-from .morphalou import lemma_map, lexical_map
+from .morphalou import contextual_lemma_map, lemma_map, lexical_map
 from .syntax_depth import analyze_contextual_tokens, analyze_syntax
 
 
@@ -218,6 +218,15 @@ def vocabulary_richness(words: list[str], window: int = LEXICAL_WINDOW_SIZE) -> 
 def _trigram_repetition(words: list[str]) -> float:
     grams = Counter(zip(words, words[1:], words[2:]))
     return sum(value > 1 for value in grams.values()) / len(grams) if grams else 0
+
+
+def _trigram_lemmas(words: list[str], contextual_tokens: list[object] | None = None) -> list[str]:
+    """Lemmatise en contexte, avec Morphalou comme repli déterministe."""
+    if contextual_tokens and isinstance(contextual_tokens[0], tuple):
+        contextual = contextual_lemma_map((token[0], token[2], token[1]) for token in contextual_tokens)
+        return [contextual.get(token[0], token[1]) for token in contextual_tokens]
+    mapping = lemma_map(words)
+    return [mapping.get(word, word) for word in words]
 
 
 def _moving_trigram_repetition(words: list[str], window: int = 200, step: int = 50) -> float:
@@ -684,7 +693,8 @@ def compute_stats(text: str) -> TextStats:
     word_std = math.sqrt(sum((n - word_mean) ** 2 for n in sentence_word_lengths) / len(sentence_word_lengths)) if len(sentence_word_lengths) > 1 else 0
     mean_difference = sum(abs(b-a) for a, b in zip(lengths, lengths[1:])) / (len(lengths)-1) if len(lengths)>1 else 0
     burst = mean_difference / mean if mean else 0
-    repetition = _trigram_repetition(words)
+    trigram_lemmas = _trigram_lemmas(words, repetition_words)
+    repetition = _trigram_repetition(trigram_lemmas)
     paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
     paragraph_lengths = [len(tokenize(paragraph)) for paragraph in paragraphs]
     paragraph_mean = sum(paragraph_lengths) / len(paragraph_lengths) if paragraph_lengths else 0
@@ -716,7 +726,7 @@ def compute_stats(text: str) -> TextStats:
         unique_lemma_count=unique_lemma_count,
         hapax_ratio=r(lemma_hapax_ratio(words)),
         function_word_ratio=r(_function_word_ratio(words)),
-        trigram_repetition=r(repetition), moving_trigram_repetition=r(_moving_trigram_repetition(words)),
+        trigram_repetition=r(repetition), moving_trigram_repetition=r(_moving_trigram_repetition(trigram_lemmas)),
         avg_paragraph_length=r(paragraph_mean), paragraph_length_std_dev=r(paragraph_std),
         punctuation_diversity=r(_punctuation_diversity(text)),
         punctuation_per_300_words=r(len(PUNCTUATION_MARK_RE.findall(text)) / len(words) * 300),

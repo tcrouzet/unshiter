@@ -35,6 +35,10 @@ KIVIAT_DETAIL_CHART = OUTPUT_DIR / "kiviat_details.svg"
 README_KIVIAT_DETAIL_CHART = ASSETS_DIR / "readme" / "kiviat-details-github.png"
 KIVIAT_AREA_CHART = OUTPUT_DIR / "kiviat_areas.svg"
 STATS_CACHE_MANIFEST = TEMP_DIR / "stats-cache.json"
+METRIC_CACHE_VERSIONS = {
+    "trigram_repetition": "2-lemmas-contextual-morphalou",
+    "moving_trigram_repetition": "2-lemmas-contextual-morphalou",
+}
 README_STATS_START = "<!-- STATS:START -->"
 README_STATS_END = "<!-- STATS:END -->"
 MORPHALOU_BATCH_SIZE = 10_000

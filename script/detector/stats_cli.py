@@ -21,6 +21,7 @@ from .config import (
     LEMMA_REPORT_SUFFIX,
     GRAMMATICAL_DISTRIBUTION_CHART,
     MARKDOWN_EXTENSION,
+    METRIC_CACHE_VERSIONS,
     OUTPUT_DIR,
     README_FILE,
     README_KIVIAT_DETAIL_CHART,
@@ -35,7 +36,7 @@ from .config import (
     STRUCTURE_REPORT_SUFFIX,
     TEXT_ENCODING,
 )
-from .stats import TextStats, WORD_RE, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
+from .stats import TextStats, WORD_RE, _moving_trigram_repetition, _trigram_lemmas, _trigram_repetition, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
 from .syntax_depth import analyze_syntax
 
 
@@ -85,11 +86,8 @@ def comparison_documents(sources: list[Path]) -> list[tuple[Path, str]]:
 
 
 def corpus_fingerprint(sources: list[Path]) -> str:
-    """Empreinte du corpus, du code de calcul et des configurations éditables."""
-    detector_dir = Path(__file__).resolve().parent
+    """Empreinte du contenu source uniquement ; les mesures ont leurs versions."""
     paths = list(sources)
-    paths.extend(sorted(detector_dir.glob("*.py")))
-    paths.extend([STATS_NOTES_FILE.parent / "function-words.txt", STATS_NOTES_FILE.parent / "comparison-markers.txt"])
     digest = hashlib.sha256()
     for path in sorted(paths, key=lambda item: str(item)):
         digest.update(str(path.resolve()).encode(TEXT_ENCODING))
@@ -115,13 +113,18 @@ def read_comparison_cache(sources: list[Path], fingerprint: str):
         return None
     try:
         manifest = json.loads(STATS_CACHE_MANIFEST.read_text(encoding=TEXT_ENCODING))
-        if manifest.get("fingerprint") != fingerprint:
+        cached_fingerprint = manifest.get("corpus_fingerprint")
+        if cached_fingerprint is not None and cached_fingerprint != fingerprint:
+            return None
+        if cached_fingerprint is None and any(source.stat().st_mtime_ns > STATS_CACHE_MANIFEST.stat().st_mtime_ns for source in sources):
             return None
         analyses = [
             (Path(item["source"]), TextStats(**item["stats"]))
             for item in manifest["analyses"]
         ]
-        return analyses, int(manifest["window"])
+        versions = manifest.get("metric_versions", {})
+        stale = {field for field, version in METRIC_CACHE_VERSIONS.items() if versions.get(field) != version}
+        return analyses, int(manifest["window"]), stale
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         return None
 
@@ -129,7 +132,8 @@ def read_comparison_cache(sources: list[Path], fingerprint: str):
 def write_comparison_cache(fingerprint: str, analyses, window: int) -> None:
     STATS_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "fingerprint": fingerprint,
+        "corpus_fingerprint": fingerprint,
+        "metric_versions": METRIC_CACHE_VERSIONS,
         "window": window,
         "analyses": [
             {"source": str(source), "stats": asdict(stats)}
@@ -140,6 +144,25 @@ def write_comparison_cache(fingerprint: str, analyses, window: int) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding=TEXT_ENCODING,
     )
+
+
+def refresh_trigram_metrics(sources: list[Path], analyses, window: int):
+    """Ne recalcule que les deux mesures de trigrammes devenues obsolètes."""
+    texts = dict(comparison_documents(sources))
+    refreshed = []
+    for source, stats in analyses:
+        global_values, local_values = [], []
+        for fragment in source_windows(texts[source], window):
+            words = tokenize(fragment)
+            lemmas = _trigram_lemmas(words, tokenize_repetitions(fragment))
+            global_values.append(_trigram_repetition(lemmas))
+            local_values.append(_moving_trigram_repetition(lemmas))
+        refreshed.append((source, replace(
+            stats,
+            trigram_repetition=sum(global_values) / len(global_values),
+            moving_trigram_repetition=sum(local_values) / len(local_values),
+        )))
+    return refreshed
 
 
 def source_windows(text: str, size: int, minimum_final_ratio: float = 0.7) -> list[str]:
@@ -547,6 +570,7 @@ def detail_kiviat_profiles(analyses: list[tuple[Path, object]], minimum_dispersi
     labels = [
         label for label, _ in rows_by_file[0]
         if (value := numeric_value(dispersions.get(label))) is not None and value >= minimum_dispersion
+        and label != "Diversité de longueurs de phrase (mots)"
     ]
     dimensions = []
     for label in labels:
@@ -557,12 +581,22 @@ def detail_kiviat_profiles(analyses: list[tuple[Path, object]], minimum_dispersi
         if not mean:
             continue
         std_dev = math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
-        dimensions.append((label, values, mean, std_dev, False, label.endswith("%")))
+        inverse = label in {
+            "Répétition globale des trigrammes",
+            "Répétition locale des trigrammes",
+            "Adjectifs",
+            "Adverbes",
+            "Relatives et subordonnées",
+            "Comparaisons métaphoriques",
+        }
+        dimensions.append((label, values, mean, std_dev, inverse, label.endswith("%")))
     profiles = []
     for series_index in range(len(analyses)):
         radii = []
-        for _, values, mean, std_dev, _, _ in dimensions:
+        for _, values, mean, std_dev, inverse, _ in dimensions:
             relative_deviation = (values[series_index] - mean) / abs(mean)
+            if inverse:
+                relative_deviation = -relative_deviation
             radii.append(max(.05, min(.5 + 1.25 * relative_deviation, 1)))
         profiles.append(radii)
     return dimensions, profiles
@@ -732,7 +766,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     lines += ["", "## Profil comparatif", "", f"![Diagramme de Kiviat]({KIVIAT_CHART.name})", ""]
     lines += ["Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.", ""]
     lines += ["", "## Profil des mesures secondaires", "", f"![Radar des mesures secondaires]({KIVIAT_DETAIL_CHART.name})", ""]
-    lines += ["Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %. L’extérieur indique ici une valeur brute plus élevée, sans jugement positif ou négatif.", ""]
+    lines += ["Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %, en excluant la diversité de longueur des phrases déjà intégrée à la diversité des structures. Les répétitions, les adjectifs, les adverbes, les relatives et subordonnées et les comparaisons métaphoriques sont inversés : pour ces indices négatifs, l’extérieur correspond à une valeur plus faible. Pour les autres axes, l’extérieur correspond à une valeur plus élevée.", ""]
     lines += ["", "## Surface des profils", "", f"![Surface des profils du radar]({KIVIAT_AREA_CHART.name})", ""]
     lines += ["Les surfaces sont calculées directement sur les polygones du radar et classées de la plus petite à la plus grande. Leur unité est arbitraire.", ""]
     lines += ["", "## Répartition grammaticale par document", "", f"![Répartition grammaticale]({GRAMMATICAL_DISTRIBUTION_CHART.name})", ""]
@@ -842,7 +876,16 @@ def main(argv=None) -> int:
         fingerprint = corpus_fingerprint(sources)
         cached = read_comparison_cache(sources, fingerprint)
         if cached is not None:
-            compared_analyses, window = cached
+            compared_analyses, window, stale_metrics = cached
+            if stale_metrics <= set(METRIC_CACHE_VERSIONS):
+                if stale_metrics:
+                    compared_analyses = refresh_trigram_metrics(sources, compared_analyses, window)
+                    write_comparison_cache(fingerprint, compared_analyses, window)
+            else:
+                cached = None
+        if cached is not None:
+            KIVIAT_DETAIL_CHART.write_text(kiviat_chart(compared_analyses, detail_kiviat_profiles(compared_analyses)) + "\n", encoding=TEXT_ENCODING)
+            svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
             comparison = markdown_comparison(sources, compared_analyses, window)
             STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
             sync_readme(comparison)

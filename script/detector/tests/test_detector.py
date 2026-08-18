@@ -174,6 +174,9 @@ class DetectorTests(unittest.TestCase):
         ]
         dimensions, _ = detail_kiviat_profiles(analyses)
         self.assertIn("Répétition globale des trigrammes", [dimension[0] for dimension in dimensions])
+        trigram_dimension = next(dimension for dimension in dimensions if dimension[0] == "Répétition globale des trigrammes")
+        self.assertTrue(trigram_dimension[4])
+        self.assertNotIn("Diversité de longueurs de phrase (mots)", [dimension[0] for dimension in dimensions])
         self.assertNotIn("Mots", [dimension[0] for dimension in dimensions])
 
     def test_windows_do_not_overlap_and_end_on_paragraphs(self):
@@ -327,6 +330,11 @@ class DetectorTests(unittest.TestCase):
         short = compute_stats(("alpha beta gamma delta epsilon " * 40) + ".")
         long = compute_stats((("alpha beta gamma delta epsilon " * 40) + ". ") * 10)
         self.assertAlmostEqual(short.moving_trigram_repetition, long.moving_trigram_repetition, places=2)
+
+    def test_trigrams_group_morphalou_inflections(self):
+        from detector.stats import compute_stats
+        stats = compute_stats("Il marche vite. Il marchait vite.")
+        self.assertGreater(stats.trigram_repetition, 0)
 
     def test_inflections_share_a_lemma_for_richness(self):
         from detector.morphalou import lemma_map

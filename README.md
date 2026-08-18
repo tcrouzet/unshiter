@@ -72,8 +72,8 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.
 | Répétitions familiales[^12] | 12 % | 12 % | 18 % | 14 % | 14 % | 12 % | 9.6 % |
 | Répétitions sonores[^13] | 20 % | 19 % | 20 % | 20 % | 22 % | 19 % | 2.4 % |
 | Répétitions non filtrées[^14] | 55 % | 53 % | 64 % | 53 % | 53 % | 51 % | 2.4 % |
-| Répétition globale des trigrammes[^15] | 1.0 % | 1.1 % | 2.8 % | 0.9 % | 1.4 % | 0.5 % | 31.4 % |
-| Répétition locale des trigrammes[^16] | 0.3 % | 0.5 % | 1.6 % | 0.3 % | 0.7 % | 0.1 % | 51.6 % |
+| Répétition globale des trigrammes[^15] | 1.6 % | 1.3 % | 3.5 % | 1.0 % | 1.7 % | 0.7 % | 30.3 % |
+| Répétition locale des trigrammes[^16] | 0.3 % | 0.5 % | 1.9 % | 0.3 % | 0.8 % | 0.2 % | 51.3 % |
 | Mots-outils[^17] | 43 % | 39 % | 40 % | 37 % | 35 % | 36 % | 6.8 % |
 | Noms[^18] | 29 % | 35 % | 32 % | 35 % | 35 % | 35 % | 3.1 % |
 | Verbes[^19] | 19 % | 17 % | 17 % | 17 % | 17 % | 16 % | 3.3 % |
@@ -111,7 +111,7 @@ Le diagramme reprend exactement les mesures du tableau principal. L’anneau mé
 
 ![Radar des mesures secondaires](./assets/readme/kiviat-details-github.png)
 
-Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %. L’extérieur indique ici une valeur brute plus élevée, sans jugement positif ou négatif.
+Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %, en excluant la diversité de longueur des phrases déjà intégrée à la diversité des structures. Les répétitions, les adjectifs, les adverbes, les relatives et subordonnées et les comparaisons métaphoriques sont inversés : pour ces indices négatifs, l’extérieur correspond à une valeur plus faible. Pour les autres axes, l’extérieur correspond à une valeur plus élevée.
 
 
 ### Surface des profils
@@ -160,9 +160,9 @@ La diversité des longueurs entre directement dans le calcul : les phrases compo
 
 [^14]: Même calcul que les répétitions lexicales, mais en conservant les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée que la version filtrée.
 
-[^15]: Un trigramme est une suite de trois mots consécutifs. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
+[^15]: Un trigramme est une suite de trois lemmes consécutifs. Chaque mot est d’abord remplacé par son lemme contextuel : `marche`, `marches` et `marchent` employés comme verbes deviennent ainsi `marcher`, tandis que le nom dans `la marche` reste `marche`. spaCy désambiguïse la catégorie grâce à la phrase ; Morphalou sert de repli lorsque cette analyse contextuelle est indisponible. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
 
-[^16]: Même proportion de trigrammes distincts répétés, calculée dans des fenêtres glissantes de 200 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité. Pour un texte de 200 mots ou moins, elle est identique à la répétition globale.
+[^16]: Même proportion de trigrammes de lemmes distincts répétés, calculée dans des fenêtres glissantes de 200 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité. Pour un texte de 200 mots ou moins, elle est identique à la répétition globale.
 
 [^17]: Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
 
@@ -191,7 +191,7 @@ La diversité des longueurs entre directement dans le calcul : les phrases compo
 [^29]: Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
 <!-- STATS:END -->
 
-Une empreinte SHA-256 des sources, du code de calcul et des configurations qui influencent les mesures est enregistrée dans `_temp/stats-cache.json`. Les statistiques calculées sont conservées avec cette empreinte. Modifier `assets/stats-notes.md` ne l’invalide pas : `./stats.sh` régénère alors le rapport et le README depuis les valeurs en cache, sans recommencer l’analyse spaCy.
+Une empreinte SHA-256 identifie le contenu du corpus dans `_temp/stats-cache.json`. Les mesures sont enregistrées séparément pour chaque document et les calculs susceptibles d’évoluer possèdent leur propre version. Modifier le calcul des trigrammes ne recalcule donc que les deux mesures de trigrammes ; les résultats spaCy, phonétiques, grammaticaux et les autres valeurs restent en cache. Modifier `assets/stats-notes.md` ne recalcule aucune mesure : `./stats.sh` régénère seulement le rapport et le README.
 
 ## Fenêtres de comparaison
 
