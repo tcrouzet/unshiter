@@ -10,16 +10,20 @@ import html
 import json
 import math
 import re
+import shutil
+import subprocess
 
 from .config import (
     JSON_EXTENSION,
     KIVIAT_CHART,
+    KIVIAT_DETAIL_CHART,
     KIVIAT_AREA_CHART,
     LEMMA_REPORT_SUFFIX,
     GRAMMATICAL_DISTRIBUTION_CHART,
     MARKDOWN_EXTENSION,
     OUTPUT_DIR,
     README_FILE,
+    README_KIVIAT_DETAIL_CHART,
     README_STATS_END,
     README_STATS_START,
     SOURCE_DIR,
@@ -96,7 +100,7 @@ def corpus_fingerprint(sources: list[Path]) -> str:
 
 
 def comparison_output_paths(sources: list[Path]) -> list[Path]:
-    outputs = [STATS_COMPARISON_FILE, KIVIAT_CHART, KIVIAT_AREA_CHART, GRAMMATICAL_DISTRIBUTION_CHART]
+    outputs = [STATS_COMPARISON_FILE, KIVIAT_CHART, KIVIAT_DETAIL_CHART, KIVIAT_AREA_CHART, GRAMMATICAL_DISTRIBUTION_CHART]
     for source in sources:
         outputs.extend([
             OUTPUT_DIR / f"{source.stem}{STRUCTURE_REPORT_SUFFIX}{MARKDOWN_EXTENSION}",
@@ -531,9 +535,42 @@ def kiviat_profiles(analyses: list[tuple[Path, object]]):
     return dimensions, profiles
 
 
-def kiviat_chart(analyses: list[tuple[Path, object]]) -> str:
+def detail_kiviat_profiles(analyses: list[tuple[Path, object]], minimum_dispersion: float = 10.0):
+    """Profils des mesures du tableau 2 dont σ atteint le seuil demandé."""
+    rows_by_file = []
+    numeric_maps = []
+    for _, stats in analyses:
+        _, details = split_rows(statistic_rows(stats))
+        rows_by_file.append(details)
+        numeric_maps.append(statistic_numeric_values(stats))
+    dispersions = coefficient_dispersions(rows_by_file, numeric_maps)
+    labels = [
+        label for label, _ in rows_by_file[0]
+        if (value := numeric_value(dispersions.get(label))) is not None and value >= minimum_dispersion
+    ]
+    dimensions = []
+    for label in labels:
+        values = [numeric[label] for numeric in numeric_maps if numeric.get(label) is not None]
+        if len(values) != len(analyses):
+            continue
+        mean = sum(values) / len(values)
+        if not mean:
+            continue
+        std_dev = math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+        dimensions.append((label, values, mean, std_dev, False, label.endswith("%")))
+    profiles = []
+    for series_index in range(len(analyses)):
+        radii = []
+        for _, values, mean, std_dev, _, _ in dimensions:
+            relative_deviation = (values[series_index] - mean) / abs(mean)
+            radii.append(max(.05, min(.5 + 1.25 * relative_deviation, 1)))
+        profiles.append(radii)
+    return dimensions, profiles
+
+
+def kiviat_chart(analyses: list[tuple[Path, object]], profile_data=None) -> str:
     """Compare les dimensions retenues à la moyenne du corpus."""
-    dimensions, profiles = kiviat_profiles(analyses)
+    dimensions, profiles = profile_data or kiviat_profiles(analyses)
     width, height = 1000, 780
     center_x, center_y, radius = 500, 355, 265
     parts = [
@@ -693,7 +730,9 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     lines += ["", "## Détails", ""]
     lines += markdown_table(headers, details_by_file, detail_dispersions)
     lines += ["", "## Profil comparatif", "", f"![Diagramme de Kiviat]({KIVIAT_CHART.name})", ""]
-    lines += ["Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.", ""]
+    lines += ["Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.", ""]
+    lines += ["", "## Profil des mesures secondaires", "", f"![Radar des mesures secondaires]({KIVIAT_DETAIL_CHART.name})", ""]
+    lines += ["Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %. L’extérieur indique ici une valeur brute plus élevée, sans jugement positif ou négatif.", ""]
     lines += ["", "## Surface des profils", "", f"![Surface des profils du radar]({KIVIAT_AREA_CHART.name})", ""]
     lines += ["Les surfaces sont calculées directement sur les polygones du radar et classées de la plus petite à la plus grande. Leur unité est arbitraire.", ""]
     lines += ["", "## Répartition grammaticale par document", "", f"![Répartition grammaticale]({GRAMMATICAL_DISTRIBUTION_CHART.name})", ""]
@@ -710,6 +749,9 @@ def sync_readme(report: str, readme_path: Path = README_FILE) -> None:
     snapshot = snapshot.replace(
         "![Diagramme de Kiviat](kiviat.svg)",
         "![Profils comparatifs](./assets/readme/kiviat-github.png)",
+    ).replace(
+        "![Radar des mesures secondaires](kiviat_details.svg)",
+        "![Radar des mesures secondaires](./assets/readme/kiviat-details-github.png)",
     ).replace(
         "![Surface des profils du radar](kiviat_areas.svg)",
         "![Surface des profils](./assets/readme/kiviat-areas-github.png)",
@@ -733,6 +775,21 @@ def sync_readme(report: str, readme_path: Path = README_FILE) -> None:
         end = readme.index("Une empreinte SHA-256", start)
         updated = readme[:start] + generated + "\n\n" + readme[end:]
     readme_path.write_text(updated, encoding=TEXT_ENCODING)
+
+
+def svg_to_png(source: Path, destination: Path) -> bool:
+    """Produit l'image GitHub avec ImageMagick lorsqu'il est disponible."""
+    executable = shutil.which("magick") or shutil.which("convert")
+    if executable is None:
+        return False
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    completed = subprocess.run(
+        [executable, "-background", "white", "-density", "144", str(source), str(destination)],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return completed.returncode == 0
 
 
 def markdown_structure_report(source: Path) -> str:
@@ -789,9 +846,12 @@ def main(argv=None) -> int:
             comparison = markdown_comparison(sources, compared_analyses, window)
             STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
             sync_readme(comparison)
+            if KIVIAT_DETAIL_CHART.exists() and not README_KIVIAT_DETAIL_CHART.exists():
+                svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
             print(STATS_COMPARISON_FILE)
             print(f"{len(sources)} fichiers comparés — cache utilisé")
             print(KIVIAT_CHART)
+            print(KIVIAT_DETAIL_CHART)
             print(KIVIAT_AREA_CHART)
             print(GRAMMATICAL_DISTRIBUTION_CHART)
             return 0
@@ -800,6 +860,8 @@ def main(argv=None) -> int:
         STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
         sync_readme(comparison)
         KIVIAT_CHART.write_text(kiviat_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
+        KIVIAT_DETAIL_CHART.write_text(kiviat_chart(compared_analyses, detail_kiviat_profiles(compared_analyses)) + "\n", encoding=TEXT_ENCODING)
+        svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
         KIVIAT_AREA_CHART.write_text(kiviat_area_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         GRAMMATICAL_DISTRIBUTION_CHART.write_text(grammatical_distribution_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         structure_reports = []
@@ -815,6 +877,7 @@ def main(argv=None) -> int:
         print(STATS_COMPARISON_FILE)
         print(f"{len(sources)} fichiers comparés")
         print(KIVIAT_CHART)
+        print(KIVIAT_DETAIL_CHART)
         print(KIVIAT_AREA_CHART)
         print(GRAMMATICAL_DISTRIBUTION_CHART)
         for report in structure_reports:

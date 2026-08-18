@@ -39,6 +39,7 @@ Les sorties sont écrites dans `_output/` :
 
 - `stats_comparison.md` : tableaux comparatifs et graphiques intégrés ;
 - `kiviat.svg` : radar des mesures du tableau principal ;
+- `kiviat_details.svg` : radar des mesures du tableau détaillé dont σ atteint au moins 10 % ;
 - `kiviat_areas.svg` : surface des profils du radar, classée par ordre croissant ;
 - `grammatical_distribution.svg` : camemberts grammaticaux, trois par ligne ;
 - `*_structure.md` : phrases et structures reconnues ;
@@ -103,7 +104,14 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.
 
 ![Profils comparatifs](./assets/readme/kiviat-github.png)
 
-Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.
+Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.
+
+
+### Profil des mesures secondaires
+
+![Radar des mesures secondaires](./assets/readme/kiviat-details-github.png)
+
+Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %. L’extérieur indique ici une valeur brute plus élevée, sans jugement positif ou négatif.
 
 
 ### Surface des profils

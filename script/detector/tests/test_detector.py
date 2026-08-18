@@ -16,6 +16,7 @@ from detector.stats_cli import (
     markdown_stats,
     notes,
     kiviat_chart,
+    detail_kiviat_profiles,
     normalize_source_text,
     output_paths as stats_output_paths,
     read_source,
@@ -164,6 +165,16 @@ class DetectorTests(unittest.TestCase):
             (Path("_Auteur.md"), TextStats(noun_verb_ratio=2.2, structural_diversity=.8, structural_rhythm=.7, sentence_word_std_dev=12, punctuation_per_300_words=60, punctuation_diversity=.7, stylistic_repetition_rate=.2, function_word_ratio=.3, form_lemma_ratio=.98, gzip_compression_ratio=.5)),
         ]
         self.assertIn("Ratio noms/verbes", kiviat_chart(analyses))
+
+    def test_detail_kiviat_only_keeps_dispersed_detail_measures(self):
+        from detector.stats import TextStats
+        analyses = [
+            (Path(f"texte{index}.md"), TextStats(trigram_repetition=index / 100))
+            for index in range(1, 7)
+        ]
+        dimensions, _ = detail_kiviat_profiles(analyses)
+        self.assertIn("Répétition globale des trigrammes", [dimension[0] for dimension in dimensions])
+        self.assertNotIn("Mots", [dimension[0] for dimension in dimensions])
 
     def test_windows_do_not_overlap_and_end_on_paragraphs(self):
         from detector.stats_cli import source_windows
