@@ -215,7 +215,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
 def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
     EPUB_DATABASE.parent.mkdir(parents=True, exist_ok=True)
     synchronize = paths is None
-    paths = paths or sorted(EPUB_DIR.glob("*.md"))
+    paths = [path.resolve() for path in (paths or sorted(EPUB_DIR.glob("*.md")))]
     metadata_by_path = {}
     date_overrides = publication_date_overrides()
     for path in paths:

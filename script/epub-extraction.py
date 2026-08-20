@@ -212,6 +212,11 @@ def metadata(package: ET.Element) -> dict[str, str]:
     result["publication_date"] = next((value for event, value in dates if event.casefold() == "publication"), dates[0][1] if dates else "")
     if "T" in result["publication_date"]:
         result["publication_date"] = result["publication_date"].split("T", 1)[0]
+    # Certains EPUB ont inversé dc:title et dc:creator. Un créateur contenant
+    # une année est presque toujours le titre d'une œuvre, tandis que le titre
+    # de deux mots capitalisés correspond alors au nom de l'auteur.
+    if re.search(r"\b\d{2,4}\b", result["author"]) and re.fullmatch(r"[A-ZÀ-ÖØ-Ý][\wÀ-ÖØ-öø-ÿ'’-]+\s+[A-ZÀ-ÖØ-Ý][\wÀ-ÖØ-öø-ÿ'’-]+", result["title"]):
+        result["title"], result["author"] = result["author"], result["title"]
     raw_author = result["author"].strip()
     if "," in raw_author:
         family, given = (part.strip() for part in raw_author.split(",", 1))
