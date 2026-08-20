@@ -12,6 +12,8 @@ const DETAILS = [
 const ALL_METRICS = [...RADAR, ...DETAILS.map(([key, label]) => [key, label])];
 const COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let data, chart, surfaceChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false;
+const flippedAxes = new Set();
+Chart.register({ id: "axisQuestions", afterDraw(instance) { const scale = instance.scales.r; if (!scale) return; const ctx = instance.ctx; ctx.save(); ctx.font = "bold 12px system-ui"; ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; instance.data.labels.forEach((_label, i) => { const point = scale.getPointPositionForValue(i, 108); ctx.fillText("?", point.x, point.y); }); ctx.restore(); } });
 // Valeurs de référence du corpus complet. Elles sont construites une seule fois
 // au chargement et ne dépendent jamais des cases actuellement cochées.
 let corpusValues = new Map();
@@ -32,15 +34,17 @@ function scale(key, n) {
   const minimum = Math.min(...values), maximum = Math.max(...values);
   if (!Number.isFinite(minimum) || maximum === minimum) return 50;
   let relative = (n - minimum) / (maximum - minimum);
-  if (INVERSE.has(key)) relative = 1 - relative;
+  if (INVERSE.has(key) !== flippedAxes.has(key)) relative = 1 - relative;
   return Math.max(0, Math.min(100, relative * 100));
 }
 function draw() {
   const books = selected(), keys = checkedMetrics(), labels = keys.map(k => ALL_METRICS.find(x => x[0] === k)?.[1] || k);
   chart?.destroy();
   const multipleAuthors = new Set(books.map(book => book.author).filter(Boolean)).size > 1;
-  const datasets = corpusProfile ? profileDatasets(keys, authorLimits ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : books.map((b, i) => ({ label: multipleAuthors ? `${b.title} · ${b.author}` : b.title, data: keys.map(k => scale(k, value(b, k))), borderColor: COLORS[i % COLORS.length], backgroundColor: `${COLORS[i % COLORS.length]}22`, pointRadius: 0 }));
-  chart = new Chart(document.getElementById("radar"), { type: "radar", data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", intersect: false }, onHover: (_event, elements) => { document.getElementById("radar-selection").textContent = elements.length ? chart.data.datasets[elements[0].datasetIndex].label : ""; }, onClick: (_event, elements) => { if (elements.length) document.getElementById("radar-selection").textContent = chart.data.datasets[elements[0].datasetIndex].label; }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { display: true, color: "#ccd1d5" }, angleLines: { display: true, color: "#d9dddf" } } }, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: () => "", title: items => items[0]?.dataset?.label || "" } } } } });
+  const authorName = author => (author || "Auteur inconnu").trim().split(/\s+/).at(-1);
+  const datasets = corpusProfile ? profileDatasets(keys, authorLimits ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : books.map((b, i) => ({ label: multipleAuthors ? `${b.title} · ${authorName(b.author)}` : b.title, data: keys.map(k => scale(k, value(b, k))), borderColor: COLORS[i % COLORS.length], backgroundColor: `${COLORS[i % COLORS.length]}22`, pointRadius: 0 }));
+  chart = new Chart(document.getElementById("radar"), { type: "radar", data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", intersect: false }, onClick: (event, elements) => { if (elements.length) return; const scale = chart.scales.r, dx = event.x - scale.xCenter, dy = event.y - scale.yCenter, radius = Math.hypot(dx, dy); if (radius < scale.drawingArea * .78) return; let angle = Math.atan2(dy, dx) + Math.PI / 2; if (angle < 0) angle += Math.PI * 2; const index = Math.round(angle / (Math.PI * 2 / keys.length)) % keys.length, key = keys[index]; flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); const help = document.getElementById("axis-help"); help.textContent = data.notes?.[ALL_METRICS.find(item => item[0] === key)?.[1]] || "Aucune note disponible pour cette mesure."; help.hidden = false; draw(); }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { display: true, color: "#ccd1d5" }, angleLines: { display: true, color: "#d9dddf" } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: () => "", title: items => items[0]?.dataset?.label || "" } } } } });
+  document.getElementById("radar-legend").innerHTML = datasets.map(dataset => `<span><i style="background:${dataset.borderColor}"></i>${dataset.label}</span>`).join("");
   drawSurfaces(books);
   drawEvolution(books);
   renderTables(books);
@@ -55,7 +59,7 @@ function profileDatasets(keys, books) {
   }), borderColor: colors[index], backgroundColor: `${colors[index]}22`, pointRadius: 0 }));
 }
 function authorDatasets(keys, books) {
-  return authorAverages(books).map((book, i) => ({ label: book.author, data: keys.map(key => scale(key, value(book, key))), borderColor: COLORS[i % COLORS.length], backgroundColor: `${COLORS[i % COLORS.length]}22`, pointRadius: 0 }));
+  return authorAverages(books).map((book, i) => ({ label: book.author.trim().split(/\s+/).at(-1), data: keys.map(key => scale(key, value(book, key))), borderColor: COLORS[i % COLORS.length], backgroundColor: `${COLORS[i % COLORS.length]}22`, pointRadius: 0 }));
 }
 function authorAverages(books) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});

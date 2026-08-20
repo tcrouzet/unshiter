@@ -118,4 +118,9 @@ Dans chaque fenêtre mobiles de 300 mots, la diversité des formes graphiques es
 
 # Mots employés une seule fois
 
+<!-- Proposition de Codex : Couverture stylistique
+
+Surface sur le graphique radar. Elle résume l’étendue du profil en combinant les dimensions affichées ; elle ne constitue pas une mesure supplémentaire du texte.
+-->
+
 Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
