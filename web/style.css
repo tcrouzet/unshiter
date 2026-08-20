@@ -7,6 +7,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 #metrics { display: grid; gap: .4rem; } label { cursor: pointer; }
 .chart-box { padding: 1rem; background: white; border-radius: 12px; height: min(65vh, 650px); }
 .chart-frame { position: relative; }
+.chart-box canvas { cursor: crosshair; }
 .radar-tools { display: flex; justify-content: flex-start; margin-bottom: .5rem; }
 .radar-selection { min-height: 1.2rem; margin: .35rem 0; color: #6f6962; font-size: .9rem; }
 .surface-box { position: relative; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; height: min(70vh, 760px); }
