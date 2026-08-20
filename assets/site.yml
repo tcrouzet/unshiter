@@ -1,0 +1,5 @@
+name: "Unshiter"
+author: "Thierry Crouzet"
+author_url: "https://tcrouzet.com"
+description: "Exploration statistique de textes littéraires et de leurs évolutions dans le temps."
+coverage_help: "Surface sur le graphique radar en fonction des valleurs affichées."

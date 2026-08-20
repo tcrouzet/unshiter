@@ -1,0 +1,4 @@
+# Compléments manuels pour les EPUB qui ne déclarent aucune date.
+# Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
+rush.epub: "2025"
+isa.epub: "2026"

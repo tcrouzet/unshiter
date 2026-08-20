@@ -1,0 +1,26 @@
+:root { color-scheme: light; font: 16px system-ui, sans-serif; }
+body { margin: 0; background: #f5f3ef; color: #282522; }
+header { padding: 1rem 2rem; background: #282522; color: white; } header h1 { display: inline; margin: 0; } header p { display: inline; margin-left: 1rem; } header #site-description { display: block; margin: .45rem 0 0; color: #ddd5ce; } header a { color: #f2c38b; }
+main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1.5rem; width: 100%; padding: 1.5rem; box-sizing: border-box; }
+aside { background: white; padding: 1rem; border-radius: 12px; align-self: start; } h2 { font-size: 1rem; margin: .2rem 0 .7rem; }
+details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .book { display: block; margin: .35rem 0 .35rem 1.2rem; font-weight: 400; }
+#metrics { display: grid; gap: .4rem; } label { cursor: pointer; }
+.chart-box { padding: 1rem; background: white; border-radius: 12px; height: min(65vh, 650px); }
+.chart-frame { position: relative; }
+.radar-tools { display: flex; justify-content: flex-start; margin-bottom: .5rem; }
+.radar-selection { min-height: 1.2rem; margin: .35rem 0; color: #6f6962; font-size: .9rem; }
+.surface-box { position: relative; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; height: min(70vh, 760px); }
+.evolution-box { margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; }
+.evolution-chart { position: relative; height: 260px; margin: 1rem 0 2rem; }
+.evolution-chart h3 { margin: 0 0 .4rem; font-size: .95rem; }
+.chart-download { appearance: none; position: absolute; top: .7rem; right: .7rem; z-index: 5; width: 2.2rem; height: 2.2rem; padding: .25rem; border: 1px solid #cfc8c0; border-radius: 5px; background: white url("download-button.svg") center / 1.35rem no-repeat; color: transparent; cursor: pointer; }
+.help { width: 1.25rem; height: 1.25rem; padding: 0; border: 1px solid #8d857d; border-radius: 50%; color: #6f6962; background: white; font-size: .8rem; cursor: help; vertical-align: middle; }
+.help-text { position: absolute; top: 3.2rem; left: 1rem; z-index: 10; max-width: 28rem; margin: 0; padding: .7rem .85rem; border: 1px solid #cfc8c0; border-radius: 7px; background: #fffdf9; box-shadow: 0 4px 16px #0002; color: #6f6962; font-size: .9rem; }
+.chart-download option { color: #282522; background: white; }
+.evolution-chart .chart-download { top: 1.9rem; }
+.downloads { margin: .5rem 0; display: flex; justify-content: flex-end; gap: .5rem; } button, select { padding: .45rem .8rem; border: 1px solid #cfc8c0; border-radius: 6px; background: white; cursor: pointer; }
+.download-icon { width: 2.2rem; height: 2.2rem; padding: 0; font-size: 1.45rem; line-height: 1; }
+dialog { border: 1px solid #cfc8c0; border-radius: 8px; padding: 1.2rem; box-shadow: 0 8px 30px #0002; } dialog::backdrop { background: #0003; } dialog h3 { margin: 0 0 1rem; } .download-choices { display: flex; gap: .5rem; } dialog .cancel { margin-top: 1rem; width: 100%; }
+.table-wrap { margin-top: 1.5rem; overflow-x: auto; background: white; padding: 1rem; border-radius: 12px; } table { border-collapse: collapse; width: 100%; min-width: 650px; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: white; }
+footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
+@media (max-width: 800px) { main { grid-template-columns: 1fr; padding: 1rem; } aside { position: static; } }
