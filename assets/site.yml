@@ -1,5 +1,5 @@
 name: "Unshiter"
 author: "Thierry Crouzet"
 author_url: "https://tcrouzet.com"
-description: "Exploration statistique de textes littéraires et de leurs évolutions dans le temps."
-coverage_help: "Surface sur le graphique radar en fonction des valleurs affichées. C'est une signature stylistique et non un critère de qualité."
+description: "Exploration statistique de textes littéraires et comparaison des corpus de divers auteurs."
+copyright: "(cc) [Thierry Crouzet](https://tcrouzet.com) - (date) - {livres} œuvres - [GitHub](https://github.com/tcrouzet/unshiter)"

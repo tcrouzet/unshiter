@@ -1,0 +1,22 @@
+# Palette éditable des graphiques web.
+# Le texte après chaque couleur est indicatif et peut être modifié.
+color01: "#4a2c20" # brun très sombre — IA
+color02: "#d13c36" # rouge vermillon
+color03: "#3478b8" # bleu moyen
+color04: "#57a052" # vert feuille
+color05: "#8b55a2" # violet
+color06: "#e19a2d" # orange ocre
+color07: "#2b9b9b" # turquoise
+color08: "#c45b87" # rose framboise
+color09: "#263f70" # bleu nuit
+color10: "#3d8f87" # vert canard
+color11: "#c99a2e" # jaune doré
+color12: "#e47763" # corail
+color13: "#9a83bd" # lavande
+color14: "#7b8738" # olive
+color15: "#5fa8d3" # bleu ciel
+color16: "#713f66" # prune
+color17: "#78b89b" # menthe
+color18: "#a64b3c" # brique
+color19: "#64748b" # gris ardoise
+color20: "#81543d" # chocolat
