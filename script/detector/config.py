@@ -16,8 +16,8 @@ SITE_CONFIG_FILE = ASSETS_DIR / "site.yml"
 CHART_PALETTE_FILE = ASSETS_DIR / "chart-palette.yml"
 PUBLICATION_DATES_FILE = ASSETS_DIR / "publication-dates.yml"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
-EPUB_ANALYSIS_WINDOW_SIZE = 40_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v4-full-document-size"
+EPUB_ANALYSIS_WINDOW_SIZE = 20_000
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v13-note-41-20k"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -68,6 +68,83 @@ SPACY_SUBORDINATE_DEPENDENCIES = {"acl", "advcl", "ccomp", "csubj", "xcomp"}
 LEXICAL_WINDOW_SIZE = 300
 MIN_COMPARISON_LEXICAL_WORDS = 200
 COMPARISON_WINDOW_STEP_DIVISOR = 4
+
+# Identifiants publics des mesures. Les rapports, la base SQLite et le site
+# doivent référencer ces identifiants ; les noms Python ci-dessous ne servent
+# qu'à accéder aux champs de TextStats.
+METRIC_FIELDS = (
+    "punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm",
+    "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate",
+    "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate",
+    "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio",
+    "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio",
+    "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth",
+    "form_lemma_ratio", "hapax_ratio", "word_count", "sentence_count", "paragraph_count", "avg_word_length",
+    "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10",
+    "sentence_length_p90", "paragraph_length_std_dev", "document_char_count",
+    # Champs techniques conservés dans chaque analyse, eux aussi indexés.
+    "unique_word_count", "sentence_length_amplitude", "sentence_length_std_dev", "sentence_word_std_dev",
+    "type_token_ratio", "moving_type_token_ratio", "global_lemma_richness", "lemma_richness", "morphalou_coverage",
+    "lexical_word_count", "unique_lemma_count", "avg_paragraph_length", "structural_repetition_rate",
+    "relative_clause_count", "subordinate_clause_count", "subordinate_clause_ratio", "nominal_sentence_count",
+    "pos_common_noun_ratio", "pos_proper_noun_ratio", "pos_verb_ratio", "pos_adjective_ratio", "pos_adverb_ratio", "flesch",
+)
+METRIC_ID_BY_FIELD = {field: f"mesure_{index}" for index, field in enumerate(METRIC_FIELDS, 1)}
+FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
+
+def windowed_metric_fields() -> set[str]:
+    """Mesures explicitement marquées {windows} dans leur note."""
+    import re
+    if not STATS_NOTES_FILE.exists():
+        return set()
+    sections = re.split(r"(?m)^# ", STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING))
+    result = set()
+    for section in sections[1:]:
+        heading, _, body = section.partition("\n")
+        match = re.search(r"#(\d+)", heading)
+        if "{windows}" not in section or not match:
+            continue
+        identifier = f"mesure_{match.group(1)}"
+        if identifier in FIELD_BY_METRIC_ID:
+            result.add(FIELD_BY_METRIC_ID[identifier])
+    # La dispersion des longueurs de phrases est une mesure stylistique du
+    # tableau 2 : elle doit être calculée sur la même fenêtre que les autres
+    # mesures de variation, même si l'ancienne note #41 ne portait pas encore
+    # le marqueur {windows}.
+    result.add("sentence_word_std_dev")
+    return result
+# Les notes #20 et #29 n'ont pas de champ statistique direct. Les identifiants
+# suivants sont donc explicites : ils ne doivent jamais être déduits d'une
+# position dans une liste de champs.
+_NOTE_FIELD_IDS = {
+    "punctuation_per_300_words": "mesure_1", "punctuation_diversity": "mesure_2",
+    "structural_diversity": "mesure_3", "structural_rhythm": "mesure_4", "sentence_start_diversity": "mesure_5",
+    "burstiness": "mesure_6", "noun_verb_ratio": "mesure_7", "filtered_repetition_rate": "mesure_8",
+    "stylistic_repetition_rate": "mesure_9", "family_repetition_rate": "mesure_10", "phonetic_repetition_rate": "mesure_11",
+    "absolute_repetition_rate": "mesure_12", "function_word_ratio": "mesure_13", "trigram_repetition": "mesure_14",
+    "moving_trigram_repetition": "mesure_15", "noun_ratio": "mesure_16", "verb_ratio": "mesure_17",
+    "adjective_ratio": "mesure_18", "adverb_ratio": "mesure_19", "gzip_compression_ratio": "mesure_21",
+    "relative_clause_ratio": "mesure_22", "nominal_sentence_ratio": "mesure_23", "active_voice_ratio": "mesure_24",
+    "metaphorical_comme_ratio": "mesure_25", "average_syntactic_depth": "mesure_26", "form_lemma_ratio": "mesure_27",
+    "hapax_ratio": "mesure_28", "word_count": "mesure_30", "sentence_count": "mesure_31", "paragraph_count": "mesure_32",
+    "avg_word_length": "mesure_33", "avg_sentence_length": "mesure_34", "avg_sentence_word_count": "mesure_35",
+    "median_sentence_length": "mesure_36", "sentence_length_p10": "mesure_37", "sentence_length_p90": "mesure_38",
+    "paragraph_length_std_dev": "mesure_39", "document_char_count": "mesure_40",
+    "sentence_word_std_dev": "mesure_41",
+}
+METRIC_ID_BY_FIELD.update(_NOTE_FIELD_IDS)
+METRIC_ID_BY_FIELD.update({
+    "sentence_word_std_dev": "mesure_41", "unique_word_count": "mesure_42",
+    "sentence_length_amplitude": "mesure_43", "sentence_length_std_dev": "mesure_44",
+    "type_token_ratio": "mesure_45", "moving_type_token_ratio": "mesure_46",
+    "global_lemma_richness": "mesure_47", "lemma_richness": "mesure_48", "morphalou_coverage": "mesure_49",
+    "lexical_word_count": "mesure_50", "unique_lemma_count": "mesure_51", "avg_paragraph_length": "mesure_52",
+    "structural_repetition_rate": "mesure_53", "relative_clause_count": "mesure_54", "subordinate_clause_count": "mesure_55",
+    "subordinate_clause_ratio": "mesure_56", "nominal_sentence_count": "mesure_57", "pos_common_noun_ratio": "mesure_58",
+    "pos_proper_noun_ratio": "mesure_59", "pos_verb_ratio": "mesure_60", "pos_adjective_ratio": "mesure_61",
+    "pos_adverb_ratio": "mesure_62", "flesch": "mesure_63",
+})
+FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
 
 DEFAULT_UNIT = "paragraph"
 TEXT_ENCODING = "utf-8"

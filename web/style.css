@@ -11,14 +11,22 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .chart-frame { position: relative; }
 .chart-box canvas { cursor: crosshair; }
 .radar-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem 1rem; padding: .5rem 2rem .8rem; margin-bottom: .5rem; font-size: .85rem; }
-.radar-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.radar-legend span { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; pointer-events: auto; user-select: none; }
 .radar-legend i { display: inline-block; width: 1.2rem; height: .18rem; }
 .radar-tools { display: flex; justify-content: center; gap: .5rem; margin-bottom: .5rem; }
 #metrics-reset { display: block; width: 100%; margin-top: .8rem; font-size: .8rem; }
+.config-actions { display: grid; gap: .4rem; margin-top: .45rem; }
+.config-actions button, .config-actions select { width: 100%; }
+#config-presets { display: grid; gap: .35rem; }
+.preset-remove { margin-left: .5rem; color: #8b3f35; font-weight: 700; cursor: pointer; }
+.table-note-help { width: 1.2rem; height: 1.2rem; padding: 0; border: 1px solid #b8afa6; border-radius: 50%; background: white; color: #6f6962; font-size: .7rem; cursor: pointer; vertical-align: middle; }
 .radar-selection { min-height: 1.2rem; margin: .35rem 0; color: #6f6962; font-size: .9rem; }
 .axis-help { position: fixed !important; z-index: 100; top: 5vh !important; left: 2vw !important; transform: none; width: 96vw; height: 90vh; max-height: 90vh; overflow: auto; margin: 0; padding: 2rem 2.5rem; border: 1px solid #cfc8c0; border-radius: 10px; background: #fffdf9; box-shadow: 0 0 0 100vmax #0008, 0 10px 40px #0004; color: #6f6962; font-size: 1.05rem; line-height: 1.6; box-sizing: border-box; }
 .axis-help #metric-note-close { position: absolute; top: .45rem; right: .65rem; border: 0; background: transparent; font-size: 1.6rem; line-height: 1; color: #6f6962; cursor: pointer; }
 .axis-help #metric-note-text { padding-right: 1.5rem; }
+.axis-help h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+.axis-help p { margin: 0 0 1rem; }
+.axis-help p + p { margin-top: 1rem; }
 .surface-box { position: relative; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; height: auto; }
 .surface-box canvas { display: block; }
 .evolution-box { margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; }

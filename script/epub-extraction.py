@@ -466,7 +466,10 @@ def extract_epub(source: Path) -> tuple[Path, Path]:
             attributes["_path"] = str(Path(opf_path).parent / attributes["href"]).replace("\\", "/")
         cover = cover_path(package, manifest, opf_path)
         text = significant_text(archive, package, manifest, spine, info["title"])
-        if not info["publication_date"]:
+        date = info.get("publication_date", "")
+        year = int(date[:4]) if re.match(r"^\d{4}", date) else 0
+        if not date or year < 1500 or year > 2100:
+            info["publication_date"] = ""
             match = COPYRIGHT_YEAR.search(text)
             if match:
                 info["publication_date"] = match.group(1)

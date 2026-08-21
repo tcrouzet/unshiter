@@ -1,7 +1,7 @@
 const RADAR = [
   ["punctuation_per_300_words", "Densité de ponctuations"], ["punctuation_diversity", "Diversité de ponctuation"],
   ["structural_diversity", "Diversité des structures"], ["structural_rhythm", "Rythme des structures"],
-  ["average_syntactic_depth", "Profondeur syntaxique"], ["sentence_start_diversity", "Diversité des débuts de phrase"], ["sentence_word_std_dev", "Diversité des longueurs de phrase"],
+  ["average_syntactic_depth", "Complexité syntaxique"], ["sentence_start_diversity", "Régularité des débuts de phrase"], ["burstiness", "Uniformité locale de longueur de phrase"],
   ["noun_verb_ratio", "Ratio noms/verbes"], ["filtered_repetition_rate", "Répétitions lexicales"],
 ];
 const DETAILS = [
@@ -11,21 +11,40 @@ const DETAILS = [
 ];
 const ALL_METRICS = [...RADAR, ...DETAILS.map(([key, label]) => [key, label])];
 const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
-const REMOVED_KEYS = new Set(["avg_sentence_word_count", "sentence_word_std_dev"]);
-const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && (!REMOVED_KEYS.has(key) || key === "sentence_word_std_dev") && all.findIndex(item => item[0] === key) === index);
+// L’écart-type brut reste disponible dans les données, mais la mesure #6
+// affichée et indexée est bien la diversité locale (burstiness).
+const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
+const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let data, chart, surfaceChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false;
 const flippedAxes = new Set();
+// L'interface ne stocke jamais de noms de champs statistiques : elle utilise
+// uniquement les identifiants publics des notes (mesure_1, mesure_2, ...).
+function publicMetricId(key) { return data?.metric_note_ids?.[key] || key; }
+function metricKey(ref) {
+  if (!data?.metric_note_ids || !String(ref).startsWith("mesure_")) return ref;
+  return Object.entries(data.metric_note_ids).find(([, id]) => id === ref)?.[0] || ref;
+}
 function noteEntry(key) {
   const publicId = data?.metric_note_ids?.[key];
   const id = publicId == null ? null : data?.note_ids?.[publicId];
-  const title = data?.metric_labels?.[key] || (id == null ? `Mesure ${publicId || "non référencée"}` : (data?.note_titles?.[String(id)] || `Mesure ${id}`));
-  return { id, title, aliases: title.split("/").map(alias => alias.trim()) };
+  const title = id == null ? `Mesure ${publicId || "non référencée"}` : (data?.note_titles?.[String(id)] || `Mesure ${id}`);
+  const aliases = title.replace(/\*\*/g, "").split("/").map(alias => alias.trim());
+  const bold = title.match(/\*\*([^*]+)\*\*/)?.[1]?.trim();
+  return { id, title, aliases, preferred: bold || aliases[0] };
 }
-function metricLabel(key) { const entry = noteEntry(key); const inverse = INVERSE.has(key) !== flippedAxes.has(key); return entry.aliases[inverse ? 1 : 0] || entry.aliases[0]; }
+function metricLabel(key) { const entry = noteEntry(key); if (!flippedAxes.has(key)) return entry.preferred; const alternate = entry.aliases.find(alias => alias !== entry.preferred); return alternate || entry.preferred; }
 function metricNote(key) {
   const entry = noteEntry(key);
   return entry.id == null ? "Note non référencée." : (data?.notes?.[String(entry.id)] || "Note non référencée.");
+}
+function renderNote(id) {
+  const title = data.note_titles?.[String(id)] || "Note";
+  const raw = data.notes?.[String(id)] || "";
+  const escape = text => text.replace(/[&<>"']/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char]));
+  let body = escape(raw).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  body = body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>");
+  return `<h2>${escape(title.replace(/\*\*/g, ""))}</h2><p>${body}</p>`;
 }
 function pastel(hex, alpha = "35") { return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}${alpha}` : hex; }
 // Valeurs de référence du corpus complet. Elles sont construites une seule fois
@@ -33,36 +52,57 @@ function pastel(hex, alpha = "35") { return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex
 let corpusValues = new Map();
 const value = (book, key) => {
   const stats = book.analyses[0]?.stats || {};
-  if (key === "stylistic_repetition_rate") return 1 - Number(stats.stylistic_repetition_rate || 0);
-  if (key === "relative_clause_ratio") return Number(stats.relative_clause_ratio || 0) + Number(stats.subordinate_clause_ratio || 0);
-  if (key === "noun_verb_ratio" && stats[key] == null) return Number(stats.verb_ratio) ? Number(stats.noun_ratio || 0) / Number(stats.verb_ratio) : 0;
-  return stats[key] == null ? null : Number(stats[key]);
+  const read = field => stats[publicMetricId(field)] ?? stats[field];
+  if (key === "stylistic_repetition_rate") return 1 - Number(read(key) || 0);
+  if (key === "relative_clause_ratio") return Number(read("relative_clause_ratio") || 0) + Number(read("subordinate_clause_ratio") || 0);
+  if (key === "noun_verb_ratio" && read(key) == null) return Number(read("verb_ratio")) ? Number(read("noun_ratio") || 0) / Number(read("verb_ratio")) : 0;
+  return read(key) == null ? null : Number(read(key));
 };
 function selected() { return [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle):checked")].map(x => data.books.find(b => b.id === Number(x.value))).filter(Boolean); }
-function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => x.value))]; }
-const INVERSE = new Set(["noun_verb_ratio", "filtered_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio"]);
+function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => metricKey(x.value)))]; }
+const INVERSE = new Set(["noun_verb_ratio", "filtered_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio", "sentence_start_diversity", "burstiness"]);
+const DISPLAY_INVERTED = new Set(["sentence_start_diversity", "burstiness"]);
 function scale(key, n) {
   if (n == null) return null;
   // Important : la référence est l'ensemble des livres exportés, pas la
   // sélection affichée. Ainsi retirer un auteur ne change pas les limites.
   const values = corpusValues.get(key) || [];
+  if (values.length < 2) return 50;
   const minimum = Math.min(...values), maximum = Math.max(...values);
   if (!Number.isFinite(minimum) || maximum === minimum) return 50;
-  let relative = (n - minimum) / (maximum - minimum);
-  if (INVERSE.has(key) !== flippedAxes.has(key)) relative = 1 - relative;
-  return Math.max(0, Math.min(100, relative * 100));
+  let relative = Math.max(0, Math.min(1, (n - minimum) / (maximum - minimum)));
+  const entry = noteEntry(key);
+  const preferredIsSecond = ["mesure_1", "mesure_41"].includes(publicMetricId(key))
+    ? false
+    : entry.aliases.indexOf(entry.preferred) === 1;
+  if (preferredIsSecond !== flippedAxes.has(key)) relative = 1 - relative;
+  // Courbe logarithmique continue : elle étale les valeurs basses puis ralentit
+  // progressivement vers le bord, sans seuil ni saturation artificielle.
+  return Math.max(0, Math.min(100, Math.log1p(4 * relative) / Math.log1p(4) * 100));
 }
 function draw() {
   const books = selected(), keys = checkedMetrics(), labels = keys.map(metricLabel);
   chart?.destroy();
   const multipleAuthors = new Set(books.map(book => book.author).filter(Boolean)).size > 1;
   const authorName = author => (author || "Auteur inconnu").trim().split(/\s+/).at(-1);
-  const datasets = corpusProfile ? profileDatasets(keys, authorLimits ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : books.map((b, i) => ({ label: multipleAuthors ? `${b.title} · ${authorName(b.author)}` : b.title, data: keys.map(k => { const n = scale(k, value(b, k)); return n == null ? null : Math.max(10, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: pastel(COLORS[i % COLORS.length]), fill: true, pointRadius: 0 }));
+  const datasets = corpusProfile ? profileDatasets(keys, authorLimits && !allAuthorWorksSelected(books) ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : books.map((b, i) => ({ label: multipleAuthors ? `${b.title} · ${authorName(b.author)}` : b.title, data: keys.map(k => { const n = scale(k, value(b, k)); return n == null ? null : Math.max(10, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: pastel(COLORS[i % COLORS.length]), fill: true, pointRadius: 0 }));
   chart = new Chart(document.getElementById("radar"), { type: "radar", data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", intersect: false }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: context => ({ size: Math.max(11, Math.min(15, context.chart.width / 65)), weight: "600" }) }, grid: { display: true, color: "#ccd1d5" }, angleLines: { display: true, color: "#d9dddf" } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: () => "", title: items => items[0]?.dataset?.label || "" } } } } });
   document.getElementById("radar-legend").innerHTML = datasets.map(dataset => `<span><i style="background:${dataset.borderColor}"></i>${dataset.label}</span>`).join("");
+  document.querySelectorAll("#radar-legend span").forEach((item, index) => item.addEventListener("click", () => {
+    const selectedDataset = datasets[index];
+    chart.data.datasets.forEach(dataset => { dataset.borderWidth = 1.5; dataset.order = 0; dataset.backgroundColor = pastel(dataset.borderColor); });
+    selectedDataset.borderWidth = 4;
+    selectedDataset.order = -100;
+    selectedDataset.backgroundColor = selectedDataset.borderColor;
+    chart.data.datasets = [...chart.data.datasets.filter(dataset => dataset !== selectedDataset), selectedDataset];
+    chart.update();
+  }));
   drawSurfaces(books);
   drawEvolution(books);
   renderTables(books);
+  // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
+  // ce qui permet de télécharger deux fois de suite le même format.
+  document.querySelectorAll(".chart-download").forEach(select => { select.selectedIndex = -1; });
 }
 function profileDatasets(keys, books) {
   const rows = ["Minimum", "Médiane", "Maximum"];
@@ -70,8 +110,14 @@ function profileDatasets(keys, books) {
   return rows.map((label, index) => ({ label, data: keys.map(key => {
     const values = books.map(book => scale(key, value(book, key))).filter(Number.isFinite).sort((a, b) => a - b);
     if (!values.length) return 50;
-    return Math.max(10, index === 0 ? values[0] : index === 2 ? values.at(-1) : values[Math.floor((values.length - 1) / 2)]);
+    const result = index === 0 ? values[0] : index === 2 ? values.at(-1) : values[Math.floor((values.length - 1) / 2)];
+    return Number.isFinite(result) ? Math.max(10, result) : 50;
   }), borderColor: colors[index], backgroundColor: pastel(colors[index]), fill: true, pointRadius: 0 }));
+}
+function allAuthorWorksSelected(books) {
+  const selectedCounts = books.reduce((counts, book) => { const author = book.author || "Auteur inconnu"; counts[author] = (counts[author] || 0) + 1; return counts; }, {});
+  const corpusCounts = data.books.reduce((counts, book) => { const author = book.author || "Auteur inconnu"; counts[author] = (counts[author] || 0) + 1; return counts; }, {});
+  return Object.entries(selectedCounts).every(([author, count]) => count === corpusCounts[author]);
 }
 function authorDatasets(keys, books) {
   return authorAverages(books).map((book, i) => ({ label: book.author.trim().split(/\s+/).at(-1), data: keys.map(key => { const n = scale(key, value(book, key)); return n == null ? null : Math.max(10, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: pastel(COLORS[i % COLORS.length]), fill: true, pointRadius: 0 }));
@@ -80,16 +126,30 @@ function authorAverages(books) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([author, authorBooks]) => { const stats = {}; for (const [key] of ALL_METRICS) { const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite); if (values.length) stats[key] = values.reduce((sum, n) => sum + n, 0) / values.length; } return { author, analyses: [{ stats }] }; });
 }
+function authorSurfaceProfiles(books, keys) {
+  const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
+  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([author, authorBooks]) => ({
+    label: author,
+    author,
+    hover: authorBooks.length === 1 ? authorBooks[0].title : author,
+    values: keys.map(key => {
+      const values = authorBooks.map(book => value(book, key));
+      if (!values.every(Number.isFinite)) throw new Error(`Base statistique incohérente pour ${author}`);
+      return scale(key, values.reduce((sum, current) => sum + current, 0) / values.length);
+    }),
+  }));
+}
 function drawSurfaces(books) {
   surfaceChart?.destroy();
   const keys = checkedMetrics();
-  const profiles = (authorProfile || authorLimits) ? authorAverages(books).map(book => ({ label: book.author, values: keys.map(key => scale(key, value(book, key)) ?? 0) })) : books.map(book => ({ label: book.title, values: keys.map(key => scale(key, value(book, key)) ?? 0) }));
+  const profiles = (authorProfile || authorLimits) ? authorSurfaceProfiles(books, keys) : books.map(book => ({ label: book.title, author: book.author || "Auteur inconnu", values: keys.map(key => scale(key, value(book, key))) }));
   const labels = profiles.map(profile => profile.label);
   const surfaceBox = document.querySelector(".surface-box");
   if (surfaceBox) surfaceBox.style.height = `${Math.max(300, profiles.length * 30 + 90)}px`;
   const areas = profiles.map(profile => { const values = profile.values, n = values.length; return n < 3 ? 0 : Math.abs(values.reduce((sum, v, i) => sum + v * values[(i + 1) % n] * Math.sin(2 * Math.PI / n), 0) / 2); });
-  const sorted = labels.map((label, i) => ({ label, area: areas[i], color: COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
-  surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false } } } } });
+  const maximumArea = Math.max(...areas, 0);
+  const sorted = labels.map((label, i) => ({ label, author: profiles[i].author || profiles[i].hover || "Auteur inconnu", hover: profiles[i].hover || profiles[i].author || "Auteur inconnu", area: maximumArea ? areas[i] / maximumArea * 100 : 0, color: COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
+  surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false } } } } });
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
@@ -108,20 +168,57 @@ function drawEvolution(selectedBooks) {
 }
 Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const years = instance.$years || []; const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.font = "11px system-ui"; ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (years[i]) ctx.fillText(years[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); }); ctx.restore(); } });
 function downloadCanvas(canvas, name, format = "png") {
+  if (!canvas) return;
   const png = canvas.toDataURL("image/png");
   if (format === "svg") {
     const title = canvas.closest(".chart-frame")?.querySelector("h3, h2")?.textContent || name;
     const safeTitle = title.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height + 42}" viewBox="0 0 ${canvas.width} ${canvas.height + 42}"><rect width="100%" height="100%" fill="white"/><text x="20" y="28" font-family="system-ui" font-size="20" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="42" width="${canvas.width}" height="${canvas.height}"/></svg>`;
     const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
-    const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; a.click(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
+    const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
   }
-  const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; a.click();
+  const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
 }
 function renderTables(books) {
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · synthèse</h2>${table(books, RADAR)}</div><div class="table-wrap"><h2>Tableau 2 · détails</h2>${table(books, DETAILS.filter(([key]) => !REMOVED_KEYS.has(key)))}</div>`;
+  const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key));
+  const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key));
+  const technicalCharacterIndex = technical.findIndex(([key]) => key === "document_char_count");
+  const technicalWordsIndex = technical.findIndex(([key]) => key === "word_count");
+  if (technicalCharacterIndex >= 0 && technicalWordsIndex >= 0) technical.splice(technicalWordsIndex, 0, technical.splice(technicalCharacterIndex, 1)[0]);
+  const characterIndex = details.findIndex(([key]) => key === "document_char_count");
+  const wordsIndex = details.findIndex(([key]) => key === "word_count");
+  if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · synthèse</h2>${table(books, RADAR)}</div><div class="table-wrap"><h2>Tableau 2 · détails</h2>${table(books, details)}</div><div class="table-wrap"><h2>Tableau 3 · données objectives</h2>${table(books, technical)}</div>`;
 }
-function table(books, definitions) { return `<table><thead><tr><th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}</tr></thead><tbody>${definitions.map(([key, label]) => `<tr><td>${metricLabel(key)}</td>${books.map(b => `<td>${format(value(b, key), key)}</td>`).join("")}</tr>`).join("")}</tbody></table>`; }
+function dispersion(values) {
+  const numbers = values.filter(Number.isFinite);
+  if (numbers.length < 2) return null;
+  let kept = numbers;
+  if (numbers.length >= 4) {
+    const ordered = [...numbers].sort((a, b) => a - b);
+    const quantile = fraction => {
+      const position = (ordered.length - 1) * fraction;
+      const lower = Math.floor(position), upper = Math.ceil(position);
+      return lower === upper ? ordered[lower] : ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
+    };
+    const q1 = quantile(.25), q3 = quantile(.75), iqr = q3 - q1;
+    const filtered = numbers.filter(n => n >= q1 - 1.5 * iqr && n <= q3 + 1.5 * iqr);
+    if (filtered.length >= 3) kept = filtered;
+  }
+  const mean = kept.reduce((sum, n) => sum + n, 0) / kept.length;
+  if (!mean) return null;
+  const standardDeviation = Math.sqrt(kept.reduce((sum, n) => sum + (n - mean) ** 2, 0) / kept.length);
+  return standardDeviation / Math.abs(mean) * 100;
+}
+function table(books, definitions) {
+  const header = `<th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="42" title="Afficher la note Dispersion">?</button></th>`;
+  const rows = definitions.map(([key, label]) => {
+    const displayed = books.map(b => { const n = value(b, key); return DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n; });
+    const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
+    return `<tr><td>${metricLabel(key)}</td>${displayed.map(n => `<td>${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
+  }).join("");
+  return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+}
 function format(n, key) { if (n == null) return "—"; if (["word_count", "sentence_count", "paragraph_count", "document_char_count"].includes(key)) return Number(n).toLocaleString("fr-FR"); if (["punctuation_per_300_words", "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "average_syntactic_depth", "burstiness"].includes(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
 function downloadSvg() {
   if (!chart) return;
@@ -134,35 +231,80 @@ function downloadSvg() {
 }
 function controls() {
   const savedBooks = new Set(JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number));
-  const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]"));
+  const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey));
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
   const authorsPanel = document.getElementById("authors-panel");
   if (authorsPanel) {
     authorsPanel.open = localStorage.getItem("unshiter-authors-open") !== "0";
     authorsPanel.addEventListener("toggle", () => localStorage.setItem("unshiter-authors-open", authorsPanel.open ? "1" : "0"));
   }
+  const metrics = document.getElementById("metrics");
+  const metricsTitle = metrics?.previousElementSibling;
+  if (metrics && metricsTitle?.tagName === "H2") {
+    const panel = document.createElement("details");
+    panel.id = "metrics-panel";
+    panel.open = localStorage.getItem("unshiter-metrics-open") !== "0";
+    const summary = document.createElement("summary");
+    summary.textContent = "Mesures du radar";
+    panel.appendChild(summary);
+    metricsTitle.replaceWith(panel);
+    panel.appendChild(metrics);
+    panel.addEventListener("toggle", () => localStorage.setItem("unshiter-metrics-open", panel.open ? "1" : "0"));
+  }
   for (const [author, books] of Object.entries(groups).sort()) { const id = `a${Math.random().toString(36).slice(2)}`; const all = books.every(b => savedBooks.size ? savedBooks.has(b.id) : true); document.getElementById("authors").insertAdjacentHTML("beforeend", `<details open><summary><input class="author-toggle" data-target="${id}" type="checkbox" ${all ? "checked" : ""}> ${author} (${books.length})</summary><div id="${id}">${books.map(b => `<label class="book"><input type="checkbox" value="${b.id}" ${savedBooks.size ? (savedBooks.has(b.id) ? "checked" : "") : "checked"}> ${b.title}</label>`).join("")}</div></details>`); }
-  MENU_METRICS.forEach(([key], index) => document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${key}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (index < RADAR.length ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${key}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${key}" type="button">?</button></label>`));
-  const reset = document.createElement("button"); reset.id = "metrics-reset"; reset.type = "button"; reset.textContent = "Réinitialiser"; document.getElementById("metrics").after(reset);
-  reset.addEventListener("click", () => { Object.keys(localStorage).filter(key => key.startsWith("unshiter-")).forEach(key => localStorage.removeItem(key)); flippedAxes.clear(); location.reload(); });
-  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics())); draw(); }));
+  MENU_METRICS.forEach(([key]) => { const id = publicMetricId(key); const defaultChecked = RADAR.some(([radarKey]) => radarKey === key); document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${id}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (defaultChecked ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${id}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${id}" type="button">?</button></label>`); });
+  const reset = document.createElement("button"); reset.id = "metrics-reset"; reset.type = "button"; reset.textContent = "Réinitialiser"; (document.getElementById("metrics-panel") || document.getElementById("metrics")).after(reset);
+  reset.addEventListener("click", () => { Object.keys(localStorage).filter(key => key.startsWith("unshiter-") && key !== "unshiter-presets").forEach(key => localStorage.removeItem(key)); flippedAxes.clear(); location.reload(); });
+  const presetBox = document.createElement("div");
+  presetBox.className = "config-actions";
+  presetBox.innerHTML = '<button type="button" id="config-save">Sauvegarder la configuration</button><div id="config-presets"></div>';
+  reset.after(presetBox);
+  const storedPresets = JSON.parse(localStorage.getItem("unshiter-presets") || "{}");
+  const presets = Array.isArray(storedPresets)
+    ? Object.fromEntries(storedPresets.filter(item => item && item.name).map(item => [String(item.name).trim(), item]))
+    : (storedPresets && typeof storedPresets === "object" ? storedPresets : {});
+  const presetList = presetBox.querySelector("#config-presets");
+  presetList.replaceChildren();
+  Object.keys(presets).sort((a, b) => a.localeCompare(b)).forEach(name => {
+    const button = document.createElement("button"); button.type = "button"; button.dataset.name = name;
+    const label = document.createElement("span"); label.textContent = name; button.appendChild(label);
+    const remove = document.createElement("span"); remove.className = "preset-remove"; remove.textContent = "×"; remove.title = "Supprimer cette configuration"; remove.setAttribute("role", "button");
+    remove.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); delete presets[name]; localStorage.setItem("unshiter-presets", JSON.stringify(presets)); button.remove(); });
+    button.appendChild(remove);
+    button.addEventListener("click", () => { const preset = presets[name]; localStorage.setItem("unshiter-books", JSON.stringify(preset.books)); localStorage.setItem("unshiter-metrics", JSON.stringify(preset.metrics)); location.reload(); }); presetList.appendChild(button);
+  });
+  presetBox.querySelector("#config-save").addEventListener("click", () => {
+    const name = window.prompt("Nom de la configuration :")?.trim();
+    if (!name) return;
+    Object.keys(presets).filter(existing => existing.toLocaleLowerCase() === name.toLocaleLowerCase()).forEach(existing => delete presets[existing]);
+    presets[name] = { books: selected().map(book => book.id), metrics: checkedMetrics().map(publicMetricId) };
+    localStorage.setItem("unshiter-presets", JSON.stringify(presets));
+    location.reload();
+  });
+  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); draw(); }));
   document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); draw(); }));
-  document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); });
+  document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
-  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(button.dataset.key).id; document.getElementById("metric-note-text").textContent = id == null ? "Note non référencée." : (data.notes?.[String(id)] || "Note non référencée."); note.hidden = false; } else { flippedAxes.has(button.dataset.key) ? flippedAxes.delete(button.dataset.key) : flippedAxes.add(button.dataset.key); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(button.dataset.key); draw(); } });
+  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
-  worksButton.hidden = false; authorsButton.hidden = true;
-  const showWorksButton = () => { limitsButton.hidden = true; authorsButton.hidden = true; worksButton.hidden = false; };
-  const showModeButtons = () => { limitsButton.hidden = false; authorsButton.hidden = true; authorLimitsButton.hidden = true; worksButton.hidden = false; };
-  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; showWorksButton(); draw(); });
+  worksButton.hidden = true; authorsButton.hidden = false;
+  const showWorksMode = () => { limitsButton.hidden = false; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = true; };
+  const showLimitsMode = () => { limitsButton.hidden = true; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = false; };
+  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; showLimitsMode(); draw(); });
   authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); });
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
-  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showModeButtons(); draw(); });
+  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260821084151192439000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260821174100332211000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.values(data.palette || {}).filter(Boolean);
+  // L’ordre et la sélection par défaut viennent exclusivement des marqueurs
+  // #tab1_N des notes, jamais d’une liste parallèle dans le JavaScript.
+  if (Array.isArray(data.default_radar) && data.default_radar.length) {
+    const ordered = data.default_radar.map(metricKey).map(key => RADAR.find(item => item[0] === key)).filter(Boolean);
+    RADAR.splice(0, RADAR.length, ...ordered);
+  }
   document.getElementById("site-name").textContent = data.site?.name || "Site Unshiter";
   const footerAuthor = document.getElementById("footer-author");
   footerAuthor.textContent = data.site?.author || "Thierry Crouzet";

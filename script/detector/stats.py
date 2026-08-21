@@ -6,7 +6,7 @@ import gzip
 import math
 import re
 
-from .config import FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
+from .config import FIELD_BY_METRIC_ID, FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
 from .demonette import family_map, phonetic_map
 from .morphalou import contextual_lemma_map, lemma_map, lexical_map
 from .syntax_depth import analyze_contextual_tokens, analyze_syntax
@@ -121,8 +121,19 @@ class TextStats:
     pos_adjective_ratio: float | None = None
     pos_adverb_ratio: float | None = None
     flesch: float = 0
+    document_char_count: int = 0
 
     def to_dict(self): return asdict(self)
+
+    def to_metric_dict(self):
+        """Sérialisation publique : les clés sont exclusivement mesure_N."""
+        values = asdict(self)
+        return {METRIC_ID_BY_FIELD.get(field, field): value for field, value in values.items()}
+
+    @classmethod
+    def from_metric_dict(cls, values):
+        """Reconstruit TextStats depuis une sérialisation indexée par les notes."""
+        return cls(**{FIELD_BY_METRIC_ID.get(key, key): value for key, value in values.items()})
 
 
 def tokenize(text: str) -> list[str]:
@@ -239,7 +250,7 @@ def _moving_trigram_repetition(words: list[str], window: int = 200, step: int = 
     return sum(_trigram_repetition(words[start:start + window]) for start in starts) / len(starts)
 
 
-def _punctuation_diversity(text: str) -> float:
+def punctuation_diversity(text: str) -> float:
     patterns = [r"\.", r",", r";", r":", r"\?", r"!", r"[—–-]", r"[()]", r"[«»\"]", r"…|\.\.\."]
     counts = [len(re.findall(pattern, text)) for pattern in patterns]
     total = sum(counts)
@@ -728,8 +739,8 @@ def compute_stats(text: str) -> TextStats:
         function_word_ratio=r(_function_word_ratio(words)),
         trigram_repetition=r(repetition), moving_trigram_repetition=r(_moving_trigram_repetition(trigram_lemmas)),
         avg_paragraph_length=r(paragraph_mean), paragraph_length_std_dev=r(paragraph_std),
-        punctuation_diversity=r(_punctuation_diversity(text)),
-        punctuation_per_300_words=r(len(PUNCTUATION_MARK_RE.findall(text)) / len(words) * 300),
+        punctuation_diversity=r(punctuation_diversity(text)),
+        punctuation_per_300_words=r(len(PUNCTUATION_MARK_RE.findall(text)) / len(words) * 100),
         sentence_start_diversity=r(_moving_ttr(starts, 20)),
         noun_ratio=r(noun_ratio), verb_ratio=r(verb_ratio), adjective_ratio=r(adjective_ratio),
         adverb_ratio=r(adverb_ratio), noun_verb_ratio=r(noun_ratio / verb_ratio if verb_ratio else 0),

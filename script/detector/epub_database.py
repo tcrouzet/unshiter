@@ -12,13 +12,13 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, PUBLICATION_DATES_FILE, TEXT_ENCODING
-from .stats import TextStats, compute_stats
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_DATES_FILE, TEXT_ENCODING, windowed_metric_fields
+from .stats import TextStats, compute_stats, punctuation_diversity
 
 FULL_DOCUMENT_FIELDS = {
     "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
     "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
-    "paragraph_length_std_dev", "punctuation_per_300_words", "document_char_count",
+    "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
 }
 
 def full_document_fields(text: str) -> dict[str, float]:
@@ -40,7 +40,8 @@ def full_document_fields(text: str) -> dict[str, float]:
             "avg_sentence_length": mean_chars, "avg_sentence_word_count": mean_words,
             "median_sentence_length": percentile(sorted_chars, .5), "sentence_length_p10": percentile(sorted_chars, .1),
             "sentence_length_p90": percentile(sorted_chars, .9), "paragraph_length_std_dev": para_std,
-            "punctuation_per_300_words": len(re.findall(r"[,;:!?—()\[\]…]", text)) / word_count * 300 if word_count else 0}
+            "punctuation_per_300_words": len(re.findall(r"[.,;:!?…—–\-()\[\]«»\"]", text)) / word_count * 100 if word_count else 0,
+            "punctuation_diversity": punctuation_diversity(text)}
 
 
 SENTENCE_END = re.compile(r"[.!?…]+[\"»”’'\)\]]*(?=\s|$)")
@@ -88,7 +89,10 @@ def front_matter(text: str) -> dict[str, str]:
 
 def infer_publication_date(text: str, metadata: dict[str, str]) -> dict[str, str]:
     """Complète une date absente avec une année explicitement imprimée."""
-    if not metadata.get("publication_date"):
+    date = metadata.get("publication_date", "")
+    year = int(date[:4]) if re.match(r"^\d{4}", date) else 0
+    if not date or year < 1500 or year > 2100:
+        metadata["publication_date"] = ""
         match = COPYRIGHT_YEAR.search(markdown_body(text))
         if match:
             metadata["publication_date"] = match.group(1)
@@ -114,7 +118,8 @@ def ensure_publication_date_entries(paths: list[Path]) -> None:
     existing = publication_date_overrides()
     missing = []
     for path in paths:
-        metadata = infer_publication_date(path.read_text(encoding=TEXT_ENCODING, errors="replace"), front_matter(path.read_text(encoding=TEXT_ENCODING, errors="replace")))
+        raw = path.read_text(encoding=TEXT_ENCODING, errors="replace")
+        metadata = front_matter(raw)
         key = path.with_suffix(".epub").name
         if not metadata.get("publication_date") and key not in existing:
             missing.append(f'{key}: ""')
@@ -220,6 +225,11 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         metadata["author"] = author
     body = clean_analysis_body(markdown_body(text))
     old = connection.execute("SELECT id, sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
+    previous_stats = None
+    if old is not None and old[1] == digest:
+        previous_row = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (old[0],)).fetchone()
+        if previous_row:
+            previous_stats = json.loads(previous_row[0])
     # Le front matter Markdown est la référence de secours lorsqu'un EPUB ne
     # fournit pas de créateur exploitable. Pour un livre déjà indexé, on
     # conserve aussi son auteur au lieu de l'effacer lors d'une régénération.
@@ -247,14 +257,34 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         windows = character_windows(body)[:1]
         for index, (start, end, fragment) in enumerate(windows):
             stats: TextStats = compute_stats(fragment)
+            full_fields = full_document_fields(body)
+            # Seules les notes portant {windows} restent limitées à la fenêtre.
+            # Toutes les autres mesures viennent du document complet.
+            windowed = windowed_metric_fields()
+            if previous_stats is not None:
+                # Le texte est inchangé : une modification de fenêtre ne doit
+                # pas relancer l'analyse spaCy du livre complet.
+                metric_values = stats.to_metric_dict()
+                for field, identifier in METRIC_ID_BY_FIELD.items():
+                    if field not in windowed and identifier in previous_stats:
+                        metric_values[identifier] = previous_stats[identifier]
+            elif len(windowed) < len(METRIC_ID_BY_FIELD):
+                complete = compute_stats(body)
+                for field in METRIC_ID_BY_FIELD:
+                    if field not in windowed:
+                        setattr(stats, field, full_fields.get(field, getattr(complete, field, None)))
             # Les indicateurs de taille et de densité décrivent le livre entier,
             # contrairement aux mesures stylistiques limitées à la première fenêtre.
-            full_fields = full_document_fields(body)
             for field in FULL_DOCUMENT_FIELDS:
                 setattr(stats, field, full_fields[field])
+            if previous_stats is None:
+                metric_values = stats.to_metric_dict()
+            incomplete = [identifier for field, identifier in METRIC_ID_BY_FIELD.items() if metric_values.get(identifier) is None]
+            if incomplete:
+                raise RuntimeError(f"Analyse incomplète pour {path.name}: {', '.join(incomplete)}")
             connection.execute(
                 "INSERT INTO analyses(book_id,window_index,char_start,char_end,char_count,stats_json) VALUES(?,?,?,?,?,?)",
-                (book_id, index, start, end, len(fragment), json.dumps(stats.to_dict(), ensure_ascii=False)),
+                (book_id, index, start, end, len(fragment), json.dumps(stats.to_metric_dict(), ensure_ascii=False)),
             )
     else:
         windows = connection.execute("SELECT id FROM analyses WHERE book_id = ?", (book_id,)).fetchall()

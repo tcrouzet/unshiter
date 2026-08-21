@@ -1,6 +1,6 @@
 """Interface en ligne de commande des statistiques stylistiques."""
 
-from dataclasses import asdict, fields, replace
+from dataclasses import fields, replace
 from functools import lru_cache
 from pathlib import Path
 import argparse
@@ -31,6 +31,7 @@ from .config import (
     SOURCE_MARKDOWN_PATTERN,
     STATS_CACHE_MANIFEST,
     STATS_NOTES_FILE,
+    EPUB_ANALYSIS_WINDOW_SIZE,
     STATS_COMPARISON_FILE,
     STATS_FILENAME_SUFFIX,
     STRUCTURE_REPORT_SUFFIX,
@@ -119,7 +120,7 @@ def read_comparison_cache(sources: list[Path], fingerprint: str):
         if cached_fingerprint is None and any(source.stat().st_mtime_ns > STATS_CACHE_MANIFEST.stat().st_mtime_ns for source in sources):
             return None
         analyses = [
-            (Path(item["source"]), TextStats(**item["stats"]))
+            (Path(item["source"]), TextStats.from_metric_dict(item["stats"]))
             for item in manifest["analyses"]
         ]
         versions = manifest.get("metric_versions", {})
@@ -136,7 +137,7 @@ def write_comparison_cache(fingerprint: str, analyses, window: int) -> None:
         "metric_versions": METRIC_CACHE_VERSIONS,
         "window": window,
         "analyses": [
-            {"source": str(source), "stats": asdict(stats)}
+            {"source": str(source), "stats": stats.to_metric_dict()}
             for source, stats in analyses
         ],
     }
@@ -276,7 +277,7 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Rythme des structures[^14]", f"{stats.structural_rhythm * 100:.0f} %"),
         ("Compression gzip[^5]", f"{stats.gzip_compression_ratio * 100:.0f} %"),
         ("Relatives et subordonnées[^6]", f"{(stats.relative_clause_ratio + stats.subordinate_clause_ratio) * 100:.0f} %" if stats.relative_clause_ratio is not None and stats.subordinate_clause_ratio is not None else "indisponible"),
-        ("Ponctuation (signes/300 mots)", f"{stats.punctuation_per_300_words:.1f}"),
+        ("Densité de ponctuations", f"{stats.punctuation_per_300_words:.1f} %"),
         ("Diversité de ponctuation", f"{stats.punctuation_diversity * 100:.0f} %"),
         ("Phrases nominales[^15]", f"{stats.nominal_sentence_ratio * 100:.0f} %" if stats.nominal_sentence_ratio is not None else "indisponible"),
         ("Voix active", f"{stats.active_voice_ratio * 100:.0f} %" if stats.active_voice_ratio is not None else "indisponible"),
@@ -295,7 +296,7 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
 
 
 IMPORTANT_LABELS = (
-    "Ponctuation (signes/300 mots)",
+    "Densité de ponctuations",
     "Diversité de ponctuation",
     "Diversité des structures",
     "Rythme des structures",
@@ -339,7 +340,8 @@ def markdown_sections(path: Path) -> dict[str, str]:
         return {}
     sections: dict[str, list[str]] = {}
     current_title = None
-    for line in path.read_text(encoding=TEXT_ENCODING).splitlines():
+    window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
+    for line in path.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
         if line.startswith("# "):
             current_title = line[2:].strip()
             sections[current_title] = []
@@ -388,7 +390,7 @@ def statistic_numeric_values(stats, comparison: dict | None = None) -> dict[str,
         "Rythme des structures": percent(stats.structural_rhythm),
         "Compression gzip": percent(stats.gzip_compression_ratio),
         "Relatives et subordonnées": percent((stats.relative_clause_ratio or 0) + (stats.subordinate_clause_ratio or 0)),
-        "Ponctuation (signes/300 mots)": stats.punctuation_per_300_words,
+        "Densité de ponctuations": stats.punctuation_per_300_words,
         "Diversité de ponctuation": percent(stats.punctuation_diversity),
         "Phrases nominales": percent(stats.nominal_sentence_ratio or 0),
         "Voix active": percent(stats.active_voice_ratio or 0),
@@ -523,7 +525,7 @@ KIVIAT_COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d
 def kiviat_profiles(analyses: list[tuple[Path, object]]):
     """Dimensions et rayons du radar, partagés par tous ses graphiques."""
     candidates = [
-        ("Ponctuation (signes/300 mots)", lambda s: s.punctuation_per_300_words, False, False),
+        ("Densité de ponctuations", lambda s: s.punctuation_per_300_words, False, False),
         ("Diversité de ponctuation", lambda s: s.punctuation_diversity, False, True),
         ("Diversité des structures", lambda s: s.structural_diversity, False, True),
         ("Rythme des structures", lambda s: s.structural_rhythm, False, True),
@@ -934,7 +936,7 @@ def main(argv=None) -> int:
     lemma_output = OUTPUT_DIR / f"{source.stem}{LEMMA_REPORT_SUFFIX}{MARKDOWN_EXTENSION}"
     markdown_output.write_text(markdown_stats(source, stats) + "\n", encoding=TEXT_ENCODING)
     lemma_output.write_text(markdown_lemma_report(source) + "\n", encoding=TEXT_ENCODING)
-    payload = {"source": str(source), "stats": asdict(stats)}
+    payload = {"source": str(source), "stats": stats.to_metric_dict()}
     json_output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding=TEXT_ENCODING)
     print(markdown_output)
     print(json_output)

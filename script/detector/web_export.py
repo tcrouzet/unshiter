@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import math
 from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_DATABASE, SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE
+from .config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRIC_ID_BY_FIELD, SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE
 from .config import CHART_PALETTE_FILE, STATS_NOTES_FILE
 
 
@@ -96,10 +97,12 @@ def note_ids() -> dict[str, str]:
 
 
 def metric_note_ids() -> dict[str, str]:
-    """Table fixe des mesures vers leurs identifiants publics, indépendante des titres."""
+    """Correspondance unique définie dans config.py, jamais par un libellé."""
+    return dict(METRIC_ID_BY_FIELD)
+    """legacy mapping removed"""
     keys = [
         "punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm",
-        "sentence_start_diversity", "sentence_word_std_dev", "noun_verb_ratio", "filtered_repetition_rate",
+        "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate",
         "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate",
         "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio",
         "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio",
@@ -110,25 +113,49 @@ def metric_note_ids() -> dict[str, str]:
         "paragraph_length_std_dev",
         "document_char_count",
     ]
-    return {key: f"mesure_{index}" for index, key in enumerate(keys[:28], 1)} | {key: f"mesure_{index}" for index, key in enumerate(keys[28:], 30)}
+    return {key: f"mesure_{index}" for index, key in enumerate(keys[:27], 1)} | {"hapax_ratio": "mesure_28"} | {key: f"mesure_{index}" for index, key in enumerate(keys[27:], 30)}
 
 
 def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
     """Retourne les notes et leurs titres, indexés exclusivement par #N."""
     notes, titles = {}, {}
     heading = body = identifier = None
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        match = re.match(r"^# (.+?)\s+#(\d+)\s*$", line.strip())
+    blocks = []
+    def flush_body():
+        nonlocal body, blocks
+        if body:
+            blocks.append(" ".join(body).strip())
+            body = []
+    def save_note():
+        nonlocal blocks
+        flush_body()
+        if identifier is not None:
+            notes[str(identifier)] = "\n\n".join(blocks).strip()
+        blocks = []
+    window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
+    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
+        match = re.match(r"^# (.+?)\s+#(\d+)(?:\s+#tab1_\d+)?\s*$", line.strip())
         if match:
-            if identifier is not None:
-                notes[str(identifier)] = " ".join(body).strip()
+            save_note()
             heading, identifier, body = match.group(1), int(match.group(2)), []
             titles[str(identifier)] = heading
         elif identifier is not None and line.strip() and not line.lstrip().startswith("<!--"):
             body.append(line.strip())
-    if identifier is not None:
-        notes[str(identifier)] = " ".join(body).strip()
+        elif identifier is not None and not line.strip():
+            flush_body()
+    save_note()
     return notes, titles
+
+
+def default_radar_ids() -> list[str]:
+    """Lit l’ordre #tab1_N directement dans stats-notes.md."""
+    by_note = {identifier.split("_")[-1]: identifier for identifier in METRIC_ID_BY_FIELD.values()}
+    found = []
+    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+        match = re.match(r"^# .+? #(\d+) #tab1_(\d+)\s*$", line.strip())
+        if match and match.group(1) in by_note:
+            found.append((int(match.group(2)), by_note[match.group(1)]))
+    return [identifier for _, identifier in sorted(found)]
 
 
 def export_json() -> int:
@@ -139,9 +166,14 @@ def export_json() -> int:
         site["coverage_help"] = note_data["29"]
     public_note_ids = {f"mesure_{identifier}": identifier for identifier in sorted(int(key) for key in note_data)}
     metric_note_map = metric_note_ids()
-    metric_labels = {key: note_titles.get(str(int(public_id.split("_")[-1])), "") for key, public_id in metric_note_map.items()}
+    def preferred_label(public_id: str) -> str:
+        title = note_titles.get(str(int(public_id.split("_")[-1])), "")
+        bold = re.findall(r"\*\*([^*]+)\*\*", title)
+        return bold[0].strip() if bold else title.split("/")[0].strip()
+    metric_labels = {key: preferred_label(public_id) for key, public_id in metric_note_map.items()}
+    radar_ids = default_radar_ids()
     if not EPUB_DATABASE.exists():
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "books": []}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": []}
     else:
         with sqlite3.connect(EPUB_DATABASE) as db:
             db.row_factory = sqlite3.Row
@@ -150,7 +182,11 @@ def export_json() -> int:
                 analyses = []
                 for row in db.execute("SELECT window_index,char_start,char_end,char_count,stats_json FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
                     stats_data = json.loads(row["stats_json"])
-                    stats_data.setdefault("document_char_count", book["size"])
+                    required = ("punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate")
+                    missing = [field for field in required if METRIC_ID_BY_FIELD[field] not in stats_data or not isinstance(stats_data[METRIC_ID_BY_FIELD[field]], (int, float)) or not math.isfinite(stats_data[METRIC_ID_BY_FIELD[field]])]
+                    if missing:
+                        raise ValueError(f"Mesures radar absentes pour {book['title']}: {', '.join(missing)}")
+                    stats_data.setdefault(METRIC_ID_BY_FIELD["document_char_count"], book["size"])
                     analyses.append({
                         "window": row["window_index"], "start": row["char_start"], "end": row["char_end"],
                         "chars": row["char_count"], "stats": stats_data,
@@ -161,7 +197,7 @@ def export_json() -> int:
                     "publication_date": book["publication_date"], "size": book["size"],
                     "sha256": book["sha256"], "analyses": analyses,
                 })
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "books": books}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
 
