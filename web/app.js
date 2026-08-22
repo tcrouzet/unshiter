@@ -171,7 +171,12 @@ function drawSurfaces(books) {
   const maximumArea = Math.max(...areas, 0);
   const sorted = labels.map((label, i) => ({ label, author: profiles[i].author || profiles[i].hover || "Auteur inconnu", hover: profiles[i].hover || profiles[i].author || "Auteur inconnu", area: maximumArea ? areas[i] / maximumArea * 100 : 0, color: isAI(profiles[i]) ? IA_COLOR : COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
   const surfaceTitle = document.querySelector(".surface-box h2");
-  if (surfaceTitle) surfaceTitle.childNodes[0].textContent = `Couverture stylistique${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""} `;
+  if (surfaceTitle) {
+    const title = `Couverture stylistique${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
+    surfaceTitle.childNodes[0].textContent = `${title} `;
+    surfaceTitle.dataset.exportTitle = title;
+    surfaceBox.dataset.exportTitle = title;
+  }
   surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false }, ticks: { font: context => ({ weight: isAI(sorted[context.index]?.author) ? "700" : "400" }) } } } } });
 }
 function drawEvolution(selectedBooks) {
@@ -192,6 +197,15 @@ function drawEvolution(selectedBooks) {
   });
 }
 Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const years = instance.$years || []; const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.font = "11px system-ui"; ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (years[i]) ctx.fillText(years[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); }); ctx.restore(); } });
+function chartExportTitle(canvas, name) {
+  const frame = canvas?.closest(".chart-frame");
+  if (frame?.dataset.exportTitle) return frame.dataset.exportTitle;
+  const titleElement = frame?.querySelector("h3, h2");
+  if (!titleElement) return name;
+  const titleClone = titleElement.cloneNode(true);
+  titleClone.querySelectorAll("button, select").forEach(control => control.remove());
+  return titleClone.textContent.replace(/\s+/g, " ").trim() || name;
+}
 function downloadCanvas(canvas, name, format = "png") {
   if (!canvas) return;
   const png = canvas.toDataURL("image/png");
@@ -201,10 +215,7 @@ function downloadCanvas(canvas, name, format = "png") {
       const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
       const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
     }
-    const titleElement = canvas.closest(".chart-frame")?.querySelector("h3, h2");
-    const titleClone = titleElement?.cloneNode(true);
-    titleClone?.querySelectorAll("button").forEach(button => button.remove());
-    const title = titleClone?.textContent?.trim() || name;
+    const title = chartExportTitle(canvas, name);
     const safeTitle = title.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
     const exportHeight = canvas.height + 64;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${exportHeight}" viewBox="0 0 ${canvas.width} ${exportHeight}"><rect width="100%" height="100%" fill="white"/><text x="${canvas.width / 2}" y="38" text-anchor="middle" font-family="system-ui" font-size="28" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="64" width="${canvas.width}" height="${canvas.height}"/></svg>`;
@@ -380,7 +391,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822144425601069000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822150529873758000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
