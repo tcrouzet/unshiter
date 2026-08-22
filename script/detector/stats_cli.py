@@ -25,6 +25,9 @@ from .config import (
     METRIC_CACHE_VERSIONS,
     OUTPUT_DIR,
     README_FILE,
+    README_GRAMMATICAL_CHART,
+    README_KIVIAT_AREA_CHART,
+    README_KIVIAT_CHART,
     README_KIVIAT_DETAIL_CHART,
     README_STATS_END,
     README_STATS_START,
@@ -994,6 +997,9 @@ def main(argv=None) -> int:
         if cached is not None:
             KIVIAT_DETAIL_CHART.write_text(kiviat_chart(compared_analyses, detail_kiviat_profiles(compared_analyses)) + "\n", encoding=TEXT_ENCODING)
             svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
+            svg_to_png(KIVIAT_CHART, README_KIVIAT_CHART)
+            svg_to_png(KIVIAT_AREA_CHART, README_KIVIAT_AREA_CHART)
+            svg_to_png(GRAMMATICAL_DISTRIBUTION_CHART, README_GRAMMATICAL_CHART)
             comparison = markdown_comparison(sources, compared_analyses, window)
             STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
             sync_readme(comparison)
@@ -1015,6 +1021,9 @@ def main(argv=None) -> int:
         svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
         KIVIAT_AREA_CHART.write_text(kiviat_area_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         GRAMMATICAL_DISTRIBUTION_CHART.write_text(grammatical_distribution_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
+        svg_to_png(KIVIAT_CHART, README_KIVIAT_CHART)
+        svg_to_png(KIVIAT_AREA_CHART, README_KIVIAT_AREA_CHART)
+        svg_to_png(GRAMMATICAL_DISTRIBUTION_CHART, README_GRAMMATICAL_CHART)
         print(STATS_COMPARISON_FILE)
         print(f"{len(sources)} fichiers comparés")
         print(KIVIAT_CHART)
