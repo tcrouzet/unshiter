@@ -380,7 +380,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822140717703062000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822144425601069000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
