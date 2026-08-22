@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_DATES_FILE, TEXT_ENCODING, windowed_metric_fields
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_FILE, TEXT_ENCODING, windowed_metric_fields
 from .stats import TextStats, compute_stats, punctuation_diversity
 
 FULL_DOCUMENT_FIELDS = {
@@ -99,18 +99,26 @@ def infer_publication_date(text: str, metadata: dict[str, str]) -> dict[str, str
     return metadata
 
 
-def publication_date_overrides() -> dict[str, str]:
-    """Lit les dates manuelles, sans imposer de dépendance YAML au programme."""
-    if not PUBLICATION_DATES_FILE.exists():
+def publication_overrides() -> dict[str, dict[str, str]]:
+    """Lit les corrections manuelles de publication.yml."""
+    if not PUBLICATION_FILE.exists():
         return {}
     result = {}
-    for line in PUBLICATION_DATES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+    for line in PUBLICATION_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
         line = line.split("#", 1)[0].strip()
         if not line or ":" not in line:
             continue
         key, value = line.split(":", 1)
-        result[key.strip().strip('"\'')] = value.strip().strip('"\'')
+        value = value.strip().strip('"\'')
+        clean_key = key.strip().strip('"\'')
+        object_date = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", value)
+        object_title = re.search(r"\btitle\s*:\s*[\"']([^\"']*)[\"']", value)
+        result[clean_key] = {"date": object_date.group(1) if object_date else (value if not value.startswith("{") else ""), "title": object_title.group(1) if object_title else ""}
     return result
+
+
+def publication_date_overrides() -> dict[str, str]:
+    return {key: values.get("date", "") for key, values in publication_overrides().items()}
 
 
 def ensure_publication_date_entries(paths: list[Path]) -> None:
@@ -122,10 +130,10 @@ def ensure_publication_date_entries(paths: list[Path]) -> None:
         metadata = front_matter(raw)
         key = path.with_suffix(".epub").name
         if not metadata.get("publication_date") and key not in existing:
-            missing.append(f'{key}: ""')
+            missing.append(f'{key}: {{date: ""}}')
     if missing:
-        PUBLICATION_DATES_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with PUBLICATION_DATES_FILE.open("a", encoding=TEXT_ENCODING) as handle:
+        PUBLICATION_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
             handle.write("\n" + "\n".join(missing) + "\n")
 
 
@@ -214,12 +222,14 @@ def init_database(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE books ADD COLUMN analysis_version TEXT NOT NULL DEFAULT ''")
 
 
-def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "") -> tuple[bool, int]:
+def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "") -> tuple[bool, int]:
     raw = path.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     text = raw.decode(TEXT_ENCODING, errors="replace")
     metadata = infer_publication_date(text, front_matter(text))
-    if not metadata.get("publication_date") and date_override:
+    if title_override:
+        metadata["title"] = title_override
+    if date_override:
         metadata["publication_date"] = date_override
     if author:
         metadata["author"] = author
@@ -297,7 +307,7 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
     paths = [path.resolve() for path in (paths or sorted(EPUB_DIR.glob("*.md")))]
     ensure_publication_date_entries(paths)
     metadata_by_path = {}
-    date_overrides = publication_date_overrides()
+    overrides = publication_overrides()
     for path in paths:
         raw = path.read_text(encoding=TEXT_ENCODING, errors="replace")
         metadata_by_path[path] = front_matter(raw)
@@ -321,7 +331,8 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
         changed = windows = 0
         for path in paths:
             raw_author = metadata_by_path[path].get("author", "")
-            book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), date_overrides.get(path.with_suffix(".epub").name, ""))
+            correction = overrides.get(path.with_suffix(".epub").name, {})
+            book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""))
             connection.commit()
             print(f"{'Calculé' if book_changed else 'Déjà à jour'} : {path.name} ({count} fenêtre)")
             changed += int(book_changed)
@@ -329,9 +340,9 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
         missing_dates = [row[0] for row in connection.execute("SELECT path FROM books WHERE publication_date = ''")]
         if missing_dates:
             existing = publication_date_overrides()
-            additions = [f'{Path(path).with_suffix(".epub").name}: ""' for path in missing_dates if Path(path).with_suffix(".epub").name not in existing]
+            additions = [f'{Path(path).with_suffix(".epub").name}: {{date: ""}}' for path in missing_dates if Path(path).with_suffix(".epub").name not in existing]
             if additions:
-                with PUBLICATION_DATES_FILE.open("a", encoding=TEXT_ENCODING) as handle:
+                with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
                     handle.write("\n" + "\n".join(additions) + "\n")
         # Harmonise aussi les lignes conservées après la synchronisation :
         # cela supprime les groupes fantômes créés par « Nom Prénom » /
@@ -355,7 +366,7 @@ def main() -> int:
     if missing_dates:
         print("ATTENTION — EPUB sans date :")
         for path in missing_dates:
-            print(f"  - {Path(path).name} (à compléter dans assets/publication-dates.yml)")
+            print(f"  - {Path(path).name} (à compléter dans assets/publication.yml)")
     if unprocessed:
         print("ATTENTION — EPUB non traités :")
         for path in unprocessed:

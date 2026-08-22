@@ -130,7 +130,7 @@ Surface sur le graphique radar en fonction des valeurs affichées. C'est une sig
 
 Pour rendre les axes comparables, le radar établit ses repères une seule fois sur tout le corpus, jamais sur la sélection affichée. La valeur est d'abord située linéairement entre le minimum et le maximum du corpus, puis transformée par une courbe logarithmique `log(1 + 4x) / log(5)`. Cette courbe continue étale les valeurs basses et ralentit progressivement l'approche de 100 %, sans supprimer ni saturer brutalement aucune œuvre. La transformation s'applique aux coordonnées du radar et au calcul de sa surface, sans modifier les valeurs brutes des tableaux.
 
-Ce tassemment modère l'influence des choix stylistiques extrêmes, comme les phrases très longues qui mécaniquement tirent beaucoup d'indice à la hausse.
+Ce tassemment modère l'influence des choix stylistiques extrêmes, comme les phrases très longues qui mécaniquement tirent beaucoup d'indices à la hausse.
 
 # Mots #30
 
