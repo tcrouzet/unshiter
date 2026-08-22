@@ -781,7 +781,11 @@ def kiviat_area_chart(analyses: list[tuple[Path, object]]) -> str:
         source, _ = analyses[series_index]
         color = KIVIAT_COLORS[series_index % len(KIVIAT_COLORS)]
         current_width = bar_width * area / maximum
-        parts.append(f'<text class="label" x="{label_x}" y="{y + 22}" text-anchor="end">{html.escape(display_name(source))}</text>')
+        label = display_name(source)
+        author = display_author(source)
+        if author:
+            label = f"{label} — {author}"
+        parts.append(f'<text class="label" x="{label_x}" y="{y + 22}" text-anchor="end">{html.escape(label)}</text>')
         parts.append(f'<rect x="{bar_x}" y="{y}" width="{current_width:.1f}" height="30" rx="4" fill="{color}" fill-opacity="0.72"/>')
     parts.append('</svg>')
     return french_typography("\n".join(parts))
@@ -799,11 +803,33 @@ def notes(titles: list[str]) -> list[str]:
 
 
 def display_name(source: Path) -> str:
-    """Nom de colonne lisible : sans extension, capitale initiale, espace avant chiffres finaux."""
-    name = source.stem.replace("_", " ").replace("-", " ")
-    name = re.sub(r"(?<=\D)(\d+)$", r" \1", name)
-    name = re.sub(r"\s+", " ", name).strip()
-    return name[:1].upper() + name[1:]
+    """Titre éditorial SQLite, avec le nom de fichier comme repli."""
+    name = ""
+    if EPUB_DATABASE.exists():
+        try:
+            with sqlite3.connect(EPUB_DATABASE) as connection:
+                row = connection.execute("SELECT title FROM books WHERE path = ?", (str(source.resolve()),)).fetchone()
+                name = (row[0] or "").strip() if row else ""
+        except sqlite3.Error:
+            name = ""
+    if not name:
+        name = source.stem.replace("_", " ").replace("-", " ")
+        name = re.sub(r"(?<=\D)(\d+)$", r" \1", name)
+        name = re.sub(r"\s+", " ", name).strip()
+        name = name[:1].upper() + name[1:]
+    return name
+
+
+def display_author(source: Path) -> str:
+    """Auteur enregistré en base, utilisé pour désambiguïser les barres."""
+    if EPUB_DATABASE.exists():
+        try:
+            with sqlite3.connect(EPUB_DATABASE) as connection:
+                row = connection.execute("SELECT author FROM books WHERE path = ?", (str(source.resolve()),)).fetchone()
+                return (row[0] or "").strip() if row else ""
+        except sqlite3.Error:
+            return ""
+    return ""
 
 
 def report_display_name(source: Path) -> str:

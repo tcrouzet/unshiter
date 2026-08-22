@@ -78,53 +78,53 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 
 ### Synthèse
 
-| Mesure | IA — Roman duras | IA — Roman FourthWing | Isa | L amant duras marguerite | Les particules elementaires michel houellebecq | Ravel jean echenoz | Vies minuscules michon pierre | σ[^1] |
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Densité de ponctuations[^2] | 21.5 % | 18.5 % | 19.4 % | 16.7 % | 17.7 % | 14.6 % | 16.9 % | 11.4 % |
-| Diversité de ponctuation[^3] | 58 % | 55 % | 63 % | 41 % | 67 % | 46 % | 60 % | 15.3 % |
-| Diversité des structures[^4] | 51 % | 60 % | 50 % | 53 % | 53 % | 61 % | 66 % | 9.8 % |
-| Rythme des structures[^5] | 51 % | 57 % | 50 % | 51 % | 47 % | 53 % | 59 % | 7.5 % |
-| Profondeur syntaxique[^6] | 3.2 | 4.3 | 3.1 | 3.4 | 3.6 | 4.9 | 4.4 | 16.3 % |
-| Diversité des débuts de phrase[^7] | 71 % | 67 % | 71 % | 60 % | 75 % | 77 % | 76 % | 8.0 % |
-| Burstiness[^8] | 0.69 | 0.80 | 0.71 | 0.79 | 0.57 | 0.60 | 0.86 | 13.9 % |
-| Ratio noms/verbes[^9] | 1.92 | 1.94 | 2.06 | 1.87 | 2.03 | 2.11 | 2.17 | 5.1 % |
-| Répétitions lexicales[^10] | 14 % | 13 % | 9 % | 17 % | 10 % | 11 % | 9 % | 22.3 % |
+| Densité de ponctuations[^2] | 21.5 % | 18.5 % | 17.7 % | 16.7 % | 19.4 % | 14.6 % | 16.9 % | 11.4 % |
+| Diversité de ponctuation[^3] | 58 % | 55 % | 67 % | 41 % | 63 % | 46 % | 60 % | 15.3 % |
+| Diversité des structures[^4] | 51 % | 60 % | 53 % | 53 % | 50 % | 61 % | 66 % | 9.8 % |
+| Rythme des structures[^5] | 51 % | 57 % | 47 % | 51 % | 50 % | 53 % | 59 % | 7.5 % |
+| Profondeur syntaxique[^6] | 3.2 | 4.3 | 3.6 | 3.4 | 3.1 | 4.9 | 4.4 | 16.3 % |
+| Diversité des débuts de phrase[^7] | 71 % | 67 % | 75 % | 60 % | 71 % | 77 % | 76 % | 8.0 % |
+| Burstiness[^8] | 0.69 | 0.80 | 0.57 | 0.79 | 0.71 | 0.60 | 0.86 | 13.9 % |
+| Ratio noms/verbes[^9] | 1.92 | 1.94 | 2.03 | 1.87 | 2.06 | 2.11 | 2.17 | 5.1 % |
+| Répétitions lexicales[^10] | 14 % | 13 % | 10 % | 17 % | 9 % | 11 % | 9 % | 22.3 % |
 
 ### Détails
 
-| Mesure | IA — Roman duras | IA — Roman FourthWing | Isa | L amant duras marguerite | Les particules elementaires michel houellebecq | Ravel jean echenoz | Vies minuscules michon pierre | σ[^1] |
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Diversité stylistique[^11] | 82.0 % | 82.9 % | 90.3 % | 71.9 % | 89.6 % | 89.4 % | 89.5 % | 7.4 % |
-| Répétitions familiales[^12] | 16 % | 15 % | 11 % | 19 % | 13 % | 13 % | 12 % | 17.3 % |
-| Répétitions sonores[^13] | 21 % | 21 % | 21 % | 20 % | 22 % | 20 % | 20 % | 3.4 % |
-| Répétitions non filtrées[^14] | 60 % | 60 % | 55 % | 66 % | 54 % | 54 % | 53 % | 7.6 % |
-| Répétition globale des trigrammes[^15] | 3.4 % | 3.5 % | 1.1 % | 4.4 % | 1.5 % | 1.2 % | 0.9 % | 58.0 % |
-| Répétition locale des trigrammes[^16] | 0.9 % | 1.2 % | 0.1 % | 2.0 % | 0.7 % | 0.2 % | 0.1 % | 87.2 % |
-| Mots-outils[^17] | 39 % | 40 % | 39 % | 40 % | 35 % | 37 % | 36 % | 5.3 % |
-| Noms[^18] | 33 % | 32 % | 34 % | 32 % | 35 % | 35 % | 34 % | 3.7 % |
+| Diversité stylistique[^11] | 82.0 % | 82.9 % | 89.6 % | 71.9 % | 90.3 % | 89.4 % | 89.5 % | 7.4 % |
+| Répétitions familiales[^12] | 16 % | 15 % | 13 % | 19 % | 11 % | 13 % | 12 % | 17.3 % |
+| Répétitions sonores[^13] | 21 % | 21 % | 22 % | 20 % | 21 % | 20 % | 20 % | 3.4 % |
+| Répétitions non filtrées[^14] | 60 % | 60 % | 54 % | 66 % | 55 % | 54 % | 53 % | 7.6 % |
+| Répétition globale des trigrammes[^15] | 3.4 % | 3.5 % | 1.5 % | 4.4 % | 1.1 % | 1.2 % | 0.9 % | 58.0 % |
+| Répétition locale des trigrammes[^16] | 0.9 % | 1.2 % | 0.7 % | 2.0 % | 0.1 % | 0.2 % | 0.1 % | 87.2 % |
+| Mots-outils[^17] | 39 % | 40 % | 35 % | 40 % | 39 % | 37 % | 36 % | 5.3 % |
+| Noms[^18] | 33 % | 32 % | 35 % | 32 % | 34 % | 35 % | 34 % | 3.7 % |
 | Verbes[^19] | 17 % | 16 % | 17 % | 17 % | 17 % | 17 % | 16 % | 2.8 % |
-| Adjectifs[^20] | 4 % | 4 % | 4 % | 3 % | 5 % | 4 % | 6 % | 13.3 % |
-| Adverbes[^21] | 6 % | 7 % | 5 % | 6 % | 6 % | 6 % | 5 % | 11.9 % |
-| Diversité de longueurs de phrase (mots)[^22] | 6.2 | 24.1 | 9.3 | 14.0 | 12.5 | 14.8 | 41.1 | 41.1 % |
-| Compression gzip[^23] | 34 % | 33 % | 38 % | 34 % | 37 % | 38 % | 38 % | 5.7 % |
-| Relatives et subordonnées[^24] | 127 % | 265 % | 98 % | 132 % | 112 % | 270 % | 196 % | 39.1 % |
-| Phrases nominales[^25] | 28 % | 27 % | 19 % | 11 % | 10 % | 11 % | 10 % | 45.1 % |
-| Voix active[^26] | 66 % | 66 % | 67 % | 70 % | 73 % | 77 % | 77 % | 6.5 % |
-| Comparaisons métaphoriques[^27] | 5.6 % | 12.8 % | 3.3 % | 6.3 % | 3.1 % | 9.7 % | 12.8 % | 50.1 % |
-| Formes par lemme[^28] | 0.89 | 0.88 | 0.85 | 0.92 | 0.88 | 0.87 | 0.86 | 2.3 % |
-| Mots employés une seule fois[^29] | 43 % | 41 % | 54 % | 52 % | 48 % | 59 % | 55 % | 12.1 % |
-| Mots[^30] | 40970 | 56777 | 49521 | 29525 | 89770 | 22553 | 58719 | — |
-| Phrases[^31] | 3118 | 2224 | 3585 | 1982 | 4774 | 878 | 1343 | — |
-| Paragraphes[^32] | 939 | 940 | 774 | 257 | 665 | 146 | 274 | — |
-| Longueur moyenne des mots (caractères)[^33] | 4.5 | 4.6 | 4.8 | 4.4 | 5.0 | 4.7 | 4.8 | — |
-| Longueur moyenne des phrases (caractères)[^34] | 75.4 | 147.8 | 81.2 | 81.7 | 116.1 | 149.0 | 262.6 | — |
-| Longueur moyenne des phrases (mots) | 13.9 | 27.1 | 14.8 | 15.9 | 20.0 | 27.5 | 46.8 | — |
-| Longueur médiane des phrases (caractères)[^35] | 62.0 | 112.0 | 64.0 | 59.0 | 98.0 | 138.0 | 211.0 | — |
-| Longueur P10 des phrases (caractères)[^36] | 21.0 | 21.0 | 24.0 | 22.0 | 38.0 | 38.0 | 39.0 | — |
-| Longueur P90 des phrases (caractères)[^37] | 147.0 | 331.0 | 159.0 | 162.0 | 214.0 | 267.0 | 546.0 | — |
-| Écart-type des paragraphes (mots)[^38] | 30.6 | 42.9 | 45.7 | 118.0 | 125.4 | 62.6 | 156.1 | — |
-| Fenêtres analysées | 2 | 2 | 2 | 1 | 4 | 1 | 2 | — |
-| Longueur moyenne des paragraphes (mots) | 43.6 | 60.4 | 64.0 | 114.9 | 135.0 | 154.5 | 214.3 | — |
+| Adjectifs[^20] | 4 % | 4 % | 5 % | 3 % | 4 % | 4 % | 6 % | 13.3 % |
+| Adverbes[^21] | 6 % | 7 % | 6 % | 6 % | 5 % | 6 % | 5 % | 11.9 % |
+| Diversité de longueurs de phrase (mots)[^22] | 6.2 | 24.1 | 12.5 | 14.0 | 9.3 | 14.8 | 41.1 | 41.1 % |
+| Compression gzip[^23] | 34 % | 33 % | 37 % | 34 % | 38 % | 38 % | 38 % | 5.7 % |
+| Relatives et subordonnées[^24] | 127 % | 265 % | 112 % | 132 % | 98 % | 270 % | 196 % | 39.1 % |
+| Phrases nominales[^25] | 28 % | 27 % | 10 % | 11 % | 19 % | 11 % | 10 % | 45.1 % |
+| Voix active[^26] | 66 % | 66 % | 73 % | 70 % | 67 % | 77 % | 77 % | 6.5 % |
+| Comparaisons métaphoriques[^27] | 5.6 % | 12.8 % | 3.1 % | 6.3 % | 3.3 % | 9.7 % | 12.8 % | 50.1 % |
+| Formes par lemme[^28] | 0.89 | 0.88 | 0.88 | 0.92 | 0.85 | 0.87 | 0.86 | 2.3 % |
+| Mots employés une seule fois[^29] | 43 % | 41 % | 48 % | 52 % | 54 % | 59 % | 55 % | 12.1 % |
+| Mots[^30] | 40970 | 56777 | 89770 | 29525 | 49521 | 22553 | 58719 | — |
+| Phrases[^31] | 3118 | 2224 | 4774 | 1982 | 3585 | 878 | 1343 | — |
+| Paragraphes[^32] | 939 | 940 | 665 | 257 | 774 | 146 | 274 | — |
+| Longueur moyenne des mots (caractères)[^33] | 4.5 | 4.6 | 5.0 | 4.4 | 4.8 | 4.7 | 4.8 | — |
+| Longueur moyenne des phrases (caractères)[^34] | 75.4 | 147.8 | 116.1 | 81.7 | 81.2 | 149.0 | 262.6 | — |
+| Longueur moyenne des phrases (mots) | 13.9 | 27.1 | 20.0 | 15.9 | 14.8 | 27.5 | 46.8 | — |
+| Longueur médiane des phrases (caractères)[^35] | 62.0 | 112.0 | 98.0 | 59.0 | 64.0 | 138.0 | 211.0 | — |
+| Longueur P10 des phrases (caractères)[^36] | 21.0 | 21.0 | 38.0 | 22.0 | 24.0 | 38.0 | 39.0 | — |
+| Longueur P90 des phrases (caractères)[^37] | 147.0 | 331.0 | 214.0 | 162.0 | 159.0 | 267.0 | 546.0 | — |
+| Écart-type des paragraphes (mots)[^38] | 30.6 | 42.9 | 125.4 | 118.0 | 45.7 | 62.6 | 156.1 | — |
+| Fenêtres analysées | 2 | 2 | 4 | 1 | 2 | 1 | 2 | — |
+| Longueur moyenne des paragraphes (mots) | 43.6 | 60.4 | 135.0 | 114.9 | 64.0 | 154.5 | 214.3 | — |
 
 ### Profil comparatif
 
