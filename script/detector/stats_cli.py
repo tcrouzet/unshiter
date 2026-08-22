@@ -74,11 +74,13 @@ def read_source(source: Path) -> str:
 
 
 def is_human_source(source: Path) -> bool:
-    # Les Markdown de sources sans préfixe sont les textes IA. Les livres
-    # extraits dans _epub sont toujours des œuvres humaines.
+    # Les livres extraits dans _epub sont toujours des œuvres humaines. Pour
+    # les Markdown autonomes, seul l'auteur déclaré dans le front matter
+    # détermine le groupe IA ; le nom du fichier n'a aucune signification.
     if source.parent.resolve() != SOURCE_DIR.resolve():
         return True
-    return source.stem.startswith("_")
+    match = re.search(r"(?m)^author:\s*[\"']?([^\"'\n]+?)[\"']?\s*$", source.read_text(encoding=TEXT_ENCODING, errors="replace"))
+    return not match or match.group(1).strip().casefold() != "ia"
 
 
 def configured_comparison_sources() -> list[Path]:
@@ -406,9 +408,50 @@ def note_sections() -> dict[str, str]:
     return markdown_sections(STATS_NOTES_FILE)
 
 
+NOTE_ID_BY_LABEL = {
+    "Dispersion": 42, "Densité de ponctuations": 1, "Diversité de ponctuation": 2,
+    "Diversité des structures": 3, "Rythme des structures": 4,
+    "Diversité des débuts de phrase": 5, "Burstiness": 6, "Ratio noms/verbes": 7,
+    "Répétitions lexicales": 8, "Diversité stylistique": 9, "Répétitions familiales": 10,
+    "Répétitions sonores": 11, "Répétitions non filtrées": 12, "Mots-outils": 13,
+    "Répétition globale des trigrammes": 14, "Répétition locale des trigrammes": 15,
+    "Noms": 16, "Verbes": 17, "Adjectifs": 18, "Adverbes": 19,
+    "Compression gzip": 21, "Relatives et subordonnées": 22, "Phrases nominales": 23,
+    "Voix active": 24, "Comparaisons métaphoriques": 25, "Profondeur syntaxique": 26,
+    "Formes par lemme": 27, "Mots employés une seule fois": 28,
+    "Diversité de longueurs de phrase (mots)": 41, "Mots": 30, "Phrases": 31,
+    "Paragraphes": 32, "Longueur moyenne des mots (caractères)": 33,
+    "Longueur moyenne des phrases (caractères)": 34,
+    "Longueur médiane des phrases (caractères)": 36,
+    "Longueur P10 des phrases (caractères)": 37,
+    "Longueur P90 des phrases (caractères)": 38,
+    "Écart-type des paragraphes (mots)": 39,
+}
+
+
+def _note_heading_matches(heading: str, label: str) -> bool:
+    """Compare un libellé de tableau avec l'un des titres de la note."""
+    if label == "Dispersion":
+        return heading.startswith("Dispersion")
+    clean_heading = re.sub(r"\s+#\d+(?:\s+#tab1_\d+)?\s*$", "", heading)
+    clean_heading = clean_heading.replace("**", "")
+    alternatives = [part.strip() for part in clean_heading.split("/")]
+    return label.strip() in alternatives
+
+
+def note_section_for(label: str) -> str | None:
+    note_id = NOTE_ID_BY_LABEL.get(label)
+    for heading, content in note_sections().items():
+        heading_id = re.search(r"#(\d+)(?:\s|$)", heading)
+        if note_id is not None and heading_id and int(heading_id.group(1)) == note_id:
+            return content
+        if note_id is None and _note_heading_matches(heading, label):
+            return content
+    return None
+
+
 def number_notes(rows: list[tuple[str, object]], prefix_titles: list[str] | None = None) -> tuple[list[tuple[str, object]], list[str]]:
-    sections = note_sections()
-    titles = (prefix_titles or []) + [label for label, _ in rows if label in sections]
+    titles = (prefix_titles or []) + [label for label, _ in rows if note_section_for(label) is not None]
     numbers = {title: index for index, title in enumerate(titles, 1)}
     return [
         (f"{label}[^{numbers[label]}]" if label in numbers else label, value)
@@ -742,12 +785,12 @@ def kiviat_area_chart(analyses: list[tuple[Path, object]]) -> str:
 
 
 def notes(titles: list[str]) -> list[str]:
-    sections = note_sections()
     result = []
     for number, title in enumerate(titles, 1):
-        if title not in sections:
+        content = note_section_for(title)
+        if content is None:
             continue
-        content = sections[title].strip()
+        content = content.strip()
         result.extend([f"[^{number}]: {content}", ""])
     return result[:-1]
 
@@ -758,6 +801,15 @@ def display_name(source: Path) -> str:
     name = re.sub(r"(?<=\D)(\d+)$", r" \1", name)
     name = re.sub(r"\s+", " ", name).strip()
     return name[:1].upper() + name[1:]
+
+
+def report_display_name(source: Path) -> str:
+    """Affiche explicitement le groupe IA dans les en-têtes du rapport."""
+    name = display_name(source)
+    if source.parent.resolve() != SOURCE_DIR.resolve():
+        return name
+    match = re.search(r"(?m)^author:\s*[\"']?([^\"'\n]+?)[\"']?\s*$", source.read_text(encoding=TEXT_ENCODING, errors="replace"))
+    return f"IA — {name}" if match and match.group(1).strip().casefold() == "ia" else name
 
 
 def markdown_stats(source: Path, stats) -> str:
@@ -791,7 +843,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         }
         for source, stats in analyses
     ]
-    headers = [display_name(source) for source, _ in analyses]
+    headers = [report_display_name(source) for source, _ in analyses]
     rows_by_file = [statistic_rows(stats, repetition) for (_, stats), repetition in zip(analyses, repetitions)]
     numeric_maps = [statistic_numeric_values(stats, repetition) for (_, stats), repetition in zip(analyses, repetitions)]
     important_by_file, details_by_file = [], []

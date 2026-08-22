@@ -7,9 +7,11 @@ PYTHON="$PROJECT_ROOT/venv/bin/python"
 if [ ! -x "$PYTHON" ]; then PYTHON=python3; fi
 
 if [ "$#" -eq 0 ]; then
-  echo "[1/2] Extraction des EPUB en Markdown..."
+  echo "[1/3] Extraction des EPUB en Markdown..."
   "$PYTHON" script/epub-extraction.py
-  echo "[2/2] Analyse et mise à jour de la base..."
+  echo "[2/3] Recherche des dates de publication manquantes..."
+  "$PYTHON" script/publication-dates.py || true
+  echo "[3/3] Analyse et mise à jour de la base..."
   PYTHONPATH=script "$PYTHON" -m detector.epub_database
 else
   echo "[1/1] Préparation de la source..."
@@ -29,5 +31,7 @@ else
     echo "Markdown introuvable : $file" >&2
     exit 1
   fi
+  echo "Recherche des dates de publication manquantes..."
+  "$PYTHON" script/publication-dates.py || true
   PYTHONPATH=script "$PYTHON" -m detector.epub_database "$file"
 fi
