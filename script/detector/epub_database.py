@@ -128,7 +128,8 @@ def ensure_publication_date_entries(paths: list[Path]) -> None:
     for path in paths:
         raw = path.read_text(encoding=TEXT_ENCODING, errors="replace")
         metadata = front_matter(raw)
-        key = path.with_suffix(".epub").name
+        # Les Markdown peuvent être autonomes, sans EPUB correspondant.
+        key = path.with_suffix(".epub").name if path.with_suffix(".epub").exists() else path.name
         if not metadata.get("publication_date") and key not in existing:
             missing.append(f'{key}: {{date: ""}}')
     if missing:
@@ -331,16 +332,29 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
         changed = windows = 0
         for path in paths:
             raw_author = metadata_by_path[path].get("author", "")
-            correction = overrides.get(path.with_suffix(".epub").name, {})
+            epub_key = path.with_suffix(".epub").name
+            correction = overrides.get(epub_key) or overrides.get(path.name, {})
+            current_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            previous = connection.execute("SELECT sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
+            if previous and previous[0] == current_digest and previous[1] == EPUB_ANALYSIS_VERSION:
+                print(f"Vérification : {path.name} — déjà à jour", flush=True)
+            else:
+                reason = "nouveau" if previous is None else ("contenu modifié" if previous[0] != current_digest else "version d’analyse modifiée")
+                print(f"Calcul en cours : {path.name} — {reason}", flush=True)
             book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""))
             connection.commit()
-            print(f"{'Calculé' if book_changed else 'Déjà à jour'} : {path.name} ({count} fenêtre)")
+            print(f"{'Calculé' if book_changed else 'Déjà à jour'} : {path.name}", flush=True)
             changed += int(book_changed)
             windows += count
         missing_dates = [row[0] for row in connection.execute("SELECT path FROM books WHERE publication_date = ''")]
         if missing_dates:
             existing = publication_date_overrides()
-            additions = [f'{Path(path).with_suffix(".epub").name}: {{date: ""}}' for path in missing_dates if Path(path).with_suffix(".epub").name not in existing]
+            additions = []
+            for path in missing_dates:
+                candidate = Path(path)
+                key = candidate.with_suffix(".epub").name if candidate.with_suffix(".epub").exists() else candidate.name
+                if key not in existing:
+                    additions.append(f'{key}: {{date: ""}}')
             if additions:
                 with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
                     handle.write("\n" + "\n".join(additions) + "\n")
@@ -359,16 +373,17 @@ def main() -> int:
     changed, windows = build_database(args.paths or None)
     print(f"Base : {EPUB_DATABASE}")
     print(f"Livres recalculés : {changed}")
-    print(f"Fenêtres analysées : {windows} ({EPUB_ANALYSIS_WINDOW_SIZE} signes cible)")
+    # Le nombre de fenêtres est une donnée interne de calcul, pas une
+    # information utile dans le résumé de la commande.
     with sqlite3.connect(EPUB_DATABASE) as connection:
         missing_dates = [row[0] for row in connection.execute("SELECT path FROM books WHERE publication_date = '' ORDER BY path")]
         unprocessed = [row[0] for row in connection.execute("SELECT books.path FROM books LEFT JOIN analyses ON analyses.book_id = books.id GROUP BY books.id HAVING COUNT(analyses.id) = 0 ORDER BY books.path")]
     if missing_dates:
-        print("ATTENTION — EPUB sans date :")
+        print("ATTENTION — sources sans date :")
         for path in missing_dates:
             print(f"  - {Path(path).name} (à compléter dans assets/publication.yml)")
     if unprocessed:
-        print("ATTENTION — EPUB non traités :")
+        print("ATTENTION — sources non traitées :")
         for path in unprocessed:
             print(f"  - {Path(path).name}")
     return 0

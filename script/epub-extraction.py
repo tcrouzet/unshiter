@@ -452,11 +452,18 @@ def convert_cover(archive: zipfile.ZipFile, member: str, destination: Path) -> N
         temporary.flush()
         command = [executable, temporary.name, "-strip", "-quality", "70", str(destination)]
         completed = subprocess.run(command, capture_output=True, text=True)
+        # Certains EPUB fournissent une couverture SVG sans width/height.
+        # ImageMagick ne peut alors pas déterminer la taille du canevas ; on
+        # lui donne une taille de rasterisation raisonnable pour la seconde
+        # tentative, sans modifier le fichier original.
+        if completed.returncode and suffix.lower() == ".svg":
+            command = [executable, "-background", "white", "-size", "1200x1800", f"svg:{temporary.name}", "-strip", "-quality", "70", str(destination)]
+            completed = subprocess.run(command, capture_output=True, text=True)
     if completed.returncode:
         raise RuntimeError(completed.stderr.strip() or f"conversion impossible pour {member}")
 
 
-def extract_epub(source: Path) -> tuple[Path, Path]:
+def extract_epub(source: Path) -> tuple[Path, None]:
     with zipfile.ZipFile(source) as archive:
         opf_path, package = package_root(archive)
         package.attrib["_path"] = opf_path
@@ -464,7 +471,6 @@ def extract_epub(source: Path) -> tuple[Path, Path]:
         manifest, spine = manifest_and_spine(package)
         for attributes in spine:
             attributes["_path"] = str(Path(opf_path).parent / attributes["href"]).replace("\\", "/")
-        cover = cover_path(package, manifest, opf_path)
         text = significant_text(archive, package, manifest, spine, info["title"])
         date = info.get("publication_date", "")
         year = int(date[:4]) if re.match(r"^\d{4}", date) else 0
@@ -483,25 +489,18 @@ def extract_epub(source: Path) -> tuple[Path, Path]:
             for key in ("author", "author_firstname", "author_lastname"):
                 if previous.get(key):
                     info[key] = previous[key]
-        output_cover = source.parent / f"{output_stem}.avif"
-        if cover:
-            convert_cover(archive, cover, output_cover)
-            cover_name = output_cover.name
-        else:
-            cover_name = ""
         front_matter = ["---"]
         for key in ("title", "author", "author_firstname", "author_lastname", "publisher", "genre", "publication_date"):
             front_matter.append(f"{key}: {yaml_quote(info[key])}")
         front_matter.append(f"size: {len(text)}")
-        front_matter.append(f"cover: {yaml_quote(cover_name)}")
         front_matter.append("source: " + yaml_quote(f"{output_stem}.epub"))
         front_matter.append("---")
         output_md.write_text("\n".join(front_matter) + "\n\n" + text + "\n", encoding=TEXT_ENCODING)
-    return output_md, output_cover
+    return output_md, None
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Extrait les EPUB en Markdown et couvertures AVIF")
+    parser = argparse.ArgumentParser(description="Extrait les EPUB en Markdown")
     parser.add_argument("epubs", nargs="*", type=Path, help="EPUB à traiter ; sans argument, tous les EPUB de _epub")
     args = parser.parse_args(argv)
     sources = args.epubs or sorted(EPUB_DIR.glob("*.epub"))
@@ -515,10 +514,8 @@ def main(argv=None) -> int:
             source = target
         normalized_sources.append(source)
     for source in normalized_sources:
-        markdown, cover = extract_epub(source)
-        print(markdown)
-        if cover.exists():
-            print(cover)
+        markdown, _ = extract_epub(source)
+        print(f"Extrait : {source.name} -> {markdown.name}", flush=True)
     return 0
 
 

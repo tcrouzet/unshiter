@@ -296,7 +296,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822075527988101000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822091607465864000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.values(data.palette || {}).filter(Boolean);
   // L’ordre et la sélection par défaut viennent exclusivement des marqueurs

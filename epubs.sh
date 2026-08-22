@@ -7,9 +7,12 @@ PYTHON="$PROJECT_ROOT/venv/bin/python"
 if [ ! -x "$PYTHON" ]; then PYTHON=python3; fi
 
 if [ "$#" -eq 0 ]; then
+  echo "[1/2] Extraction des EPUB en Markdown..."
   "$PYTHON" script/epub-extraction.py
+  echo "[2/2] Analyse et mise à jour de la base..."
   PYTHONPATH=script "$PYTHON" -m detector.epub_database
 else
+  echo "[1/1] Préparation de la source..."
   case "$1" in
     *.epub)
       extracted=$("$PYTHON" script/epub-extraction.py "$1")
