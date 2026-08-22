@@ -1,6 +1,6 @@
 # Unshiter — analyse statistique de textes
 
-Unshiter compare des textes français sans demander à un modèle génératif de les juger. Il mesure leur ponctuation, leur rythme, leurs répétitions, leurs structures syntaxiques et leur répartition grammaticale. Les résultats décrivent les textes du corpus ; ils ne constituent pas une preuve d’origine humaine ou artificielle.
+Unshiter compare des textes français à partir de mesures reproductibles : ponctuation, rythme, répétitions lexicales et sonores, structures syntaxiques, catégories grammaticales et statistiques de longueur. Les résultats décrivent un corpus ; ils ne constituent ni une preuve d’origine humaine ou artificielle, ni un jugement littéraire.
 
 ## Installation
 
@@ -9,96 +9,131 @@ python3 -m venv venv
 venv/bin/python -m pip install -r requirements.txt
 ```
 
-Le projet utilise spaCy 3.8.13 avec le modèle français `fr_core_news_lg` 3.8.0. Le modèle est installé par `requirements.txt`.
+Le calcul syntaxique utilise spaCy et le modèle français `fr_core_news_lg`. Morphalou et Démonette sont indexés dans `assets/`. Tous les chemins utilisés par les modules sont centralisés dans `script/detector/config.py`.
 
-## Lancer une comparaison
+## Flux de travail
 
-Placez les fichiers Markdown dans `sources/`, puis lancez :
+La base SQLite `assets/unshiter.sqlite3` est la source de vérité. Les scripts ne recalculent une œuvre que si son Markdown, la version d’analyse ou les données nécessaires ont changé.
 
-```bash
-./stats.sh
-```
+### Ajouter ou actualiser des EPUB
 
-Les fichiers sont classés ainsi :
-
-- un fichier sans `_` initial est considéré comme un texte IA ;
-- tous les fichiers IA sont fusionnés dans une seule colonne `IA` ;
-- un fichier commençant par `_` est considéré comme humain ;
-- les textes humains sont affichés après `IA`, par ordre alphabétique ;
-- le `_` initial et l’extension `.md` ne sont pas affichés dans les titres.
-
-Pour analyser un seul fichier et produire ses rapports Markdown et JSON :
+Les EPUB sont déposés dans `_epub/`. L’extraction produit un Markdown normalisé dans le même dossier ; les préliminaires, titres, citations et paragraphes sont convertis selon le balisage de l’EPUB. La première fenêtre d’analyse est limitée à la taille configurée dans `config.py`.
 
 ```bash
-./stats.sh sources/IA.md
+./epubs.sh
 ```
 
-## Fichiers produits
+Pour traiter une source précise (`.epub`, `.md` ou ancienne entrée `.avif`) :
 
-Les sorties sont écrites dans `_output/` :
+```bash
+./epubs.sh _epub/mon-livre.epub
+```
 
-- `stats_comparison.md` : tableaux comparatifs et graphiques intégrés ;
-- `kiviat.svg` : radar des mesures du tableau principal ;
-- `kiviat_details.svg` : radar des mesures du tableau détaillé dont σ atteint au moins 10 % ;
-- `kiviat_areas.svg` : surface des profils du radar, classée par ordre croissant ;
-- `grammatical_distribution.svg` : camemberts grammaticaux, trois par ligne ;
-- `*_structure.md` : phrases et structures reconnues ;
-- `*_lemmes.md` : textes lemmatisés avec répétitions signalées.
+La commande met à jour la base, supprime les livres disparus et signale les publications sans date. Les corrections éditoriales (titre ou année) se font dans `assets/publication.yml` ; les entrées sont conservées lors des actualisations.
+
+Les Markdown placés dans `sources/` sont également indexés. Un nom qui ne commence pas par `_` est classé `IA` ; les autres sources sont humaines. Chaque fichier IA reste une œuvre distincte dans la base et dans le rapport.
+
+### Générer le rapport README
+
+```bash
+./readme.sh
+```
+
+`readme.sh` ne fait que produire le rapport comparatif à partir de la base SQLite et actualiser le bloc statistique de ce README. Il génère :
+
+- `_output/stats_comparison.md` : les tableaux comparatifs et leurs notes ;
+- `_output/kiviat.svg`, `_output/kiviat_details.svg` et `_output/kiviat_areas.svg` : radars et surfaces ;
+- `_output/grammatical_distribution.svg` : répartitions grammaticales.
+
+Les mesures marquées `{windows}` dans `assets/stats-notes.md` sont calculées sur des fenêtres comparables ; les mesures techniques (mots, caractères, phrases, paragraphes) portent sur le document complet. Le cache est conservé dans `_temp/`.
+
+### Générer le site web
+
+```bash
+./web.sh
+```
+
+Le site est une application statique dans `web/`. `web.sh` exporte la base SQLite en `web/data.json`, copie le prompt d’interprétation et ajoute une version aux ressources pour éviter les anciens fichiers en cache. Il n’accède pas aux Markdown : l’extraction et la synchronisation de la base relèvent de `epubs.sh`.
+
+Le site permet de :
+
+- sélectionner des auteurs et des œuvres ;
+- choisir les mesures du radar et inverser leur sens ;
+- afficher les limites du corpus, les moyennes par auteur ou les œuvres ;
+- consulter la couverture stylistique, les évolutions par année et les tableaux complets ;
+- télécharger les graphiques en PNG ou SVG ;
+- sauvegarder des sélections dans le navigateur ;
+- exporter le prompt d’analyse et les données JSON correspondant aux œuvres sélectionnées.
+
+Pour le tester localement :
+
+```bash
+python3 -m http.server 8000 --directory web
+```
+
+Puis ouvrir <http://localhost:8000/>.
+
+### Autres commandes
+
+```bash
+./publication-dates.sh          # recherche et met en cache les dates manquantes
+PYTHONPATH=script python3 -m unittest discover -s script/detector/tests -v
+```
 
 <!-- STATS:START -->
 ## Dernier résultat
 
-Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.
+Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 
 ### Synthèse
 
-| Mesure | IA | Crouzet | Duras | Echenoz | Houellebecq | Michon | σ[^1] |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Ponctuation (signes/300 mots) | 36.1 | 57.9 | 50.2 | 43.4 | 52.7 | 50.6 | 14.4 % |
-| Diversité de ponctuation | 40 % | 61 % | 40 % | 45 % | 64 % | 58 % | 19.5 % |
-| Diversité des structures | 42 % | 48 % | 53 % | 61 % | 53 % | 65 % | 14.3 % |
-| Rythme des structures | 41 % | 49 % | 51 % | 53 % | 47 % | 59 % | 11.0 % |
-| Profondeur syntaxique | 3.7 | 3.2 | 3.5 | 5.1 | 3.7 | 4.5 | 16.1 % |
-| Diversité des débuts de phrase | 52 % | 72 % | 59 % | 78 % | 76 % | 76 % | 14.1 % |
-| Burstiness | 0.69 | 0.67 | 0.79 | 0.60 | 0.58 | 0.87 | 14.6 % |
-| Ratio noms/verbes | 1.56 | 2.09 | 1.88 | 2.17 | 2.06 | 2.20 | 5.4 % |
-| Répétitions lexicales | 9 % | 10 % | 16 % | 12 % | 12 % | 9 % | 11.5 % |
+| Mesure | Roman duras | Roman FourthWing | Isa | L amant duras marguerite | Les particules elementaires michel houellebecq | Ravel jean echenoz | Vies minuscules michon pierre | σ[^1] |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Densité de ponctuations | 21.5 % | 18.5 % | 19.4 % | 16.7 % | 17.7 % | 14.6 % | 16.9 % | 11.4 % |
+| Diversité de ponctuation | 58 % | 55 % | 63 % | 41 % | 67 % | 46 % | 60 % | 15.3 % |
+| Diversité des structures | 51 % | 60 % | 50 % | 53 % | 53 % | 61 % | 66 % | 9.8 % |
+| Rythme des structures | 51 % | 57 % | 50 % | 51 % | 47 % | 53 % | 59 % | 7.5 % |
+| Profondeur syntaxique | 3.2 | 4.3 | 3.1 | 3.4 | 3.6 | 4.9 | 4.4 | 16.3 % |
+| Diversité des débuts de phrase | 71 % | 67 % | 71 % | 60 % | 75 % | 77 % | 76 % | 8.0 % |
+| Burstiness | 0.69 | 0.80 | 0.71 | 0.79 | 0.57 | 0.60 | 0.86 | 13.9 % |
+| Ratio noms/verbes | 1.92 | 1.94 | 2.06 | 1.87 | 2.03 | 2.11 | 2.17 | 5.1 % |
+| Répétitions lexicales | 14 % | 13 % | 9 % | 17 % | 10 % | 11 % | 9 % | 22.3 % |
 
 ### Détails
 
-| Mesure | IA | Crouzet | Duras | Echenoz | Houellebecq | Michon | σ[^1] |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Diversité stylistique | 90.4 % | 86.5 % | 72.1 % | 86.2 % | 86.0 % | 89.8 % | 2.2 % |
-| Répétitions familiales | 12 % | 12 % | 18 % | 14 % | 14 % | 12 % | 9.6 % |
-| Répétitions sonores | 20 % | 19 % | 20 % | 20 % | 22 % | 19 % | 2.4 % |
-| Répétitions non filtrées | 55 % | 53 % | 64 % | 53 % | 53 % | 51 % | 2.4 % |
-| Répétition globale des trigrammes | 1.6 % | 1.3 % | 3.5 % | 1.0 % | 1.7 % | 0.7 % | 30.3 % |
-| Répétition locale des trigrammes | 0.3 % | 0.5 % | 1.9 % | 0.3 % | 0.8 % | 0.2 % | 51.3 % |
-| Mots-outils | 43 % | 39 % | 40 % | 37 % | 35 % | 36 % | 6.8 % |
-| Noms | 29 % | 35 % | 32 % | 35 % | 35 % | 35 % | 3.1 % |
-| Verbes | 19 % | 17 % | 17 % | 17 % | 17 % | 16 % | 3.3 % |
-| Adjectifs | 4 % | 5 % | 3 % | 4 % | 5 % | 6 % | 20.4 % |
-| Adverbes | 6 % | 5 % | 6 % | 6 % | 6 % | 5 % | 11.6 % |
-| Diversité de longueurs de phrase (mots) | 7.8 | 8.7 | 13.7 | 15.4 | 12.0 | 37.4 | 25.1 % |
-| Compression gzip | 42 % | 46 % | 41 % | 45 % | 45 % | 46 % | 4.2 % |
-| Relatives et subordonnées | 131 % | 104 % | 135 % | 279 % | 118 % | 207 % | 37.7 % |
-| Phrases nominales | 7 % | 21 % | 10 % | 10 % | 10 % | 10 % | 3.6 % |
-| Voix active | 81 % | 66 % | 70 % | 77 % | 73 % | 77 % | 6.9 % |
-| Comparaisons métaphoriques | 2.1 % | 3.4 % | 6.3 % | 9.9 % | 3.2 % | 12.8 % | 61.8 % |
-| Formes par lemme | 0.83 | 0.85 | 0.91 | 0.87 | 0.88 | 0.86 | 1.9 % |
-| Mots employés une seule fois | 72 % | 76 % | 66 % | 75 % | 74 % | 77 % | 2.3 % |
-| Mots | 1743 | 49880 | 29454 | 22614 | 91510 | 58784 | — |
-| Phrases | 134 | 4088 | 1972 | 877 | 4811 | 1336 | — |
-| Paragraphes | 33 | 834 | 248 | 153 | 889 | 282 | — |
-| Longueur moyenne des mots (caractères) | 5.0 | 4.8 | 4.4 | 4.7 | 5.0 | 4.8 | — |
-| Longueur moyenne des phrases (caractères) | 78.6 | 73.3 | 83.9 | 154.7 | 123.0 | 276.7 | — |
-| Longueur moyenne des phrases (mots) | 13.0 | 12.4 | 15.3 | 26.7 | 19.8 | 46.1 | — |
-| Longueur médiane des phrases (caractères) | 67.5 | 59.8 | 62.6 | 144.4 | 106.5 | 222.5 | — |
-| Longueur P10 des phrases (caractères) | 29.3 | 23.0 | 23.4 | 49.9 | 45.2 | 51.4 | — |
-| Longueur P90 des phrases (caractères) | 145.6 | 139.9 | 164.2 | 264.3 | 218.9 | 567.8 | — |
-| Écart-type des paragraphes (mots) | 34.4 | 40.2 | 105.8 | 62.0 | 107.7 | 129.5 | — |
-| Fenêtres analysées | 1 | 28 | 16 | 12 | 49 | 31 | — |
-| Longueur moyenne des paragraphes (mots) | 52.8 | 66.5 | 127.0 | 150.8 | 126.5 | 234.9 | — |
+| Mesure | Roman duras | Roman FourthWing | Isa | L amant duras marguerite | Les particules elementaires michel houellebecq | Ravel jean echenoz | Vies minuscules michon pierre | σ[^1] |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Diversité stylistique | 82.0 % | 82.9 % | 90.3 % | 71.9 % | 89.6 % | 89.4 % | 89.5 % | 7.4 % |
+| Répétitions familiales | 16 % | 15 % | 11 % | 19 % | 13 % | 13 % | 12 % | 17.3 % |
+| Répétitions sonores | 21 % | 21 % | 21 % | 20 % | 22 % | 20 % | 20 % | 3.4 % |
+| Répétitions non filtrées | 60 % | 60 % | 55 % | 66 % | 54 % | 54 % | 53 % | 7.6 % |
+| Répétition globale des trigrammes | 3.4 % | 3.5 % | 1.1 % | 4.4 % | 1.5 % | 1.2 % | 0.9 % | 58.0 % |
+| Répétition locale des trigrammes | 0.9 % | 1.2 % | 0.1 % | 2.0 % | 0.7 % | 0.2 % | 0.1 % | 87.2 % |
+| Mots-outils | 39 % | 40 % | 39 % | 40 % | 35 % | 37 % | 36 % | 5.3 % |
+| Noms | 33 % | 32 % | 34 % | 32 % | 35 % | 35 % | 34 % | 3.7 % |
+| Verbes | 17 % | 16 % | 17 % | 17 % | 17 % | 17 % | 16 % | 2.8 % |
+| Adjectifs | 4 % | 4 % | 4 % | 3 % | 5 % | 4 % | 6 % | 13.3 % |
+| Adverbes | 6 % | 7 % | 5 % | 6 % | 6 % | 6 % | 5 % | 11.9 % |
+| Diversité de longueurs de phrase (mots) | 6.2 | 24.1 | 9.3 | 14.0 | 12.5 | 14.8 | 41.1 | 41.1 % |
+| Compression gzip | 34 % | 33 % | 38 % | 34 % | 37 % | 38 % | 38 % | 5.7 % |
+| Relatives et subordonnées | 127 % | 265 % | 98 % | 132 % | 112 % | 270 % | 196 % | 39.1 % |
+| Phrases nominales | 28 % | 27 % | 19 % | 11 % | 10 % | 11 % | 10 % | 45.1 % |
+| Voix active | 66 % | 66 % | 67 % | 70 % | 73 % | 77 % | 77 % | 6.5 % |
+| Comparaisons métaphoriques | 5.6 % | 12.8 % | 3.3 % | 6.3 % | 3.1 % | 9.7 % | 12.8 % | 50.1 % |
+| Formes par lemme | 0.89 | 0.88 | 0.85 | 0.92 | 0.88 | 0.87 | 0.86 | 2.3 % |
+| Mots employés une seule fois | 43 % | 41 % | 54 % | 52 % | 48 % | 59 % | 55 % | 12.1 % |
+| Mots | 40970 | 56777 | 49521 | 29525 | 89770 | 22553 | 58719 | — |
+| Phrases | 3118 | 2224 | 3585 | 1982 | 4774 | 878 | 1343 | — |
+| Paragraphes | 939 | 940 | 774 | 257 | 665 | 146 | 274 | — |
+| Longueur moyenne des mots (caractères) | 4.5 | 4.6 | 4.8 | 4.4 | 5.0 | 4.7 | 4.8 | — |
+| Longueur moyenne des phrases (caractères) | 75.4 | 147.8 | 81.2 | 81.7 | 116.1 | 149.0 | 262.6 | — |
+| Longueur moyenne des phrases (mots) | 13.9 | 27.1 | 14.8 | 15.9 | 20.0 | 27.5 | 46.8 | — |
+| Longueur médiane des phrases (caractères) | 62.0 | 112.0 | 64.0 | 59.0 | 98.0 | 138.0 | 211.0 | — |
+| Longueur P10 des phrases (caractères) | 21.0 | 21.0 | 24.0 | 22.0 | 38.0 | 38.0 | 39.0 | — |
+| Longueur P90 des phrases (caractères) | 147.0 | 331.0 | 159.0 | 162.0 | 214.0 | 267.0 | 546.0 | — |
+| Écart-type des paragraphes (mots) | 30.6 | 42.9 | 45.7 | 118.0 | 125.4 | 62.6 | 156.1 | — |
+| Fenêtres analysées | 2 | 2 | 2 | 1 | 4 | 1 | 2 | — |
+| Longueur moyenne des paragraphes (mots) | 43.6 | 60.4 | 64.0 | 114.9 | 135.0 | 154.5 | 214.3 | — |
 
 ### Profil comparatif
 
@@ -124,14 +159,11 @@ Les surfaces sont calculées directement sur les polygones du radar et classées
 ### Répartition grammaticale par document
 
 ![Répartition grammaticale](./assets/readme/grammatical-distribution-github.png)
-
-
-[^1]: Indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure non significative.
 <!-- STATS:END -->
 
-Une empreinte SHA-256 identifie le contenu du corpus dans `_temp/stats-cache.json`. Les mesures sont enregistrées séparément pour chaque document et les calculs susceptibles d’évoluer possèdent leur propre version. Modifier le calcul des trigrammes ne recalcule donc que les deux mesures de trigrammes ; les résultats spaCy, phonétiques, grammaticaux et les autres valeurs restent en cache. Modifier `assets/stats-notes.md` ne recalcule aucune mesure : `./stats.sh` régénère seulement le rapport et le README.
+Une empreinte SHA-256 identifie le contenu du corpus dans `_temp/stats-cache.json`. Les mesures sont enregistrées séparément pour chaque document et les calculs susceptibles d’évoluer possèdent leur propre version. Modifier `assets/stats-notes.md` ne recalcule aucune mesure : `./readme.sh` régénère seulement le rapport et le README.
 
-## Fenêtres de comparaison
+## Méthode de comparaison
 
 Les textes n’ont pas tous la même taille. Pour éviter qu’un roman bénéficie simplement d’un plus grand échantillon, les mesures dérivées sont calculées sur des fenêtres non chevauchantes ayant pour cible le nombre de mots du texte le plus court.
 
@@ -140,7 +172,7 @@ Une fenêtre se termine toujours à la fin d’un paragraphe. Elle peut donc dé
 Gzip suit une règle différente : ses blocs sont découpés en octets UTF-8 et ont exactement la taille du texte le plus court en octets. Les comptages techniques — mots, phrases et paragraphes — décrivent toujours le document complet.
 
 
-## Graphiques
+## Graphiques du rapport
 
 Le radar reprend exactement les mesures du tableau principal. Pour chaque axe, le rayon médian correspond à la moyenne du corpus. La position vaut `0,5 + 1,25 × (valeur − moyenne) / moyenne`, limitée entre 0,05 et 1. Les répétitions lexicales sont inversées afin que l’extérieur corresponde à moins de répétitions. Toutes les lignes de lecture utilisent le même gris.
 
@@ -158,7 +190,10 @@ L’histogramme des surfaces applique la formule géométrique de l’aire à ch
 
 - `script/detector/` : calculs, interface et tests ;
 - `assets/` : Morphalou, Démonette, mots-outils et notes du rapport ;
-- `sources/` : corpus Markdown ;
+- `_epub/` : EPUB et Markdown extraits ;
+- `sources/` : corpus Markdown indépendant ;
+- `web/` : application statique et données exportées ;
+- `assets/unshiter.sqlite3` : base statistique ;
 - `_output/` : rapports générés ;
 - `_temp/` : cache et fichiers temporaires.
 

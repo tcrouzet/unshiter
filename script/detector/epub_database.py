@@ -1,4 +1,4 @@
-"""Indexe les livres EPUB convertis en Markdown et calcule leurs statistiques."""
+"""Indexe les Markdown issus des EPUB ou déposés directement dans sources."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_FILE, TEXT_ENCODING, windowed_metric_fields
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, windowed_metric_fields
 from .stats import TextStats, compute_stats, punctuation_diversity
 
 FULL_DOCUMENT_FIELDS = {
@@ -228,6 +228,10 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
     digest = hashlib.sha256(raw).hexdigest()
     text = raw.decode(TEXT_ENCODING, errors="replace")
     metadata = infer_publication_date(text, front_matter(text))
+    # Un Markdown autonome ne dispose pas forcément de métadonnées YAML.
+    # Son nom de fichier constitue alors le seul titre fiable disponible.
+    if not metadata.get("title"):
+        metadata["title"] = path.stem
     if title_override:
         metadata["title"] = title_override
     if date_override:
@@ -305,7 +309,13 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
 def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
     EPUB_DATABASE.parent.mkdir(parents=True, exist_ok=True)
     synchronize = paths is None
-    paths = [path.resolve() for path in (paths or sorted(EPUB_DIR.glob("*.md")))]
+    if paths is None:
+        # La base regroupe les livres extraits des EPUB et les Markdown
+        # autonomes déposés dans sources. Un même fichier n'est indexé
+        # qu'une fois si les deux répertoires contiennent le même chemin.
+        discovered = set(EPUB_DIR.glob("*.md")) | set(SOURCE_DIR.glob("*.md"))
+        paths = sorted(discovered)
+    paths = [path.resolve() for path in paths]
     ensure_publication_date_entries(paths)
     metadata_by_path = {}
     overrides = publication_overrides()
@@ -367,8 +377,8 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Indexe les Markdown issus des EPUB et calcule leurs statistiques")
-    parser.add_argument("paths", nargs="*", type=Path, help="Markdown EPUB à traiter ; sans argument, tous ceux de _epub")
+    parser = argparse.ArgumentParser(description="Indexe les Markdown et calcule leurs statistiques")
+    parser.add_argument("paths", nargs="*", type=Path, help="Markdown à traiter ; sans argument, ceux de _epub et sources")
     args = parser.parse_args()
     changed, windows = build_database(args.paths or None)
     print(f"Base : {EPUB_DATABASE}")

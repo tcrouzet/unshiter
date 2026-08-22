@@ -1,27 +1,59 @@
 # Dates vérifiées ou complétées depuis Wikipédia/Wikidata.
 # Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
-a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
+autobiographie-des-objets-fiction-et-c-francois-bon.md: {date: "2012"}
+
+sortie-dusine-bon-francois.epub: {date: "1982"}
+prison-bon-francois.epub: {date: "1997"}
+
+madame-bovary-gustave-flaubert.epub: {date: "1857"}
+salammbo-gustave-flaubert.epub: {date: "1862"}
+leducation-sentimentale.epub: {date: "1869"}
+trois-contes-flaubert-gustave.epub: {date: "1877"}
+
+cherokee-jean-echenoz.epub: {date: "1983"}
+lac-echenoz-jean.epub: {date: "1989"}
+l-equipee-malaise-jean-echenoz.epub: {date: "1997"}
+ravel-jean-echenoz.epub: {date: "2006"}
+courir-jean-echenoz.epub: {date: "2008"}
+des-eclairs-echenoz-jean.epub: {date: "2010"}
+vie-de-gerard-fulmard.epub: {date: "2022"}
+
+les-olympiades-truquees.epub: {date: "1980"}
+les-maitres-feu.epub: {date: "1982"}
+le-createur-chimerique.epub: {date: "1988"}
+pollen.epub: {date: "2002"}
+
 a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
-cherokee-jean-echenoz.epub: {date: "1999"}
-courir-jean-echenoz.epub: {date: "1999"}
-des-eclairs-echenoz-jean.epub: {date: "1999"}
-extension-du-domaine-de-la-lutte-houellebecq-michel.epub: {date: "2010"}
-isa.epub: {date: "2026"}
-j-ecris-l-iliade-pierre-michon.epub: {date: "2025-02-06"}
+a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
+
+un-barrage-contre-le-pacifique-marguerite-duras.epub: {date: "1950"}
+le-ravissement-de-lol-v-stein-marguerite-duras.epub: {date: "1964"}
+l-ete-80-marguerite-duras.epub: {date: "1980"}
 l-amant-duras-marguerite.epub: {date: "1984"}
-l-equipee-malaise-jean-echenoz.epub: {date: "1999"}
-l-ete-80-marguerite-duras.epub: {date: "1984"}
-la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010"}
+
+extension-du-domaine-de-la-lutte-houellebecq-michel.epub: {date: "1994"}
+les-particules-elementaires-michel-houellebecq.epub: {date: "1998"}
+plateforme-houellebecq-michel.epub: {date: "2001"}
+la-possibilite-d-une-ile-houellebecq-michel.epub: {date: "2005"}
+la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010", title: "La Carte et le Territoire"}
+soumission-houellebecq-michel.epub: {date: "2015"}
+aneantir-michel-houellebecq.epub: {date: "2021"}
+
+motel-valparaiso-philippe-castelneau.epub: {date: "2022"}
+
 la-grande-beune-pierre-michon.epub: {date: "1984"}
-la-possibilite-d-une-ile-houellebecq-michel.epub: {date: "2010"}
-lac-echenoz-jean.epub: {date: "1999"}
-le-ravissement-de-lol-v-stein-marguerite-duras.epub: {date: "1984"}
 les-deux-beune-pierre-michon.epub: {date: "1984"}
-les-particules-elementaires-michel-houellebecq.epub: {date: "2010"}
-plateforme-houellebecq-michel.epub: {date: "2010"}
-ravel-jean-echenoz.epub: {date: "1999"}
-rush.epub: {date: "2025"}
-soumission-houellebecq-michel.epub: {date: "2010"}
-un-barrage-contre-le-pacifique-marguerite-duras.epub: {date: "1984"}
 vies-minuscules-michon-pierre.epub: {date: "1984"}
-madame-bovary-gustave-flaubert.epub: {date: "1856"}
+j-ecris-l-iliade-pierre-michon.epub: {date: "2025"}
+
+comme-elle-limagine-stephanie-dupays-dupays-stephanie.epub: {date: "2019"}
+un-puma-dans-le-coeur-stephanie-dupays.epub: {date: "2022"}
+
+4emetheorie.epub: {date: "2013"}
+eratosthene.epub: {date: "2014"}
+legeste.epub: {date: "2014"}
+clitoria.epub: {date: "2016"}
+resistants.epub: {date: "2017"}
+mon-pere-ce-tueur.epub: {date: "2019"}
+rush.epub: {date: "2025"}
+isa.epub: {date: "2026"}

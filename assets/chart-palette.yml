@@ -1,5 +1,6 @@
 # Palette éditable des graphiques web.
 # Le texte après chaque couleur est indicatif et peut être modifié.
+ia: "#777777" # gris réservé aux textes générés par IA
 color01: "#4a2c20" # brun très sombre — IA
 color02: "#d13c36" # rouge vermillon
 color03: "#3478b8" # bleu moyen

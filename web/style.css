@@ -9,6 +9,10 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .metric-row { display: flex; align-items: center; gap: .25rem; } .metric-row span { flex: 1; } .metric-help, .metric-flip { width: 1.35rem; height: 1.35rem; padding: 0; border: 1px solid #b8afa6; border-radius: 50%; background: white; color: #6f6962; font-size: .75rem; cursor: pointer; } .metric-flip { border: 0; border-radius: 0; font-size: 1rem; }
 .chart-box { padding: 1rem; background: white; height: min(65vh, 650px); }
 .chart-frame { position: relative; }
+.radar-title { margin: .4rem 0 0; text-align: center; font-size: 1.1rem; font-weight: 600; }
+.authors-clear { margin: .6rem 0 .4rem; }
+.prompt-exports { display: grid; gap: .4rem; margin-top: 1rem; }
+.prompt-exports button { width: 100%; }
 .chart-box canvas { cursor: crosshair; }
 .radar-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem 1rem; padding: .5rem 2rem .8rem; margin-bottom: .5rem; font-size: .85rem; }
 .radar-legend span { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; pointer-events: auto; user-select: none; }

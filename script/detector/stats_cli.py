@@ -12,6 +12,7 @@ import math
 import re
 import shutil
 import subprocess
+import sqlite3
 
 from .config import (
     JSON_EXTENSION,
@@ -28,6 +29,10 @@ from .config import (
     README_STATS_END,
     README_STATS_START,
     SOURCE_DIR,
+    EPUB_DIR,
+    EPUB_DATABASE,
+    METRIC_ID_BY_FIELD,
+    SITE_CONFIG_FILE,
     SOURCE_MARKDOWN_PATTERN,
     STATS_CACHE_MANIFEST,
     STATS_NOTES_FILE,
@@ -69,21 +74,68 @@ def read_source(source: Path) -> str:
 
 
 def is_human_source(source: Path) -> bool:
+    # Les Markdown de sources sans préfixe sont les textes IA. Les livres
+    # extraits dans _epub sont toujours des œuvres humaines.
+    if source.parent.resolve() != SOURCE_DIR.resolve():
+        return True
     return source.stem.startswith("_")
 
 
+def configured_comparison_sources() -> list[Path]:
+    """Résout site.yml:default, puis ajoute tous les textes IA de sources."""
+    configured = []
+    in_default = False
+    if SITE_CONFIG_FILE.exists():
+        for line in SITE_CONFIG_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+            if line.startswith("default:"):
+                in_default = True
+                continue
+            if in_default and line and not line[0].isspace():
+                break
+            if in_default:
+                match = re.match(r"^\s*-\s*[\"']?([^\"']+?)[\"']?\s*$", line)
+                if match:
+                    name = match.group(1)
+                    candidates = []
+                    if name.endswith(".epub"):
+                        candidates.append(EPUB_DIR / (Path(name).stem + ".md"))
+                    else:
+                        candidates.extend((SOURCE_DIR / name, EPUB_DIR / name))
+                    configured.extend(path for path in candidates if path.exists())
+    # Les œuvres IA sont toujours ajoutées, même si elles ne figurent pas
+    # dans la liste par défaut.
+    configured.extend(path for path in sorted(SOURCE_DIR.glob(SOURCE_MARKDOWN_PATTERN)) if not is_human_source(path))
+    unique = {path.resolve(): path.resolve() for path in configured}
+    return sorted(unique.values(), key=lambda source: (is_human_source(source), display_name(source).casefold()))
+
+
 def comparison_sources() -> list[Path]:
-    """IA sans préfixe, puis humains préfixés `_`, chaque groupe alphabétique."""
-    sources = list(SOURCE_DIR.glob(SOURCE_MARKDOWN_PATTERN))
-    return sorted(sources, key=lambda source: (is_human_source(source), display_name(source).casefold()))
+    """Œuvres de site.yml:default, puis IA, chaque groupe alphabétique."""
+    return configured_comparison_sources()
 
 
 def comparison_documents(sources: list[Path]) -> list[tuple[Path, str]]:
-    """Fusionne tous les textes IA dans un document virtuel unique nommé IA."""
-    ai_texts = [read_source(source) for source in sources if not is_human_source(source)]
-    documents = [(Path("IA.md"), "\n\n".join(text for text in ai_texts if text.strip()))] if ai_texts else []
-    documents.extend((source, read_source(source)) for source in sources if is_human_source(source))
-    return documents
+    """Conserve chaque œuvre comme un document distinct, comme le site web."""
+    return [(source, read_source(source)) for source in sources]
+
+
+def sqlite_analyses(sources: list[Path]) -> tuple[list[tuple[Path, TextStats]], int]:
+    """Récupère les mesures déjà calculées dans SQLite, sans recalcul spaCy."""
+    reverse = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
+    analyses = []
+    with sqlite3.connect(EPUB_DATABASE) as connection:
+        for source in sources:
+            row = connection.execute("SELECT id FROM books WHERE path = ?", (str(source.resolve()),)).fetchone()
+            if not row:
+                raise RuntimeError(f"Source absente de SQLite : {source}")
+            analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (row[0],)).fetchone()
+            if not analysis:
+                raise RuntimeError(f"Analyse absente de SQLite : {source.name}")
+            raw = json.loads(analysis[0])
+            values = {reverse[key]: value for key, value in raw.items() if key in reverse}
+            analyses.append((source, TextStats(**{field.name: values[field.name] for field in fields(TextStats) if field.name in values})))
+    word_window = min(len(tokenize(read_source(source))) for source in sources) if sources else 0
+    return analyses, word_window
 
 
 def corpus_fingerprint(sources: list[Path]) -> str:
@@ -798,7 +850,7 @@ def sync_readme(report: str, readme_path: Path = README_FILE) -> None:
     generated = (
         f"{README_STATS_START}\n"
         "## Dernier résultat\n\n"
-        "Ces tableaux et leurs notes sont actualisés automatiquement par `./stats.sh`.\n\n"
+        "Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.\n\n"
         f"{snapshot.strip()}\n"
         f"{README_STATS_END}"
     )
@@ -876,7 +928,9 @@ def main(argv=None) -> int:
         if not sources:
             parser.error(f"aucun fichier {SOURCE_MARKDOWN_PATTERN} dans {SOURCE_DIR}")
         fingerprint = corpus_fingerprint(sources)
-        cached = read_comparison_cache(sources, fingerprint)
+        # Le rapport de comparaison est une vue de SQLite ; il ne relance
+        # jamais l'analyse des Markdown ni spaCy.
+        cached = None
         if cached is not None:
             compared_analyses, window, stale_metrics = cached
             if stale_metrics <= set(METRIC_CACHE_VERSIONS):
@@ -900,7 +954,7 @@ def main(argv=None) -> int:
             print(KIVIAT_AREA_CHART)
             print(GRAMMATICAL_DISTRIBUTION_CHART)
             return 0
-        compared_analyses, window = comparable_analyses(sources)
+        compared_analyses, window = sqlite_analyses(sources)
         comparison = markdown_comparison(sources, compared_analyses, window)
         STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
         sync_readme(comparison)
@@ -909,26 +963,12 @@ def main(argv=None) -> int:
         svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
         KIVIAT_AREA_CHART.write_text(kiviat_area_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         GRAMMATICAL_DISTRIBUTION_CHART.write_text(grammatical_distribution_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
-        structure_reports = []
-        lemma_reports = []
-        for source in sources:
-            report = OUTPUT_DIR / f"{source.stem}{STRUCTURE_REPORT_SUFFIX}{MARKDOWN_EXTENSION}"
-            report.write_text(markdown_structure_report(source) + "\n", encoding=TEXT_ENCODING)
-            structure_reports.append(report)
-            lemma_report = OUTPUT_DIR / f"{source.stem}{LEMMA_REPORT_SUFFIX}{MARKDOWN_EXTENSION}"
-            lemma_report.write_text(markdown_lemma_report(source) + "\n", encoding=TEXT_ENCODING)
-            lemma_reports.append(lemma_report)
-        write_comparison_cache(fingerprint, compared_analyses, window)
         print(STATS_COMPARISON_FILE)
         print(f"{len(sources)} fichiers comparés")
         print(KIVIAT_CHART)
         print(KIVIAT_DETAIL_CHART)
         print(KIVIAT_AREA_CHART)
         print(GRAMMATICAL_DISTRIBUTION_CHART)
-        for report in structure_reports:
-            print(report)
-        for report in lemma_reports:
-            print(report)
         return 0
     source = Path(args.source)
     stats = compute_stats(read_source(source))

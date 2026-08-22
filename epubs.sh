@@ -17,7 +17,9 @@ else
     *.epub)
       extracted=$("$PYTHON" script/epub-extraction.py "$1")
       printf '%s\n' "$extracted"
-      file=$(printf '%s\n' "$extracted" | sed -n '1p')
+      # L'extracteur affiche un message humain ; le chemin de sortie est
+      # déterministe à partir de l'EPUB normalisé.
+      file="${1%.epub}.md"
       ;;
     *.md) file="$1" ;;
     *.avif) file="${1%.avif}.md" ;;

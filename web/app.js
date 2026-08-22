@@ -16,7 +16,8 @@ const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count
 const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
-let data, chart, surfaceChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false;
+let IA_COLOR = "#777777";
+let data, chart, surfaceChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
 const flippedAxes = new Set();
 // L'interface ne stocke jamais de noms de champs statistiques : elle utilise
 // uniquement les identifiants publics des notes (mesure_1, mesure_2, ...).
@@ -60,6 +61,23 @@ const value = (book, key) => {
 };
 function selected() { return [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle):checked")].map(x => data.books.find(b => b.id === Number(x.value))).filter(Boolean); }
 function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => metricKey(x.value)))]; }
+function radarTitle(books) {
+  const authors = [...new Set(books.map(book => (book.author || "Auteur inconnu").trim()).filter(Boolean))];
+  if (authors.length === 1) return authors[0];
+  return `Comparatif de ${books.length} œuvres de ${authors.length} auteurs`;
+}
+function singleAuthor(books) {
+  const authors = [...new Set(books.map(book => (book.author || "").trim()).filter(Boolean))];
+  return authors.length === 1 ? authors[0] : "";
+}
+function isAI(entry) { return String(entry?.author || entry || "").trim().toLocaleLowerCase() === "ia"; }
+function authorCompare(left, right) {
+  const a = String(left?.author || left || "").trim();
+  const b = String(right?.author || right || "").trim();
+  if (a.toLocaleLowerCase() === "ia") return b.toLocaleLowerCase() === "ia" ? 0 : -1;
+  if (b.toLocaleLowerCase() === "ia") return 1;
+  return a.localeCompare(b, "fr", { sensitivity: "base" });
+}
 const INVERSE = new Set(["noun_verb_ratio", "filtered_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio", "sentence_start_diversity", "burstiness"]);
 const DISPLAY_INVERTED = new Set(["sentence_start_diversity", "burstiness"]);
 function scale(key, n) {
@@ -82,12 +100,15 @@ function scale(key, n) {
 }
 function draw() {
   const books = selected(), keys = checkedMetrics(), labels = keys.map(metricLabel);
+  const title = radarTitle(books);
+  currentRadarTitle = title;
   chart?.destroy();
   const multipleAuthors = new Set(books.map(book => book.author).filter(Boolean)).size > 1;
   const authorName = author => (author || "Auteur inconnu").trim().split(/\s+/).at(-1);
-  const datasets = corpusProfile ? profileDatasets(keys, authorLimits && !allAuthorWorksSelected(books) ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : books.map((b, i) => ({ label: multipleAuthors ? `${b.title} · ${authorName(b.author)}` : b.title, data: keys.map(k => { const n = scale(k, value(b, k)); return n == null ? null : Math.max(10, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: pastel(COLORS[i % COLORS.length]), fill: true, pointRadius: 0 }));
-  chart = new Chart(document.getElementById("radar"), { type: "radar", data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", intersect: false }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: context => ({ size: Math.max(11, Math.min(15, context.chart.width / 65)), weight: "600" }) }, grid: { display: true, color: "#ccd1d5" }, angleLines: { display: true, color: "#d9dddf" } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: () => "", title: items => items[0]?.dataset?.label || "" } } } } });
-  document.getElementById("radar-legend").innerHTML = datasets.map(dataset => `<span><i style="background:${dataset.borderColor}"></i>${dataset.label}</span>`).join("");
+  const radarBooks = [...books].sort((a, b) => authorCompare(a, b) || a.title.localeCompare(b.title, "fr", { sensitivity: "base" }));
+  const datasets = corpusProfile ? profileDatasets(keys, authorLimits && !allAuthorWorksSelected(books) ? authorAverages(books) : books) : authorProfile ? authorDatasets(keys, books) : radarBooks.map((b, i) => { const color = isAI(b) ? IA_COLOR : COLORS[i % COLORS.length]; return ({ label: multipleAuthors ? `${b.title} · ${authorName(b.author)}` : b.title, isAI: isAI(b), data: keys.map(k => { const n = scale(k, value(b, k)); return n == null ? null : Math.max(10, n); }), borderColor: color, backgroundColor: pastel(color), fill: true, pointRadius: 0 }); });
+  chart = new Chart(document.getElementById("radar"), { type: "radar", data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", intersect: false }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: context => ({ size: Math.max(11, Math.min(15, context.chart.width / 65)), weight: "600" }) }, grid: { display: true, color: "#ccd1d5" }, angleLines: { display: true, color: "#d9dddf" } } }, plugins: { title: { display: true, text: title, font: { size: 18, weight: "600" }, padding: { bottom: 8 } }, legend: { display: false }, tooltip: { callbacks: { label: () => "", title: items => items[0]?.dataset?.label || "" } } } } });
+  document.getElementById("radar-legend").innerHTML = datasets.map(dataset => `<span><i style="background:${dataset.borderColor}"></i>${dataset.isAI ? `<strong>${dataset.label}</strong>` : dataset.label}</span>`).join("");
   document.querySelectorAll("#radar-legend span").forEach((item, index) => item.addEventListener("click", () => {
     const selectedDataset = datasets[index];
     chart.data.datasets.forEach(dataset => { dataset.borderWidth = 1.5; dataset.order = 0; dataset.backgroundColor = pastel(dataset.borderColor); });
@@ -120,7 +141,7 @@ function allAuthorWorksSelected(books) {
   return Object.entries(selectedCounts).every(([author, count]) => count === corpusCounts[author]);
 }
 function authorDatasets(keys, books) {
-  return authorAverages(books).map((book, i) => ({ label: book.author.trim().split(/\s+/).at(-1), data: keys.map(key => { const n = scale(key, value(book, key)); return n == null ? null : Math.max(10, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: pastel(COLORS[i % COLORS.length]), fill: true, pointRadius: 0 }));
+  return authorAverages(books).map((book, i) => { const color = isAI(book) ? IA_COLOR : COLORS[i % COLORS.length]; return ({ label: book.author.trim().split(/\s+/).at(-1), isAI: isAI(book), data: keys.map(key => { const n = scale(key, value(book, key)); return n == null ? null : Math.max(10, n); }), borderColor: color, backgroundColor: pastel(color), fill: true, pointRadius: 0 }); });
 }
 function authorAverages(books) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
@@ -148,8 +169,10 @@ function drawSurfaces(books) {
   if (surfaceBox) surfaceBox.style.height = `${Math.max(300, profiles.length * 30 + 90)}px`;
   const areas = profiles.map(profile => { const values = profile.values, n = values.length; return n < 3 ? 0 : Math.abs(values.reduce((sum, v, i) => sum + v * values[(i + 1) % n] * Math.sin(2 * Math.PI / n), 0) / 2); });
   const maximumArea = Math.max(...areas, 0);
-  const sorted = labels.map((label, i) => ({ label, author: profiles[i].author || profiles[i].hover || "Auteur inconnu", hover: profiles[i].hover || profiles[i].author || "Auteur inconnu", area: maximumArea ? areas[i] / maximumArea * 100 : 0, color: COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
-  surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false } } } } });
+  const sorted = labels.map((label, i) => ({ label, author: profiles[i].author || profiles[i].hover || "Auteur inconnu", hover: profiles[i].hover || profiles[i].author || "Auteur inconnu", area: maximumArea ? areas[i] / maximumArea * 100 : 0, color: isAI(profiles[i]) ? IA_COLOR : COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
+  const surfaceTitle = document.querySelector(".surface-box h2");
+  if (surfaceTitle) surfaceTitle.childNodes[0].textContent = `Couverture stylistique${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""} `;
+  surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false }, ticks: { font: context => ({ weight: isAI(sorted[context.index]?.author) ? "700" : "400" }) } } } } });
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
@@ -160,8 +183,10 @@ function drawEvolution(selectedBooks) {
   container.innerHTML = "";
   definitions.forEach(([key, label], i) => {
     const id = `evolution-${i}`;
-    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${label}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${label}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: books.map(book => book.title), datasets: [{ label, data: books.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: COLORS[i % COLORS.length], backgroundColor: COLORS[i % COLORS.length], tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => `${books[items[0].dataIndex].publication_date.slice(0, 4)} · ${books[items[0].dataIndex].title}` } } } } });
+    const evolutionTitle = `${label}${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
+    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
+    const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: books.map(book => book.title), datasets: [{ label, data: books.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => `${books[items[0].dataIndex].publication_date.slice(0, 4)} · ${books[items[0].dataIndex].title}` } } } } });
     lineChart.$years = books.map(book => book.publication_date.slice(0, 4));
     evolutionCharts.push(lineChart);
   });
@@ -171,9 +196,18 @@ function downloadCanvas(canvas, name, format = "png") {
   if (!canvas) return;
   const png = canvas.toDataURL("image/png");
   if (format === "svg") {
-    const title = canvas.closest(".chart-frame")?.querySelector("h3, h2")?.textContent || name;
+    if (name === "radar") {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><image href="${png}" x="0" y="0" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+      const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
+    }
+    const titleElement = canvas.closest(".chart-frame")?.querySelector("h3, h2");
+    const titleClone = titleElement?.cloneNode(true);
+    titleClone?.querySelectorAll("button").forEach(button => button.remove());
+    const title = titleClone?.textContent?.trim() || name;
     const safeTitle = title.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height + 42}" viewBox="0 0 ${canvas.width} ${canvas.height + 42}"><rect width="100%" height="100%" fill="white"/><text x="20" y="28" font-family="system-ui" font-size="20" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="42" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+    const exportHeight = canvas.height + 64;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${exportHeight}" viewBox="0 0 ${canvas.width} ${exportHeight}"><rect width="100%" height="100%" fill="white"/><text x="${canvas.width / 2}" y="38" text-anchor="middle" font-family="system-ui" font-size="28" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="64" width="${canvas.width}" height="${canvas.height}"/></svg>`;
     const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
     const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
   }
@@ -226,8 +260,44 @@ function downloadSvg() {
   const point = (value, i) => { const angle = -Math.PI / 2 + i * Math.PI * 2 / count; return [cx + Math.cos(angle) * radius * value / 100, cy + Math.sin(angle) * radius * value / 100]; };
   const labels = chart.data.labels.map((label, i) => { const [x, y] = point(108, i); return `<text x="${x}" y="${y}" text-anchor="middle" font-family="system-ui" font-size="14">${label}</text>`; }).join("");
   const polygons = chart.data.datasets.map((set, i) => `<polygon points="${set.data.map((v, j) => point(v, j).join(",")).join(" ")}" fill="${COLORS[i % COLORS.length]}22" stroke="${COLORS[i % COLORS.length]}" stroke-width="3"/>`).join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="white"/><g stroke="#ddd8d2" fill="none">${[25,50,75,100].map(v => `<circle cx="${cx}" cy="${cy}" r="${radius*v/100}"/>`).join("")}</g>${polygons}${labels}<text x="20" y="30" font-family="system-ui" font-size="18">Unshiter · radar</text></svg>`;
+  const title = currentRadarTitle || "Radar";
+  const safeTitle = title.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="white"/><text x="${cx}" y="30" text-anchor="middle" font-family="system-ui" font-size="22" font-weight="600">${safeTitle}</text><g stroke="#ddd8d2" fill="none">${[25,50,75,100].map(v => `<circle cx="${cx}" cy="${cy}" r="${radius*v/100}"/>`).join("")}</g>${polygons}${labels}</svg>`;
   const a = document.createElement("a"); a.download = "unshiter-radar.svg"; a.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportStylePrompt() {
+  fetch("style-interpretation-prompt.md").then(response => response.text()).then(content => {
+    const href = URL.createObjectURL(new Blob([content], { type: "text/markdown" }));
+    const link = document.createElement("a"); link.href = href; link.download = "style-interpretation-prompt.md"; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
+  });
+}
+function exportPromptAndData() {
+  const books = selected();
+  const surfaceKeys = checkedMetrics();
+  const surfaceAxes = surfaceKeys.map(field => {
+    const id = data.metric_note_ids?.[field] || field;
+    const noteId = data.note_ids?.[id];
+    return { field, id, label: metricLabel(field), definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
+  });
+  const surfaceFor = book => {
+    const values = surfaceKeys.map(key => scale(key, value(book, key))).filter(Number.isFinite);
+    if (values.length < 3) return 0;
+    return Math.abs(values.reduce((sum, current, index) => sum + current * values[(index + 1) % values.length] * Math.sin(2 * Math.PI / values.length), 0) / 2);
+  };
+  const metrics = {};
+  for (const [field, label] of Object.entries(data.metric_labels || {})) {
+    const id = data.metric_note_ids?.[field] || field;
+    const noteId = data.note_ids?.[id];
+    metrics[field] = { id, label, definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
+  }
+  const authors = {};
+  for (const book of books) {
+    const author = book.author || "Auteur inconnu", stats = book.analyses?.[0]?.stats || {};
+    (authors[author] ||= { work_count: 0, works: [] }).work_count += 1;
+    authors[author].works.push({ title: book.title, publication_date: book.publication_date, stylistic_coverage: surfaceFor(book), metrics: Object.fromEntries(Object.entries(metrics).map(([field, info]) => [field, stats[info.id]]).filter(([, value]) => value != null)) });
+  }
+  const save = (name, content, type) => { const href = URL.createObjectURL(new Blob([content], { type })); const link = document.createElement("a"); link.href = href; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); };
+  save("style-interpretation-data.json", JSON.stringify({ metrics, surface: { label: "Couverture stylistique", definition: data.notes?.["29"] || "", axes: surfaceAxes }, authors }, null, 2), "application/json");
 }
 function controls() {
   const savedBooks = new Set(JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number));
@@ -251,7 +321,17 @@ function controls() {
     panel.appendChild(metrics);
     panel.addEventListener("toggle", () => localStorage.setItem("unshiter-metrics-open", panel.open ? "1" : "0"));
   }
-  for (const [author, books] of Object.entries(groups).sort()) { const id = `a${Math.random().toString(36).slice(2)}`; const all = books.every(b => savedBooks.size ? savedBooks.has(b.id) : true); document.getElementById("authors").insertAdjacentHTML("beforeend", `<details open><summary><input class="author-toggle" data-target="${id}" type="checkbox" ${all ? "checked" : ""}> ${author} (${books.length})</summary><div id="${id}">${books.map(b => `<label class="book"><input type="checkbox" value="${b.id}" ${savedBooks.size ? (savedBooks.has(b.id) ? "checked" : "") : "checked"}> ${b.title}</label>`).join("")}</div></details>`); }
+  for (const [author, books] of Object.entries(groups).sort(([a], [b]) => (a === "IA" ? -1 : b === "IA" ? 1 : a.localeCompare(b)))) { const id = `a${Math.random().toString(36).slice(2)}`; const all = books.every(b => savedBooks.size ? savedBooks.has(b.id) : true); document.getElementById("authors").insertAdjacentHTML("beforeend", `<details open><summary><input class="author-toggle" data-target="${id}" type="checkbox" ${all ? "checked" : ""}> ${author} (${books.length})</summary><div id="${id}">${books.map(b => `<label class="book"><input type="checkbox" value="${b.id}" ${savedBooks.size ? (savedBooks.has(b.id) ? "checked" : "") : "checked"}> ${b.title}</label>`).join("")}</div></details>`); }
+  const clearBooks = document.createElement("button");
+  clearBooks.type = "button";
+  clearBooks.className = "authors-clear";
+  clearBooks.textContent = "Tout décocher";
+  document.getElementById("authors").appendChild(clearBooks);
+  clearBooks.addEventListener("click", () => {
+    document.querySelectorAll("#authors input").forEach(input => { input.checked = false; });
+    localStorage.setItem("unshiter-books", JSON.stringify([]));
+    draw();
+  });
   MENU_METRICS.forEach(([key]) => { const id = publicMetricId(key); const defaultChecked = RADAR.some(([radarKey]) => radarKey === key); document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${id}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (defaultChecked ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${id}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${id}" type="button">?</button></label>`); });
   const reset = document.createElement("button"); reset.id = "metrics-reset"; reset.type = "button"; reset.textContent = "Réinitialiser"; (document.getElementById("metrics-panel") || document.getElementById("metrics")).after(reset);
   reset.addEventListener("click", () => { Object.keys(localStorage).filter(key => key.startsWith("unshiter-") && key !== "unshiter-presets").forEach(key => localStorage.removeItem(key)); flippedAxes.clear(); location.reload(); });
@@ -288,6 +368,10 @@ function controls() {
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
+  const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
+  const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
+  const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
+  document.querySelector("aside")?.appendChild(exportBox);
   worksButton.hidden = true; authorsButton.hidden = false;
   const showWorksMode = () => { limitsButton.hidden = false; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = true; };
   const showLimitsMode = () => { limitsButton.hidden = true; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = false; };
@@ -296,9 +380,10 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822091607465864000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822140717703062000").then(r => r.json()).then(json => {
   data = json;
-  COLORS = Object.values(data.palette || {}).filter(Boolean);
+  COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
+  IA_COLOR = data.palette?.ia || IA_COLOR;
   // L’ordre et la sélection par défaut viennent exclusivement des marqueurs
   // #tab1_N des notes, jamais d’une liste parallèle dans le JavaScript.
   if (Array.isArray(data.default_radar) && data.default_radar.length) {

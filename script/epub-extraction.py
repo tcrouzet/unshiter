@@ -16,7 +16,7 @@ import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 
-from detector.config import EPUB_DIR, TEXT_ENCODING
+from detector.config import EPUB_DIR, PUBLICATION_FILE, TEXT_ENCODING
 
 
 SKIP_DOCUMENT_WORDS = ("cover", "titlepage", "toc", "nav", "copyright", "imprint", "colophon")
@@ -432,6 +432,66 @@ def existing_metadata(path: Path) -> dict[str, str]:
     return result
 
 
+def register_publication_date(source_name: str, date: str) -> None:
+    """Ajoute l'EPUB au registre sans écraser une clé déjà présente."""
+    PUBLICATION_FILE.parent.mkdir(parents=True, exist_ok=True)
+    existing_keys = set()
+    if PUBLICATION_FILE.exists():
+        for line in PUBLICATION_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+            clean = line.split("#", 1)[0].strip()
+            if ":" in clean:
+                existing_keys.add(clean.split(":", 1)[0].strip().strip("\"'"))
+    if source_name in existing_keys:
+        return
+    year_match = re.match(r"^(\d{4})", date or "")
+    year = year_match.group(1) if year_match else ""
+    with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
+        if PUBLICATION_FILE.stat().st_size:
+            handle.write("\n")
+        handle.write(f"{source_name}: {{date: {yaml_quote(year)}}}\n")
+
+
+def organize_publication_file() -> None:
+    """Regroupe les entrées par auteur et les trie chronologiquement."""
+    if not PUBLICATION_FILE.exists():
+        return
+    lines = PUBLICATION_FILE.read_text(encoding=TEXT_ENCODING).splitlines()
+    comments = [line for line in lines if not line.strip() or line.lstrip().startswith("#")]
+    entries = []
+    for line in lines:
+        clean = line.split("#", 1)[0].strip()
+        if not clean or ":" not in clean:
+            continue
+        key, raw_value = clean.split(":", 1)
+        key = key.strip().strip("\"'")
+        md = EPUB_DIR / Path(key).with_suffix(".md").name
+        metadata = existing_metadata(md)
+        author = metadata.get("author", "").strip()
+        date_match = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", raw_value)
+        date = date_match.group(1) if date_match else ""
+        year_match = re.match(r"^(\d{4})", date)
+        if date_match and year_match:
+            raw_value = raw_value[:date_match.start(1)] + year_match.group(1) + raw_value[date_match.end(1):]
+            date = year_match.group(1)
+        title_match = re.search(r"\btitle\s*:\s*[\"']([^\"']*)[\"']", raw_value)
+        title = title_match.group(1) if title_match else key
+        date_key = (date[:10] if re.match(r"^\d{4}(?:-\d{2}-\d{2})?", date) else "9999-99-99")
+        entries.append((author.casefold(), date_key, title.casefold(), key, raw_value.strip()))
+    if not entries:
+        return
+    entries.sort()
+    output = []
+    # Conserver les commentaires d'en-tête, sans reproduire les lignes vides.
+    output.extend(line for line in comments if line.strip())
+    previous_author = None
+    for author, _, _, key, raw_value in entries:
+        if previous_author is not None and author != previous_author:
+            output.append("")
+        output.append(f"{key}: {raw_value}")
+        previous_author = author
+    PUBLICATION_FILE.write_text("\n".join(output) + "\n", encoding=TEXT_ENCODING)
+
+
 def web_slug(value: str) -> str:
     """Nom ASCII stable : exploitable dans une URL et lisible sur GitHub."""
     value = unicodedata.normalize("NFKD", value)
@@ -496,6 +556,7 @@ def extract_epub(source: Path) -> tuple[Path, None]:
         front_matter.append("source: " + yaml_quote(f"{output_stem}.epub"))
         front_matter.append("---")
         output_md.write_text("\n".join(front_matter) + "\n\n" + text + "\n", encoding=TEXT_ENCODING)
+        register_publication_date(f"{output_stem}.epub", info.get("publication_date", ""))
     return output_md, None
 
 
@@ -516,6 +577,7 @@ def main(argv=None) -> int:
     for source in normalized_sources:
         markdown, _ = extract_epub(source)
         print(f"Extrait : {source.name} -> {markdown.name}", flush=True)
+    organize_publication_file()
     return 0
 
 
