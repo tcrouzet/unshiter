@@ -126,6 +126,23 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 | Fenêtres analysées | 2 | 2 | 4 | 1 | 2 | 1 | 2 | — |
 | Longueur moyenne des paragraphes (mots) | 43.6 | 60.4 | 135.0 | 114.9 | 64.0 | 154.5 | 214.3 | — |
 
+### Attribution au plus proche voisin
+
+Distance de Burrows : moyenne des écarts absolus entre z-scores sur 30 mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.
+
+| Texte IA | Voisin humain | Δ |
+|---|---|---:|
+| Claude style Duras — IA | Fourth wing - Tome 1 — Rebecca Yarros | 0.60 |
+|  | Le Ravissement de Lol V. Stein — Marguerite Duras | 0.70 |
+|  | Extension du domaine de la lutte — Michel Houellebecq | 0.71 |
+|  | L'Été 80 — Marguerite Duras | 0.72 |
+|  | Plateforme — Michel Houellebecq | 0.74 |
+| Claude style Fourth Wing — IA | À la recherche du temps perdu XIV — Marcel Proust | 0.67 |
+|  | Sortie d'usine — François Bon | 0.73 |
+|  | L'Été 80 — Marguerite Duras | 0.81 |
+|  | Soumission — Michel Houellebecq | 0.81 |
+|  | Prison — François Bon | 0.86 |
+
 ### Profil comparatif
 
 ![Profils comparatifs](./assets/readme/kiviat-github.png)

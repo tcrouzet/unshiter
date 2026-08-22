@@ -9,6 +9,7 @@ const DETAILS = [
   ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives et subordonnées", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
   ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
 ];
+const BURROWS_FIELDS = ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate", "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth", "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev"];
 const ALL_METRICS = [...RADAR, ...DETAILS.map(([key, label]) => [key, label])];
 const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
 // L’écart-type brut reste disponible dans les données, mais la mesure #6
@@ -17,7 +18,7 @@ const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
-let data, chart, surfaceChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
+let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
 const flippedAxes = new Set();
 // L'interface ne stocke jamais de noms de champs statistiques : elle utilise
 // uniquement les identifiants publics des notes (mesure_1, mesure_2, ...).
@@ -59,6 +60,14 @@ const value = (book, key) => {
   if (key === "noun_verb_ratio" && read(key) == null) return Number(read("verb_ratio")) ? Number(read("noun_ratio") || 0) / Number(read("verb_ratio")) : 0;
   return read(key) == null ? null : Number(read(key));
 };
+function burrowsContext(entities) {
+  const corpusVectors = data.books.map(book => BURROWS_FIELDS.map(key => value(book, key)));
+  const means = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite); return values.reduce((sum, n) => sum + n, 0) / (values.length || 1); });
+  const deviations = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite), mean = means[i]; return Math.sqrt(values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (values.length || 1)); });
+  const vectors = entities.map(entity => BURROWS_FIELDS.map((key, i) => { const n = value(entity, key); return Number.isFinite(n) && deviations[i] > 0 ? (n - means[i]) / deviations[i] : null; }));
+  const distance = (left, right) => { const parts = left.map((n, i) => Number.isFinite(n) && Number.isFinite(right[i]) ? Math.abs(n - right[i]) : null).filter(Number.isFinite); return parts.length ? parts.reduce((sum, n) => sum + n, 0) / parts.length : 0; };
+  return { vectors, distance };
+}
 function selected() { return [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle):checked")].map(x => data.books.find(b => b.id === Number(x.value))).filter(Boolean); }
 function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => metricKey(x.value)))]; }
 function radarTitle(books) {
@@ -119,6 +128,9 @@ function draw() {
     chart.update();
   }));
   drawSurfaces(books);
+  drawDistances(books);
+  drawMDS(books);
+  drawNeighborhood(books);
   drawEvolution(books);
   renderTables(books);
   // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
@@ -179,6 +191,255 @@ function drawSurfaces(books) {
   }
   surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false }, ticks: { font: context => ({ weight: isAI(sorted[context.index]?.author) ? "700" : "400" }) } } } } });
 }
+function drawDistances(books) {
+  distanceChart?.destroy();
+  const canvas = document.getElementById("distances");
+  if (!canvas || books.length < 2) return;
+  const entities = (authorProfile || authorLimits ? authorAverages(books) : books).map((entity, index) => ({ ...entity, __color: isAI(entity) ? IA_COLOR : COLORS[index % COLORS.length] }));
+  const { vectors, distance } = burrowsContext(entities);
+  const nearest = vectors.map((vector, index) => {
+    const distances = vectors.map((other, otherIndex) => {
+      if (index === otherIndex) return null;
+      return distance(vector, other);
+    }).filter(Number.isFinite);
+    return distances.length ? Math.min(...distances) : 0;
+  });
+  const ordered = entities.map((entity, index) => ({ label: entity.title || entity.author || "Œuvre", distance: nearest[index], color: entity.__color, isAI: isAI(entity) })).sort((a, b) => a.distance - b.distance);
+  const box = canvas.closest(".distance-box");
+  if (box) box.style.height = `${Math.max(300, ordered.length * 30 + 90)}px`;
+  distanceChart = new Chart(canvas, { type: "bar", data: { labels: ordered.map(item => item.label), datasets: [{ label: "Δ Burrows", data: ordered.map(item => item.distance), backgroundColor: ordered.map(item => `${item.color}b8`), borderColor: ordered.map(item => item.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => `Δ ${Number(item.raw).toFixed(2)}` } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance moyenne entre z-scores" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: ordered[context.index]?.isAI ? "700" : "400" }) } } } } });
+}
+function classicalMDS(entities) {
+  const context = burrowsContext(entities), n = entities.length;
+  if (n < 2) return { points: [], context };
+  const d = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) d[i][j] = d[j][i] = context.distance(context.vectors[i], context.vectors[j]);
+  const squared = d.map(row => row.map(value => value * value));
+  const rowMeans = squared.map(row => row.reduce((sum, value) => sum + value, 0) / n);
+  const colMeans = Array.from({ length: n }, (_, j) => squared.reduce((sum, row) => sum + row[j], 0) / n);
+  const grandMean = rowMeans.reduce((sum, value) => sum + value, 0) / n;
+  const matrix = squared.map((row, i) => row.map((value, j) => -0.5 * (value - rowMeans[i] - colMeans[j] + grandMean)));
+  const eigen = source => { let vector = Array(n).fill(1 / Math.sqrt(n)); for (let step = 0; step < 80; step++) { const next = source.map(row => row.reduce((sum, value, i) => sum + value * vector[i], 0)); const norm = Math.sqrt(next.reduce((sum, value) => sum + value * value, 0)) || 1; vector = next.map(value => value / norm); } const transformed = source.map(row => row.reduce((sum, value, i) => sum + value * vector[i], 0)); const lambda = vector.reduce((sum, value, i) => sum + value * transformed[i], 0); return { lambda, vector }; };
+  const first = eigen(matrix), deflated = matrix.map((row, i) => row.map((value, j) => value - first.lambda * first.vector[i] * first.vector[j])), second = eigen(deflated);
+  const points = entities.map((entity, i) => ({ x: first.vector[i] * Math.sqrt(Math.max(first.lambda, 0)), y: second.vector[i] * Math.sqrt(Math.max(second.lambda, 0)), entity }));
+  let error = 0, total = 0;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const projected = Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y); error += (d[i][j] - projected) ** 2; total += d[i][j] ** 2; }
+  return { points, stress: total ? Math.sqrt(error / total) : 0, context };
+}
+function drawMDS(books) {
+  const canvas = document.getElementById("mds"); if (!canvas) return;
+  mdsChart?.destroy();
+  const entities = authorProfile || authorLimits ? authorAverages(books) : books;
+  const result = classicalMDS(entities), groups = {};
+  const title = document.querySelector(".mds-box h2");
+  if (title) {
+    const text = `Carte stylistique MDS — ${BURROWS_FIELDS.length} mesures, ${entities.length} œuvres · stress ${result.stress.toFixed(2)}`;
+    // Preserve the shared help button while updating only the visible title.
+    if (title.firstChild?.nodeType === Node.TEXT_NODE) title.firstChild.textContent = `${text} `;
+    else title.insertBefore(document.createTextNode(`${text} `), title.firstChild);
+  }
+  result.points.forEach((point, index) => { const author = point.entity.author || "Auteur inconnu"; (groups[author] ||= []).push({ x: point.x, y: point.y, label: point.entity.title || author, isAI: isAI(point.entity) }); });
+  const datasets = Object.entries(groups).sort(([a], [b]) => authorCompare(a, b)).map(([author, points], index) => ({ label: author, data: points, backgroundColor: isAI(author) ? IA_COLOR : COLORS[index % COLORS.length], borderColor: isAI(author) ? IA_COLOR : COLORS[index % COLORS.length], pointRadius: 6 }));
+  const xs = result.points.map(point => point.x), ys = result.points.map(point => point.y);
+  const range = values => { const min = Math.min(...values, 0), max = Math.max(...values, 0), span = Math.max(max - min, 1); return { min: min - span * .30, max: max + span * .30 }; };
+  const medoid = result.points.reduce((best, point, index, points) => {
+    const score = points.reduce((sum, other) => sum + Math.hypot(point.x - other.x, point.y - other.y), 0);
+    return !best || score < best.score ? { point, score } : best;
+  }, null)?.point || { x: 0, y: 0 };
+  const spread = values => Math.max(Math.max(...values) - Math.min(...values), 1);
+  const xHalf = spread(xs) * .38, yHalf = spread(ys) * .38;
+  const xRange = { min: medoid.x - xHalf, max: medoid.x + xHalf };
+  const yRange = { min: medoid.y - yHalf, max: medoid.y + yHalf };
+  mdsInitialRange = { x: { ...xRange }, y: { ...yRange } };
+  mdsFocusDataset = null;
+  mdsChart = new Chart(canvas, { type: "scatter", data: { datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => items[0]?.raw?.label || "" } } }, scales: { x: { min: xRange.min, max: xRange.max, grid: { color: "#e4e1de" }, title: { display: true, text: "Dimension MDS 1" } }, y: { min: yRange.min, max: yRange.max, grid: { color: "#e4e1de" }, title: { display: true, text: "Dimension MDS 2" } } } } });
+  let drag = null, mdsDragged = false;
+  canvas.style.cursor = "grab";
+  canvas.onpointerdown = event => { mdsDragged = false; drag = { x: event.clientX, y: event.clientY, xMin: mdsChart.options.scales.x.min, xMax: mdsChart.options.scales.x.max, yMin: mdsChart.options.scales.y.min, yMax: mdsChart.options.scales.y.max }; canvas.setPointerCapture(event.pointerId); canvas.style.cursor = "grabbing"; };
+  canvas.onpointermove = event => {
+    if (!drag) return;
+    const xScale = mdsChart.scales.x, yScale = mdsChart.scales.y;
+    const deltaX = event.clientX - drag.x, deltaY = event.clientY - drag.y;
+    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) mdsDragged = true;
+    const dx = -deltaX * (drag.xMax - drag.xMin) / mdsChart.chartArea.width;
+    const dy = deltaY * (drag.yMax - drag.yMin) / mdsChart.chartArea.height;
+    mdsChart.options.scales.x.min = drag.xMin + dx; mdsChart.options.scales.x.max = drag.xMax + dx;
+    mdsChart.options.scales.y.min = drag.yMin + dy; mdsChart.options.scales.y.max = drag.yMax + dy;
+    mdsChart.update("none");
+  };
+  canvas.onpointerup = event => { drag = null; canvas.releasePointerCapture?.(event.pointerId); canvas.style.cursor = "grab"; };
+  canvas.onclick = event => { if (mdsDragged) { mdsDragged = false; return; } const elements = mdsChart.getElementsAtEventForMode(event, "nearest", { intersect: false }, true); mdsFocusDataset = elements.length ? elements[0].datasetIndex : null; mdsChart.update(); };
+}
+function mdsZoom(factor) {
+  if (!mdsChart) return;
+  ["x", "y"].forEach(axis => {
+    const scale = mdsChart.options.scales[axis];
+    const center = (scale.min + scale.max) / 2;
+    const half = (scale.max - scale.min) * factor / 2;
+    scale.min = center - half;
+    scale.max = center + half;
+  });
+  mdsChart.update();
+}
+function mdsReset() {
+  if (!mdsChart || !mdsInitialRange) return;
+  ["x", "y"].forEach(axis => {
+    mdsChart.options.scales[axis].min = mdsInitialRange[axis].min;
+    mdsChart.options.scales[axis].max = mdsInitialRange[axis].max;
+  });
+  mdsChart.update();
+}
+function downloadNeighborhoodTable(format = "png") {
+  const table = document.querySelector("#neighborhood-table table");
+  if (!table) return;
+  const rows = [...table.rows].map(row => [...row.cells].map(cell => cell.textContent.trim()));
+  const widths = [70, 420, 250, 130], width = widths.reduce((sum, value) => sum + value, 0), rowHeight = 34, height = 75 + rows.length * rowHeight;
+  const esc = text => String(text).replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
+  const title = document.getElementById("neighborhood-verdict")?.textContent || "Voisinage stylistique";
+  const cells = rows.map((row, rowIndex) => row.map((cell, columnIndex) => {
+    const x = widths.slice(0, columnIndex).reduce((sum, value) => sum + value, 0);
+    const y = 75 + rowIndex * rowHeight;
+    return `<rect x="${x}" y="${y}" width="${widths[columnIndex]}" height="${rowHeight}" fill="${rowIndex % 2 ? "#faf8f6" : "white"}" stroke="#d8d1ca"/><text x="${x + 8}" y="${y + 22}" font-family="system-ui" font-size="14">${esc(cell)}</text>`;
+  }).join("")).join("");
+  const header = rows.length ? rows[0].map((cell, columnIndex) => { const x = widths.slice(0, columnIndex).reduce((sum, value) => sum + value, 0); return `<rect x="${x}" y="40" width="${widths[columnIndex]}" height="${rowHeight}" fill="#eee9e4" stroke="#cfc7c0"/><text x="${x + 8}" y="62" font-family="system-ui" font-size="14" font-weight="600">${esc(cell)}</text>`; }).join("") : "";
+  const bodyRows = rows.slice(1).map((row, rowIndex) => row.map((cell, columnIndex) => { const x = widths.slice(0, columnIndex).reduce((sum, value) => sum + value, 0); const y = 75 + rowIndex * rowHeight; return `<rect x="${x}" y="${y}" width="${widths[columnIndex]}" height="${rowHeight}" fill="${rowIndex % 2 ? "#faf8f6" : "white"}" stroke="#d8d1ca"/><text x="${x + 8}" y="${y + 22}" font-family="system-ui" font-size="14">${esc(cell)}</text>`; }).join("")).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="white"/><text x="12" y="25" font-family="system-ui" font-size="18" font-weight="600">${esc(title)}</text>${header}${bodyRows}</svg>`;
+  const link = document.createElement("a");
+  if (format === "svg") { link.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); link.download = "voisinage-stylistique.svg"; }
+  else { const image = new Image(); image.onload = () => { const canvas = document.createElement("canvas"); canvas.width = width * 2; canvas.height = height * 2; const ctx = canvas.getContext("2d"); ctx.scale(2, 2); ctx.drawImage(image, 0, 0); link.href = canvas.toDataURL("image/png"); link.download = "voisinage-stylistique.png"; link.click(); URL.revokeObjectURL(image.src); }; image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; return; }
+  document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+Chart.register({ id: "mdsLabelsAndLinks", afterDatasetsDraw(instance) {
+  if (instance.canvas?.id !== "mds") return;
+  const ctx = instance.ctx;
+  ctx.save();
+  instance.data.datasets.forEach((dataset, datasetIndex) => {
+    const meta = instance.getDatasetMeta(datasetIndex);
+    const points = meta.data || [];
+    if (points.length) {
+      const center = {
+        x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+        y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+      };
+      const focused = mdsFocusDataset === datasetIndex;
+      ctx.strokeStyle = dataset.borderColor || "#999";
+      ctx.globalAlpha = focused ? .9 : .28;
+      ctx.lineWidth = focused ? 4 : 1;
+      ctx.beginPath();
+      points.forEach(point => { ctx.moveTo(center.x, center.y); ctx.lineTo(point.x, point.y); });
+      ctx.stroke();
+      // Centroïde du réseau : la moyenne des coordonnées des œuvres de l’auteur.
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = dataset.borderColor || "#777";
+      ctx.beginPath(); ctx.arc(center.x, center.y, focused ? 6 : 4, 0, Math.PI * 2); ctx.fill();
+      ctx.font = focused ? "600 14px system-ui" : "12px system-ui";
+      ctx.fillStyle = dataset.borderColor || "#3f3a36";
+      ctx.fillText(dataset.label, center.x + 9, center.y - 9);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#3f3a36";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    points.forEach((point, index) => {
+      const label = dataset.data[index]?.label;
+      if (label) ctx.fillText(label, point.x + 8, point.y - 8);
+    });
+  });
+  ctx.restore();
+} });
+Chart.register({ id: "distanceReference", afterDraw(instance) {
+  const references = instance.options.plugins?.distanceReference?.values || [];
+  if (!references.length) return;
+  const scale = instance.scales.x, ctx = instance.ctx;
+  ctx.save(); ctx.setLineDash([6, 4]); ctx.font = "12px system-ui";
+  references.forEach((reference, index) => {
+    if (!Number.isFinite(reference.value)) return;
+    const x = scale.getPixelForValue(reference.value);
+    ctx.strokeStyle = index ? "#3478b8" : "#d13c36";
+    ctx.beginPath(); ctx.moveTo(x, instance.chartArea.top); ctx.lineTo(x, instance.chartArea.bottom); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = ctx.strokeStyle; ctx.fillText(`${reference.label} : ${reference.value.toFixed(2)}`, x + 5, instance.chartArea.top + 16 + index * 17); ctx.setLineDash([6, 4]);
+  });
+  ctx.restore();
+} });
+let neighborhoodChart, mdsInitialRange, mdsFocusDataset = null;
+function drawNeighborhood(books) {
+  neighborhoodChart?.destroy();
+  const entities = authorProfile || authorLimits ? authorAverages(books) : books, select = document.getElementById("neighborhood-reference");
+  if (!entities.length) return;
+  const referenceSignature = entities.map(entity => `${entity.author || ""}\u0000${entity.title || ""}`).join("\u0001");
+  if (select && select.dataset.signature !== referenceSignature) {
+    const grouped = entities.reduce((groups, entity, index) => {
+      const author = entity.author || "Auteur inconnu";
+      (groups[author] ||= []).push({ entity, index });
+      return groups;
+    }, {});
+    const groupsHtml = Object.entries(grouped).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
+      rows.sort((a, b) => {
+        const dateA = Date.parse(a.entity.publication_date || "") || Infinity;
+        const dateB = Date.parse(b.entity.publication_date || "") || Infinity;
+        return dateA - dateB || (a.entity.title || "").localeCompare(b.entity.title || "", "fr", { sensitivity: "base" });
+      });
+      return `<optgroup label="${author.replace(/[&<>\"]/g, "")}">${rows.map(({ entity, index }) => `<option value="${index}">${(entity.title || `Œuvre ${index + 1}`).replace(/[&<>\"]/g, "")}${entity.publication_date ? ` (${String(entity.publication_date).slice(0, 4)})` : ""}</option>`).join("")}</optgroup>`;
+    }).join("");
+    select.innerHTML = groupsHtml;
+    select.dataset.signature = referenceSignature;
+  }
+  const referenceIndex = Number(select?.value || 0), context = burrowsContext(entities), reference = context.vectors[referenceIndex];
+  const corpusContext = burrowsContext(data.books);
+  const corpusDistances = [];
+  for (let i = 0; i < corpusContext.vectors.length; i++) for (let j = i + 1; j < corpusContext.vectors.length; j++) corpusDistances.push(corpusContext.distance(corpusContext.vectors[i], corpusContext.vectors[j]));
+  const percentile = distance => corpusDistances.length ? 100 * corpusDistances.filter(value => value >= distance).length / corpusDistances.length : 50;
+  const allRows = entities.map((entity, index) => ({ entity, index, rank: null, distance: index === referenceIndex ? null : context.distance(reference, context.vectors[index]) })).filter(row => row.distance != null);
+  allRows.forEach(row => { row.percentile = percentile(row.distance); });
+  // Le voisinage est défini par les cinq percentiles les plus élevés, pas par
+  // les cinq premières lignes d'une liste dans un ordre implicite.
+  allRows.sort((a, b) => b.percentile - a.percentile || a.distance - b.distance);
+  allRows.forEach((row, index) => { row.rank = index + 1; });
+  const pinnedSelect = document.getElementById("neighborhood-pinned");
+  if (pinnedSelect && pinnedSelect.dataset.signature !== referenceSignature) {
+    const pinnedGroups = entities.reduce((groups, entity, index) => { const author = entity.author || "Auteur inconnu"; (groups[author] ||= []).push({ entity, index }); return groups; }, {});
+    const pinnedOptions = Object.entries(pinnedGroups).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
+      rows.sort((a, b) => (Date.parse(a.entity.publication_date || "") || Infinity) - (Date.parse(b.entity.publication_date || "") || Infinity));
+      return `<optgroup label="${author.replace(/[&<>\"]/g, "")}">${rows.map(({ entity, index }) => `<option value="${index}">${(entity.title || `Œuvre ${index + 1}`).replace(/[&<>\"]/g, "")}</option>`).join("")}</optgroup>`;
+    }).join("");
+    pinnedSelect.innerHTML = `<option value="">Aucune œuvre épinglée</option>${pinnedOptions}`;
+    pinnedSelect.dataset.signature = referenceSignature;
+  }
+  const countSelect = document.getElementById("neighborhood-count");
+  const selectedCount = countSelect?.value || "5";
+  const neighborCount = selectedCount === "all" ? allRows.length : Math.max(5, Number(selectedCount) || 5);
+  const topRows = allRows.slice(0, neighborCount);
+  const pinnedRaw = pinnedSelect?.value || "";
+  const pinnedIndex = pinnedRaw === "" ? -1 : Number(pinnedRaw);
+  const pinned = Number.isInteger(pinnedIndex) && pinnedIndex >= 0 && pinnedIndex !== referenceIndex ? allRows.find(row => row.index === pinnedIndex) : null;
+  const rows = [...topRows];
+  // Une œuvre épinglée est toujours ajoutée au tableau, même si elle figure
+  // déjà parmi les cinq premières : elle reste ainsi explicitement visible.
+  if (pinned) rows.push(pinned);
+  const sameAuthor = entities.map((entity, index) => entity.author === entities[referenceIndex].author && index !== referenceIndex ? context.distance(reference, context.vectors[index]) : null).filter(Number.isFinite);
+  const internalDistance = sameAuthor.length ? sameAuthor.reduce((sum, n) => sum + n, 0) / sameAuthor.length : null;
+  const internal = Number.isFinite(internalDistance) ? percentile(internalDistance) : null;
+  const median = 50;
+  const authorNames = [...new Set(entities.map(entity => entity.author || "Auteur inconnu"))].sort(authorCompare);
+  const authorColors = Object.fromEntries(authorNames.map((author, index) => [author, isAI(author) ? IA_COLOR : COLORS[index % COLORS.length]]));
+  const referenceAuthor = entities[referenceIndex].author || "Auteur inconnu";
+  const surname = author => (author || "Auteur inconnu").trim().split(/\s+/).at(-1);
+  const counts = {};
+  const percentileSums = {};
+  topRows.forEach(row => { const author = surname(row.entity.author); counts[author] = (counts[author] || 0) + 1; percentileSums[author] = (percentileSums[author] || 0) + row.percentile; });
+  // Le classement se fait sur la moyenne des percentiles de chaque auteur.
+  const podium = Object.entries(counts).sort((a, b) => percentileSums[b[0]] / b[1] - percentileSums[a[0]] / a[1] || a[0].localeCompare(b[0], "fr"));
+  const attribution = podium.map(([author], index) => `${index + 1} ${author}`).join(", ");
+  const referenceWorkTitle = entities[referenceIndex].title || referenceAuthor;
+  const verdictText = `Voisinage stylistique de ${referenceWorkTitle} : ${attribution || "aucun voisin"}`;
+  const verdict = document.getElementById("neighborhood-verdict");
+  if (verdict) { verdict.textContent = verdictText; verdict.dataset.exportTitle = verdictText; }
+  const table = document.getElementById("neighborhood-table");
+  const escapeHtml = text => String(text ?? "").replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
+  if (table) table.innerHTML = `<table><thead><tr><th>Rang</th><th>Œuvre</th><th>Auteur</th><th>Percentile</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.rank}</td><td>${escapeHtml(row.entity.title || "Œuvre")}${pinned?.index === row.index ? " <em>(épinglée)</em>" : ""}</td><td>${escapeHtml(row.entity.author || "Auteur inconnu")}</td><td>${row.percentile.toFixed(0)} %</td></tr>`).join("")}</tbody></table>`;
+  const box = document.querySelector(".neighborhood-box"); if (box) box.style.height = "auto";
+}
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
   evolutionCharts = [];
@@ -189,7 +450,9 @@ function drawEvolution(selectedBooks) {
   definitions.forEach(([key, label], i) => {
     const id = `evolution-${i}`;
     const evolutionTitle = `${label}${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
-    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
+    const noteId = data.metric_note_ids?.[key] ? data.note_ids?.[data.metric_note_ids[key]] : null;
+    const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
+    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
     const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: books.map(book => book.title), datasets: [{ label, data: books.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => `${books[items[0].dataIndex].publication_date.slice(0, 4)} · ${books[items[0].dataIndex].title}` } } } } });
     lineChart.$years = books.map(book => book.publication_date.slice(0, 4));
@@ -313,7 +576,8 @@ function table(books, definitions) {
   const rows = definitions.map(([key, label]) => {
     const displayed = books.map(b => { const n = value(b, key); return DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n; });
     const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
-    return `<tr><td>${metricLabel(key)}</td>${displayed.map(n => `<td>${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
+    const note = noteEntry(key).id == null ? "" : ` <button class="table-note-help metric-help" type="button" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
+    return `<tr><td>${metricLabel(key)}${note}</td>${displayed.map(n => `<td>${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -364,6 +628,33 @@ function exportPromptAndData() {
   save("style-interpretation-data.json", JSON.stringify({ metrics, surface: { label: "Couverture stylistique", definition: data.notes?.["29"] || "", axes: surfaceAxes }, authors }, null, 2), "application/json");
 }
 function controls() {
+  const distanceTitle = document.querySelector(".distance-box h2");
+  if (distanceTitle) {
+    distanceTitle.childNodes[0].textContent = "Singularité ";
+    if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="43" type="button" aria-label="Afficher l’explication">?</button>');
+  }
+  const distanceBox = document.querySelector(".distance-box");
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="44" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="45" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox) distanceBox.hidden = true;
+  const bonusLinks = document.querySelector(".bonus-links");
+  const tablesBlock = document.getElementById("tables");
+  if (bonusLinks && tablesBlock) tablesBlock.parentNode.appendChild(bonusLinks);
+  document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Singularité"));
+  document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
+  const oldTableDownload = document.getElementById("neighborhood-download");
+  if (oldTableDownload?.tagName === "BUTTON") {
+    const tableDownload = document.createElement("select"); tableDownload.id = "neighborhood-download"; tableDownload.className = "chart-download table-download"; tableDownload.dataset.table = "neighborhood-table"; tableDownload.setAttribute("aria-label", "Télécharger le tableau"); tableDownload.innerHTML = '<option value="" selected>Télécharger le tableau</option><option value="png">PNG</option><option value="svg">SVG</option>'; oldTableDownload.replaceWith(tableDownload); document.getElementById("neighborhood-table")?.before(tableDownload);
+  }
+  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { distanceBox.hidden = !distanceBox.hidden; event.currentTarget.textContent = distanceBox.hidden ? "Singularité" : "Masquer Singularité"; } });
+  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { box.hidden = !box.hidden; event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
+  document.getElementById("mds-zoom-out")?.addEventListener("click", () => mdsZoom(1.25));
+  document.getElementById("mds-zoom-in")?.addEventListener("click", () => mdsZoom(.8));
+  document.getElementById("mds-reset")?.addEventListener("click", mdsReset);
+  const neighborhoodCount = document.getElementById("neighborhood-count");
+  if (neighborhoodCount) neighborhoodCount.innerHTML = [5, 10, 15, 20, 25, 30, 35, 40, 45].map(value => `<option value="${value}"${value === 5 ? " selected" : ""}>${value}</option>`).join("") + '<option value="all">Tous</option>';
+  document.getElementById("neighborhood-reference")?.addEventListener("change", () => drawNeighborhood(selected()));
+  document.getElementById("neighborhood-pinned")?.addEventListener("change", () => drawNeighborhood(selected()));
+  document.getElementById("neighborhood-count")?.addEventListener("change", () => drawNeighborhood(selected()));
   const savedBooks = new Set(JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number));
   const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey));
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
@@ -427,7 +718,7 @@ function controls() {
   });
   document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); draw(); }));
   document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); draw(); }));
-  document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
+  document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
@@ -444,7 +735,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822162415413926000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822202249749269000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

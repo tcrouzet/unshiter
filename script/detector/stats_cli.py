@@ -379,6 +379,63 @@ TECHNICAL_LABELS = {
     "Fenêtres analysées",
 }
 
+# Dimensions utilisées par l'attribution Burrows. Elles sont volontairement
+# limitées aux mesures stylistiques comparables, sans volumes ni longueurs
+# absolues qui rapprocheraient mécaniquement les textes de même taille.
+NEAREST_NEIGHBOR_FIELDS = (
+    "punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm",
+    "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate",
+    "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate",
+    "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio",
+    "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio",
+    "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth",
+    "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev",
+)
+
+
+def nearest_neighbor_markdown() -> list[str]:
+    """Rend l'attribution Burrows des textes IA vers les œuvres humaines."""
+    if not EPUB_DATABASE.exists():
+        return []
+    rows = []
+    with sqlite3.connect(EPUB_DATABASE) as connection:
+        for book_id, title, author, path in connection.execute("SELECT id, title, author, path FROM books ORDER BY title"):
+            analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (book_id,)).fetchone()
+            if not analysis:
+                continue
+            try:
+                values = json.loads(analysis[0])
+            except (TypeError, json.JSONDecodeError):
+                continue
+            rows.append({"title": title or Path(path).stem, "author": author or "Auteur inconnu", "values": values})
+    if len(rows) < 3:
+        return []
+    ids = [METRIC_ID_BY_FIELD[field] for field in NEAREST_NEIGHBOR_FIELDS]
+    usable = [[float(book["values"][identifier]) if book["values"].get(identifier) is not None else None for identifier in ids] for book in rows]
+    means, deviations = [], []
+    for index in range(len(ids)):
+        values = [row[index] for row in usable if row[index] is not None]
+        mean = sum(values) / len(values) if values else 0.0
+        deviation = math.sqrt(sum((value - mean) ** 2 for value in values) / len(values)) if values else 0.0
+        means.append(mean); deviations.append(deviation)
+    def distance(left, right):
+        parts = [abs((left[index] - means[index]) / deviations[index] - (right[index] - means[index]) / deviations[index]) for index in range(len(ids)) if left[index] is not None and right[index] is not None and deviations[index] > 0]
+        return sum(parts) / len(parts) if parts else None
+    ia = [index for index, book in enumerate(rows) if book["author"].strip().casefold() == "ia"]
+    if not ia:
+        return []
+    human = [index for index, book in enumerate(rows) if book["author"].strip().casefold() != "ia"]
+    lines = ["## Attribution au plus proche voisin", "", "Distance de Burrows : moyenne des écarts absolus entre z-scores sur 30 mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.", "", "| Texte IA | Voisin humain | Δ |", "|---|---|---:|"]
+    for ia_index in ia:
+        candidates = [(distance(usable[ia_index], usable[index]), index) for index in human]
+        candidates = sorted((value, index) for value, index in candidates if value is not None)[:5]
+        for rank, (value, index) in enumerate(candidates):
+            source = rows[ia_index] if rank == 0 else {"title": "", "author": ""}
+            ia_label = f"{rows[ia_index]['title']} — {rows[ia_index]['author']}" if rank == 0 else ""
+            human_label = f"{rows[index]['title']} — {rows[index]['author']}"
+            lines.append(f"| {ia_label} | {human_label} | {value:.2f} |")
+    return lines
+
 def split_rows(rows: list[tuple[str, object]]) -> tuple[list[tuple[str, object]], list[tuple[str, object]]]:
     rows = [(re.sub(r"\[\^\d+\]$", "", label), value) for label, value in rows]
     row_map = dict(rows)
@@ -882,6 +939,9 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     lines += markdown_table(headers, important_by_file, important_dispersions)
     lines += ["", "## Détails", ""]
     lines += markdown_table(headers, details_by_file, detail_dispersions)
+    nearest = nearest_neighbor_markdown()
+    if nearest:
+        lines += [""] + nearest
     lines += ["", "## Profil comparatif", "", f"![Diagramme de Kiviat]({KIVIAT_CHART.name})", ""]
     lines += ["Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.", ""]
     lines += ["", "## Profil des mesures secondaires", "", f"![Radar des mesures secondaires]({KIVIAT_DETAIL_CHART.name})", ""]

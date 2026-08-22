@@ -134,7 +134,7 @@ def wikidata_date(title: str, author: str) -> str | None:
     return None
 
 
-def read_existing() -> dict[str, str]:
+def read_existing() -> dict[str, dict[str, str]]:
     result = {}
     if DATES_FILE.exists():
         for line in DATES_FILE.read_text(encoding="utf-8").splitlines():
@@ -142,7 +142,12 @@ def read_existing() -> dict[str, str]:
             if match:
                 value = match.group(2).strip()
                 date = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", value)
-                result[match.group(1).strip()] = date.group(1) if date else value.strip('"\'')
+                key = match.group(1).strip()
+                title = re.search(r"\btitle\s*:\s*['\"]([^'\"]*)['\"]", value)
+                result[key] = {
+                    "date": date.group(1) if date else value.strip('"\''),
+                    "title": title.group(1) if title else "",
+                }
     return result
 
 
@@ -168,9 +173,17 @@ def main() -> int:
             print("Aucune date récupérée : fichier inchangé.", file=sys.stderr)
             return 1
         merged = dict(existing)
-        merged.update(updates)
+        for key, date in updates.items():
+            merged.setdefault(key, {})["date"] = date
         header = "# Dates vérifiées ou complétées depuis Wikipédia/Wikidata.\n# Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.\n"
-        DATES_FILE.write_text(header + "\n".join(f'{key}: {{date: "{merged[key]}"}}' for key in sorted(merged)) + "\n", encoding="utf-8")
+        lines = []
+        for key in sorted(merged):
+            item = merged[key]
+            date = item.get("date", "")
+            title = item.get("title", "")
+            suffix = f', title: "{title}"' if title else ""
+            lines.append(f'{key}: {{date: "{date}"{suffix}}}')
+        DATES_FILE.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
         print(f"Écrit : {DATES_FILE}")
     return 0
 

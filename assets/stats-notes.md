@@ -171,3 +171,15 @@ Longueur en caractères sous laquelle se trouvent 90 % des phrases.
 # Caractères #40
 
 Nombre total de caractères du document analysé, espaces et retours à la ligne compris.
+
+# Singularité #43
+
+Distance de Burrows calculée sur trente mesures stylistiques. Chaque mesure est d’abord centrée et réduite sur l’ensemble du corpus ; la distance entre deux œuvres est la moyenne des écarts absolus entre leurs z-scores. Le graphique affiche, pour chaque œuvre ou auteur sélectionné, la distance à son voisin le plus proche. Une valeur faible indique une proximité statistique, pas une identité d’auteur ni une preuve d’influence. Cette vue répond à la question « ce texte est-il isolé ou proche d’un autre ? » ; elle ne suffit pas à attribuer une ressemblance à un auteur.
+
+# Carte stylistique MDS #44
+
+Projection en deux dimensions des distances de Burrows calculées sur trente mesures. Les œuvres proches dans la carte sont proches dans l’espace multidimensionnel ; les axes de la projection n’ont pas de signification littéraire propre. Le stress indique la part de déformation introduite par la réduction à deux dimensions : plus il est faible, plus la carte respecte les distances originales.
+
+# Voisinage stylistique #45
+
+Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.

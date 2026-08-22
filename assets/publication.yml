@@ -1,8 +1,8 @@
 # Dates vérifiées ou complétées depuis Wikipédia/Wikidata.
 # Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
 4emetheorie.epub: {date: "2013"}
-a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913"}
-a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922"}
+a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
+a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
 aneantir-michel-houellebecq.epub: {date: "2022"}
 cherokee-jean-echenoz.epub: {date: "1983"}
 clitoria.epub: {date: "2016"}
@@ -17,7 +17,7 @@ j-ecris-l-iliade-pierre-michon.epub: {date: "2025"}
 l-amant-duras-marguerite.epub: {date: "1984"}
 l-equipee-malaise-jean-echenoz.epub: {date: "1997"}
 l-ete-80-marguerite-duras.epub: {date: "1980"}
-la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010"}
+la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010", title: "La Carte et le Territoire"}
 la-grande-beune-pierre-michon.epub: {date: "1984"}
 la-possibilite-d-une-ile-houellebecq-michel.epub: {date: "2005"}
 lac-echenoz-jean.epub: {date: "1989"}
