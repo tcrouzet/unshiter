@@ -206,12 +206,53 @@ function chartExportTitle(canvas, name) {
   titleClone.querySelectorAll("button, select").forEach(control => control.remove());
   return titleClone.textContent.replace(/\s+/g, " ").trim() || name;
 }
+function radarLegendEntries() {
+  const domEntries = [...document.querySelectorAll("#radar-legend span")].map(item => ({
+    label: item.textContent.trim(),
+    color: item.querySelector("i")?.style.backgroundColor || "#777777",
+  })).filter(item => item.label);
+  if (domEntries.length) return domEntries;
+  return (chart?.data?.datasets || []).map(dataset => ({
+    label: String(dataset.label || "").trim(),
+    color: dataset.borderColor || "#777777",
+  })).filter(item => item.label);
+}
+function radarLegendRows(width, measure) {
+  const entries = radarLegendEntries();
+  const gap = 24, maxWidth = Math.max(180, width - 24), rows = [];
+  let row = [], rowWidth = 0;
+  entries.forEach(item => {
+    const itemWidth = 29 + 9 + measure(item.label);
+    if (row.length && rowWidth + gap + itemWidth > maxWidth) {
+      rows.push({ items: row, width: rowWidth }); row = []; rowWidth = 0;
+    }
+    row.push({ ...item, width: itemWidth });
+    rowWidth += (row.length > 1 ? gap : 0) + itemWidth;
+  });
+  if (row.length) rows.push({ items: row, width: rowWidth });
+  return { rows, gap };
+}
+function radarLegendSvg(width, y) {
+  const layout = radarLegendRows(width, label => 7 * label.length);
+  if (!layout.rows.length) return { markup: "", height: 0 };
+  const markup = layout.rows.map((line, rowIndex) => {
+    let x = (width - line.width) / 2;
+    const lineY = y + rowIndex * 25;
+    return line.items.map(item => {
+      const current = `<line x1="${x.toFixed(1)}" y1="${lineY}" x2="${(x + 22).toFixed(1)}" y2="${lineY}" stroke="${item.color}" stroke-width="4"/><text x="${(x + 29).toFixed(1)}" y="${lineY + 5}" font-family="system-ui" font-size="13">${item.label.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char]))}</text>`;
+      x += item.width + layout.gap;
+      return current;
+    }).join("");
+  }).join("");
+  return { markup, height: layout.rows.length * 25 + 9 };
+}
 function downloadCanvas(canvas, name, format = "png") {
   if (!canvas) return;
   const png = canvas.toDataURL("image/png");
   if (format === "svg") {
     if (name === "radar") {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}"><image href="${png}" x="0" y="0" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+      const legend = radarLegendSvg(canvas.width, canvas.height + 22);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height + legend.height}" viewBox="0 0 ${canvas.width} ${canvas.height + legend.height}"><rect width="100%" height="100%" fill="white"/><image href="${png}" x="0" y="0" width="${canvas.width}" height="${canvas.height}"/><g>${legend.markup}</g></svg>`;
       const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
       const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
     }
@@ -221,6 +262,18 @@ function downloadCanvas(canvas, name, format = "png") {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${exportHeight}" viewBox="0 0 ${canvas.width} ${exportHeight}"><rect width="100%" height="100%" fill="white"/><text x="${canvas.width / 2}" y="38" text-anchor="middle" font-family="system-ui" font-size="28" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="64" width="${canvas.width}" height="${canvas.height}"/></svg>`;
     const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
     const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
+  }
+  if (name === "radar" && radarLegendEntries().length) {
+    const legend = radarLegendEntries(), composed = document.createElement("canvas");
+    const measureContext = document.createElement("canvas").getContext("2d"); measureContext.font = "13px system-ui";
+    const layout = radarLegendRows(canvas.width, label => measureContext.measureText(label).width);
+    const extraHeight = layout.rows.length * 25 + 9;
+    composed.width = canvas.width; composed.height = canvas.height + extraHeight;
+    const context = composed.getContext("2d"); context.fillStyle = "#fff"; context.fillRect(0, 0, composed.width, composed.height);
+    context.drawImage(canvas, 0, 0);
+    context.font = "13px system-ui"; context.textBaseline = "middle";
+    layout.rows.forEach((line, rowIndex) => { let x = (canvas.width - line.width) / 2; const y = canvas.height + 18 + rowIndex * 25; line.items.forEach(item => { context.fillStyle = item.color; context.fillRect(x, y, 22, 4); context.fillStyle = "#222"; context.fillText(item.label, x + 29, y + 2); x += item.width + layout.gap; }); });
+    const link = document.createElement("a"); link.download = `${name}.png`; link.href = composed.toDataURL("image/png"); document.body.appendChild(link); link.click(); link.remove(); return;
   }
   const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
 }
@@ -391,7 +444,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822150529873758000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260822155917120527000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
