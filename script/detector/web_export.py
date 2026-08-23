@@ -80,6 +80,7 @@ def note_ids() -> dict[str, str]:
         "Mots-outils": "function_word_ratio", "Répétition globale des trigrammes": "trigram_repetition",
         "Répétition locale des trigrammes": "moving_trigram_repetition", "Noms": "noun_ratio", "Verbes": "verb_ratio",
         "Adjectifs": "adjective_ratio", "Adverbes": "adverb_ratio", "Diversité de longueurs de phrase (mots)": "sentence_word_std_dev",
+        "Participes présents": "present_participle_ratio", "Participes passés": "past_participle_ratio",
         "Compression gzip": "gzip_compression_ratio", "Relatives et subordonnées": "relative_clause_ratio",
         "Phrases nominales": "nominal_sentence_ratio", "Voix active": "active_voice_ratio",
         "Comparaisons métaphoriques": "metaphorical_comme_ratio", "Profondeur syntaxique": "average_syntactic_depth",

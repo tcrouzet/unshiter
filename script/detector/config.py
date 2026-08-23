@@ -18,7 +18,7 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v13-note-41-20k"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v15-participles-20k"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -92,6 +92,7 @@ METRIC_FIELDS = (
     "lexical_word_count", "unique_lemma_count", "avg_paragraph_length", "structural_repetition_rate",
     "relative_clause_count", "subordinate_clause_count", "subordinate_clause_ratio", "nominal_sentence_count",
     "pos_common_noun_ratio", "pos_proper_noun_ratio", "pos_verb_ratio", "pos_adjective_ratio", "pos_adverb_ratio", "flesch",
+    "present_participle_ratio", "past_participle_ratio",
 )
 METRIC_ID_BY_FIELD = {field: f"mesure_{index}" for index, field in enumerate(METRIC_FIELDS, 1)}
 FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
@@ -135,6 +136,7 @@ _NOTE_FIELD_IDS = {
     "median_sentence_length": "mesure_36", "sentence_length_p10": "mesure_37", "sentence_length_p90": "mesure_38",
     "paragraph_length_std_dev": "mesure_39", "document_char_count": "mesure_40",
     "sentence_word_std_dev": "mesure_41",
+    "present_participle_ratio": "mesure_64", "past_participle_ratio": "mesure_65",
 }
 METRIC_ID_BY_FIELD.update(_NOTE_FIELD_IDS)
 METRIC_ID_BY_FIELD.update({

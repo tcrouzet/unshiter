@@ -6,10 +6,11 @@ const RADAR = [
 ];
 const DETAILS = [
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
+  ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
   ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives et subordonnées", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
   ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
 ];
-const BURROWS_FIELDS = ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate", "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth", "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev"];
+const BURROWS_FIELDS = ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate", "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "gzip_compression_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth", "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev"];
 const ALL_METRICS = [...RADAR, ...DETAILS.map(([key, label]) => [key, label])];
 const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
 // L’écart-type brut reste disponible dans les données, mais la mesure #6
@@ -340,9 +341,14 @@ Chart.register({ id: "mdsLabelsAndLinks", afterDatasetsDraw(instance) {
       ctx.globalAlpha = 1;
       ctx.fillStyle = dataset.borderColor || "#777";
       ctx.beginPath(); ctx.arc(center.x, center.y, focused ? 6 : 4, 0, Math.PI * 2); ctx.fill();
-      ctx.font = focused ? "600 14px system-ui" : "12px system-ui";
-      ctx.fillStyle = dataset.borderColor || "#3f3a36";
-      ctx.fillText(dataset.label, center.x + 9, center.y - 9);
+      // Le nom du réseau n'est utile que lorsqu'il regroupe plusieurs
+      // œuvres. Pour une œuvre isolée, le titre du point suffit et évite le
+      // chevauchement auteur/titre.
+      if (points.length > 1) {
+        ctx.font = focused ? "600 14px system-ui" : "12px system-ui";
+        ctx.fillStyle = dataset.borderColor || "#3f3a36";
+        ctx.fillText(dataset.label, center.x + 9, center.y - 9);
+      }
     }
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#3f3a36";
@@ -770,9 +776,17 @@ function controls() {
   clearBooks.className = "authors-clear";
   clearBooks.textContent = "Tout décocher";
   document.getElementById("authors").appendChild(clearBooks);
+  const updateClearBooksLabel = () => {
+    const booksInputs = [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle)")];
+    clearBooks.textContent = booksInputs.length && booksInputs.every(input => !input.checked) ? "Tout cocher" : "Tout décocher";
+  };
   clearBooks.addEventListener("click", () => {
-    document.querySelectorAll("#authors input").forEach(input => { input.checked = false; });
-    localStorage.setItem("unshiter-books", JSON.stringify([]));
+    const booksInputs = [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle)")];
+    const check = booksInputs.every(input => !input.checked);
+    booksInputs.forEach(input => { input.checked = check; });
+    document.querySelectorAll(".author-toggle").forEach(toggle => { toggle.checked = check; });
+    localStorage.setItem("unshiter-books", JSON.stringify(check ? data.books.map(book => book.id) : []));
+    updateClearBooksLabel();
     draw();
   });
   MENU_METRICS.forEach(([key]) => { const id = publicMetricId(key); const defaultChecked = RADAR.some(([radarKey]) => radarKey === key); document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${id}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (defaultChecked ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${id}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${id}" type="button">?</button></label>`); });
@@ -805,8 +819,9 @@ function controls() {
     localStorage.setItem("unshiter-presets", JSON.stringify(presets));
     location.reload();
   });
-  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); draw(); }));
-  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); draw(); }));
+  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); }));
+  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); }));
+  updateClearBooksLabel();
   document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
@@ -831,7 +846,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260823065417000552000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260823150440922489000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

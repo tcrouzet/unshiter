@@ -103,10 +103,13 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         for predicates in sentence_predicates
     )
     comparison_sentences = sum(_contains_comparison(sentence) for sentence in sentences)
+    finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in doc)
+    present_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Pres" in token.morph.get("Tense") for token in doc)
+    past_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Past" in token.morph.get("Tense") for token in doc)
     pos_counts = {
         "common_nouns": sum(token.pos_ == "NOUN" for token in doc),
         "proper_nouns": sum(token.pos_ == "PROPN" for token in doc),
-        "verbs": sum(token.pos_ in {"VERB", "AUX"} for token in doc),
+        "verbs": finite_verbs,
         "adjectives": sum(token.pos_ == "ADJ" for token in doc),
         "adverbs": sum(token.pos_ == "ADV" for token in doc),
     }
@@ -124,6 +127,9 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         "active_voice_ratio": active_sentences / len(sentences) if sentences else None,
         "metaphorical_comme_ratio": comparison_sentences / len(sentences) if sentences else None,
         "pos_distribution": pos_distribution,
+        "finite_verbs": finite_verbs,
+        "present_participles": present_participles,
+        "past_participles": past_participles,
     }
 
 

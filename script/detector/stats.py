@@ -120,6 +120,8 @@ class TextStats:
     pos_verb_ratio: float | None = None
     pos_adjective_ratio: float | None = None
     pos_adverb_ratio: float | None = None
+    present_participle_ratio: float | None = None
+    past_participle_ratio: float | None = None
     flesch: float = 0
     document_char_count: int = 0
 
@@ -717,12 +719,23 @@ def compute_stats(text: str) -> TextStats:
     frequencies = Counter(words)
     global_lemma_richness, lemma_richness, morphalou_coverage, lexical_word_count, unique_lemma_count = vocabulary_richness(words)
     starts = [sentence_words[0] for sentence in sentences if (sentence_words := tokenize(sentence))]
-    noun_ratio, verb_ratio, adjective_ratio, adverb_ratio = _grammatical_ratios(words)
     content_lemmas = filtered_lemmas(words)
     structures = sentence_structure_signatures(split_structure_units(text))
     encoded_text = text.encode("utf-8")
     gzip_ratio = len(gzip.compress(encoded_text, mtime=0)) / len(encoded_text) if encoded_text else 0
     syntax = analyze_syntax(text)
+    if syntax:
+        distribution = syntax["pos_distribution"]
+        noun_ratio = distribution["common_nouns"] + distribution["proper_nouns"]
+        verb_ratio = distribution["verbs"]
+        adjective_ratio = distribution["adjectives"]
+        adverb_ratio = distribution["adverbs"]
+        pos_total = sum(1 for word in words if word.isalpha()) or 1
+        present_participle_ratio = syntax["present_participles"] / pos_total
+        past_participle_ratio = syntax["past_participles"] / pos_total
+    else:
+        noun_ratio, verb_ratio, adjective_ratio, adverb_ratio = _grammatical_ratios(words)
+        present_participle_ratio = past_participle_ratio = None
     return TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
@@ -768,6 +781,8 @@ def compute_stats(text: str) -> TextStats:
         pos_verb_ratio=r(syntax["pos_distribution"]["verbs"]) if syntax else None,
         pos_adjective_ratio=r(syntax["pos_distribution"]["adjectives"]) if syntax else None,
         pos_adverb_ratio=r(syntax["pos_distribution"]["adverbs"]) if syntax else None,
+        present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
+        past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
         flesch=r(flesch),
     )
 
