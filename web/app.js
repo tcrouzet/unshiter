@@ -47,7 +47,32 @@ function renderNote(id) {
   const escape = text => text.replace(/[&<>"']/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char]));
   let body = escape(raw).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   body = body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>");
-  return `<h2>${escape(title.replace(/\*\*/g, ""))}</h2><p>${body}</p>`;
+  return `<h2>${escape(title.replace(/\*\*/g, ""))}</h2><p>${body}</p><p class="app-help-link"><button type="button" class="open-app-help">Aide de l’application</button></p>`;
+}
+function markdownToHtml(raw) {
+  const escape = text => String(text).replace(/[&<>"']/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char]));
+  const lines = String(raw || "").split(/\r?\n/), output = [];
+  let paragraph = [], list = false;
+  const flush = () => { if (paragraph.length) { output.push(`<p>${paragraph.join(" ")}</p>`); paragraph = []; } };
+  const closeList = () => { if (list) { output.push("</ul>"); list = false; } };
+  for (const line of lines) {
+    const heading = /^(#{1,3})\s+(.+)$/.exec(line.trim());
+    const bullet = /^[-*]\s+(.+)$/.exec(line.trim());
+    if (heading) { flush(); closeList(); output.push(`<h${heading[1].length}>${escape(heading[2])}</h${heading[1].length}>`); continue; }
+    if (bullet) { flush(); if (!list) { output.push("<ul>"); list = true; } output.push(`<li>${escape(bullet[1])}</li>`); continue; }
+    if (!line.trim()) { flush(); closeList(); continue; }
+    closeList(); paragraph.push(escape(line.trim()));
+  }
+  flush(); closeList();
+  return output.join("").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+let applicationHelpCache = null;
+function showApplicationHelp() {
+  const note = document.getElementById("metric-note"), target = document.getElementById("metric-note-text");
+  if (!note || !target) return;
+  const display = content => { target.innerHTML = markdownToHtml(content); note.hidden = false; target.scrollTop = 0; };
+  if (applicationHelpCache) { display(applicationHelpCache); return; }
+  fetch("app-help.md").then(response => response.text()).then(content => { applicationHelpCache = content; display(content); });
 }
 function pastel(hex, alpha = "35") { return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}${alpha}` : hex; }
 // Valeurs de référence du corpus complet. Elles sont construites une seule fois
@@ -825,6 +850,7 @@ function controls() {
   document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
+  document.addEventListener("click", event => { if (event.target.closest(".open-app-help")) { event.preventDefault(); showApplicationHelp(); } });
   document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
@@ -846,7 +872,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260823150440922489000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260823152125230308000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
@@ -874,6 +900,12 @@ fetch("data.json?v=20260823150440922489000").then(r => r.json()).then(json => {
   const copyright = data.site?.copyright || "© {author} — (date) — {livres} livres";
   const renderedCopyright = copyright.replaceAll("(date)", dateLabel).replaceAll("{date}", dateLabel).replaceAll("{livres}", String(data.books.length)).replaceAll("{author}", data.site?.author || "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   document.querySelector("footer").innerHTML = renderedCopyright;
+  const footerHelp = document.createElement("a");
+  footerHelp.href = "#";
+  footerHelp.textContent = "Aide";
+  footerHelp.className = "footer-help";
+  footerHelp.addEventListener("click", event => { event.preventDefault(); showApplicationHelp(); });
+  document.querySelector("footer").append(" — ", footerHelp);
   controls();
   draw();
 }).catch(() => { document.getElementById("footer-version").textContent = "erreur de chargement"; });

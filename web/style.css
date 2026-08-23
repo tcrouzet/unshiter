@@ -31,6 +31,8 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .axis-help h2 { margin: 0 0 1rem; font-size: 1.25rem; }
 .axis-help p { margin: 0 0 1rem; }
 .axis-help p + p { margin-top: 1rem; }
+.app-help-link { text-align: right; border-top: 1px solid #e4dfda; padding-top: .8rem; }
+.app-help-link button { border: 0; background: transparent; color: #6f6962; text-decoration: underline; cursor: pointer; font: inherit; }
 .surface-box { position: relative; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; height: auto; }
 .surface-box canvas { display: block; }
 .distance-box { position: relative; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; height: auto; }
