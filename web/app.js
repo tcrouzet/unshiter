@@ -70,6 +70,13 @@ function burrowsContext(entities) {
 }
 function selected() { return [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle):checked")].map(x => data.books.find(b => b.id === Number(x.value))).filter(Boolean); }
 function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => metricKey(x.value)))]; }
+function neighborhoodState() {
+  const books = selected(), entities = authorProfile || authorLimits ? authorAverages(books) : books;
+  const reference = document.getElementById("neighborhood-reference"), pinned = document.getElementById("neighborhood-pinned"), count = document.getElementById("neighborhood-count");
+  const key = entity => entity ? `${entity.author || ""}\u0000${entity.title || ""}` : "";
+  return { reference: key(entities[Number(reference?.value)]), pinned: key(entities[Number(pinned?.value)]), count: count?.value || "5" };
+}
+function saveNeighborhoodState() { localStorage.setItem("unshiter-neighborhood", JSON.stringify(neighborhoodState())); }
 function radarTitle(books) {
   const authors = [...new Set(books.map(book => (book.author || "Auteur inconnu").trim()).filter(Boolean))];
   if (authors.length === 1) return authors[0];
@@ -293,7 +300,8 @@ function downloadNeighborhoodTable(format = "png") {
   const table = document.querySelector("#neighborhood-table table");
   if (!table) return;
   const rows = [...table.rows].map(row => [...row.cells].map(cell => cell.textContent.trim()));
-  const widths = [70, 420, 250, 130], width = widths.reduce((sum, value) => sum + value, 0), rowHeight = 34, height = 75 + rows.length * rowHeight;
+  const widths = rows[0]?.length === 3 ? [70, 520, 130] : [70, 420, 250, 130];
+  const width = widths.reduce((sum, value) => sum + value, 0), rowHeight = 34, height = 75 + rows.length * rowHeight;
   const esc = text => String(text).replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
   const title = document.getElementById("neighborhood-verdict")?.textContent || "Voisinage stylistique";
   const cells = rows.map((row, rowIndex) => row.map((cell, columnIndex) => {
@@ -365,24 +373,37 @@ Chart.register({ id: "distanceReference", afterDraw(instance) {
 let neighborhoodChart, mdsInitialRange, mdsFocusDataset = null;
 function drawNeighborhood(books) {
   neighborhoodChart?.destroy();
-  const entities = authorProfile || authorLimits ? authorAverages(books) : books, select = document.getElementById("neighborhood-reference");
+  const authorEntities = authorProfile || authorLimits;
+  const entities = authorEntities ? authorAverages(books) : books, select = document.getElementById("neighborhood-reference");
   if (!entities.length) return;
-  const referenceSignature = entities.map(entity => `${entity.author || ""}\u0000${entity.title || ""}`).join("\u0001");
+  // Le mode (œuvres ou auteurs) fait partie de la signature : deux sélections
+  // peuvent contenir les mêmes textes mais produire des références différentes.
+  const referenceSignature = `${authorEntities ? "authors" : "works"}\u0002${entities.map(entity => `${entity.author || ""}\u0000${entity.title || ""}`).join("\u0001")}`;
+  const entityKey = entity => `${entity.author || ""}\u0000${entity.title || ""}`;
   if (select && select.dataset.signature !== referenceSignature) {
-    const grouped = entities.reduce((groups, entity, index) => {
-      const author = entity.author || "Auteur inconnu";
-      (groups[author] ||= []).push({ entity, index });
-      return groups;
-    }, {});
-    const groupsHtml = Object.entries(grouped).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
-      rows.sort((a, b) => {
-        const dateA = Date.parse(a.entity.publication_date || "") || Infinity;
-        const dateB = Date.parse(b.entity.publication_date || "") || Infinity;
-        return dateA - dateB || (a.entity.title || "").localeCompare(b.entity.title || "", "fr", { sensitivity: "base" });
-      });
-      return `<optgroup label="${author.replace(/[&<>\"]/g, "")}">${rows.map(({ entity, index }) => `<option value="${index}">${(entity.title || `Œuvre ${index + 1}`).replace(/[&<>\"]/g, "")}${entity.publication_date ? ` (${String(entity.publication_date).slice(0, 4)})` : ""}</option>`).join("")}</optgroup>`;
-    }).join("");
-    select.innerHTML = groupsHtml;
+    const oldKey = entities[Number(select.value)] ? entityKey(entities[Number(select.value)]) : "";
+    const escape = text => String(text ?? "").replace(/[&<>\"]/g, "");
+    if (authorEntities) {
+      // En mode Auteurs, ne pas afficher des œuvres fictives ("Œuvre 1").
+      select.innerHTML = entities.map((entity, index) => `<option value="${index}">${escape(entity.author || "Auteur inconnu")}</option>`).join("");
+    } else {
+      const grouped = entities.reduce((groups, entity, index) => {
+        const author = entity.author || "Auteur inconnu";
+        (groups[author] ||= []).push({ entity, index });
+        return groups;
+      }, {});
+      select.innerHTML = Object.entries(grouped).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
+        rows.sort((a, b) => {
+          const dateA = Date.parse(a.entity.publication_date || "") || Infinity;
+          const dateB = Date.parse(b.entity.publication_date || "") || Infinity;
+          return dateA - dateB || (a.entity.title || "").localeCompare(b.entity.title || "", "fr", { sensitivity: "base" });
+        });
+        return `<optgroup label="${escape(author)}">${rows.map(({ entity, index }) => `<option value="${index}">${escape(entity.title || `Œuvre ${index + 1}`)}${entity.publication_date ? ` (${String(entity.publication_date).slice(0, 4)})` : ""}</option>`).join("")}</optgroup>`;
+      }).join("");
+    }
+    const saved = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+    const restored = entities.findIndex(entity => entityKey(entity) === (saved?.reference || oldKey));
+    select.value = String(restored >= 0 ? restored : 0);
     select.dataset.signature = referenceSignature;
   }
   const referenceIndex = Number(select?.value || 0), context = burrowsContext(entities), reference = context.vectors[referenceIndex];
@@ -398,12 +419,22 @@ function drawNeighborhood(books) {
   allRows.forEach((row, index) => { row.rank = index + 1; });
   const pinnedSelect = document.getElementById("neighborhood-pinned");
   if (pinnedSelect && pinnedSelect.dataset.signature !== referenceSignature) {
-    const pinnedGroups = entities.reduce((groups, entity, index) => { const author = entity.author || "Auteur inconnu"; (groups[author] ||= []).push({ entity, index }); return groups; }, {});
-    const pinnedOptions = Object.entries(pinnedGroups).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
-      rows.sort((a, b) => (Date.parse(a.entity.publication_date || "") || Infinity) - (Date.parse(b.entity.publication_date || "") || Infinity));
-      return `<optgroup label="${author.replace(/[&<>\"]/g, "")}">${rows.map(({ entity, index }) => `<option value="${index}">${(entity.title || `Œuvre ${index + 1}`).replace(/[&<>\"]/g, "")}</option>`).join("")}</optgroup>`;
-    }).join("");
+    const oldPinnedKey = entities[Number(pinnedSelect.value)] ? entityKey(entities[Number(pinnedSelect.value)]) : "";
+    const escape = text => String(text ?? "").replace(/[&<>\"]/g, "");
+    let pinnedOptions;
+    if (authorEntities) {
+      pinnedOptions = entities.map((entity, index) => `<option value="${index}">${escape(entity.author || "Auteur inconnu")}</option>`).join("");
+    } else {
+      const pinnedGroups = entities.reduce((groups, entity, index) => { const author = entity.author || "Auteur inconnu"; (groups[author] ||= []).push({ entity, index }); return groups; }, {});
+      pinnedOptions = Object.entries(pinnedGroups).sort(([a], [b]) => authorCompare(a, b)).map(([author, rows]) => {
+        rows.sort((a, b) => (Date.parse(a.entity.publication_date || "") || Infinity) - (Date.parse(b.entity.publication_date || "") || Infinity));
+        return `<optgroup label="${escape(author)}">${rows.map(({ entity, index }) => `<option value="${index}">${escape(entity.title || `Œuvre ${index + 1}`)}</option>`).join("")}</optgroup>`;
+      }).join("");
+    }
     pinnedSelect.innerHTML = `<option value="">Aucune œuvre épinglée</option>${pinnedOptions}`;
+    const saved = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+    const restoredPinned = entities.findIndex(entity => entityKey(entity) === (saved?.pinned || oldPinnedKey));
+    if (restoredPinned >= 0) pinnedSelect.value = String(restoredPinned);
     pinnedSelect.dataset.signature = referenceSignature;
   }
   const countSelect = document.getElementById("neighborhood-count");
@@ -414,9 +445,10 @@ function drawNeighborhood(books) {
   const pinnedIndex = pinnedRaw === "" ? -1 : Number(pinnedRaw);
   const pinned = Number.isInteger(pinnedIndex) && pinnedIndex >= 0 && pinnedIndex !== referenceIndex ? allRows.find(row => row.index === pinnedIndex) : null;
   const rows = [...topRows];
-  // Une œuvre épinglée est toujours ajoutée au tableau, même si elle figure
-  // déjà parmi les cinq premières : elle reste ainsi explicitement visible.
-  if (pinned) rows.push(pinned);
+  // L'épinglée garde son rang naturel. Elle est ajoutée seulement si elle ne
+  // figure pas déjà dans les voisins affichés, puis la liste reste triée.
+  if (pinned && !rows.some(row => row.index === pinned.index)) rows.push(pinned);
+  rows.sort((left, right) => left.rank - right.rank);
   const sameAuthor = entities.map((entity, index) => entity.author === entities[referenceIndex].author && index !== referenceIndex ? context.distance(reference, context.vectors[index]) : null).filter(Number.isFinite);
   const internalDistance = sameAuthor.length ? sameAuthor.reduce((sum, n) => sum + n, 0) / sameAuthor.length : null;
   const internal = Number.isFinite(internalDistance) ? percentile(internalDistance) : null;
@@ -430,36 +462,85 @@ function drawNeighborhood(books) {
   topRows.forEach(row => { const author = surname(row.entity.author); counts[author] = (counts[author] || 0) + 1; percentileSums[author] = (percentileSums[author] || 0) + row.percentile; });
   // Le classement se fait sur la moyenne des percentiles de chaque auteur.
   const podium = Object.entries(counts).sort((a, b) => percentileSums[b[0]] / b[1] - percentileSums[a[0]] / a[1] || a[0].localeCompare(b[0], "fr"));
-  const attribution = podium.map(([author], index) => `${index + 1} ${author}`).join(", ");
-  const referenceWorkTitle = entities[referenceIndex].title || referenceAuthor;
-  const verdictText = `Voisinage stylistique de ${referenceWorkTitle} : ${attribution || "aucun voisin"}`;
+  // En mode auteurs, chaque ligne est déjà une moyenne d'auteur : il ne faut
+  // surtout pas recompter des œuvres pour fabriquer l'attribution. Le rang
+  // est donc directement celui des auteurs voisins.
+  const attribution = authorEntities
+    ? topRows.map((row, index) => `${index + 1} ${surname(row.entity.author)}`).join(", ")
+    : podium.map(([author], index) => `${index + 1} ${author}`).join(", ");
+  const referenceWorkTitle = authorEntities ? referenceAuthor : (entities[referenceIndex].title || referenceAuthor);
+  const verdictText = authorEntities
+    ? `Voisinage stylistique de ${referenceWorkTitle}`
+    : `Voisinage stylistique de ${referenceWorkTitle} : ${attribution || "aucun voisin"}`;
   const verdict = document.getElementById("neighborhood-verdict");
   if (verdict) { verdict.textContent = verdictText; verdict.dataset.exportTitle = verdictText; }
   const table = document.getElementById("neighborhood-table");
   const escapeHtml = text => String(text ?? "").replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
-  if (table) table.innerHTML = `<table><thead><tr><th>Rang</th><th>Œuvre</th><th>Auteur</th><th>Percentile</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.rank}</td><td>${escapeHtml(row.entity.title || "Œuvre")}${pinned?.index === row.index ? " <em>(épinglée)</em>" : ""}</td><td>${escapeHtml(row.entity.author || "Auteur inconnu")}</td><td>${row.percentile.toFixed(0)} %</td></tr>`).join("")}</tbody></table>`;
+  if (table) {
+    const columns = authorEntities ? "<th>Rang</th><th>Auteur</th><th>Percentile</th>" : "<th>Rang</th><th>Œuvre</th><th>Auteur</th><th>Percentile</th>";
+    const body = rows.map(row => {
+      const pinnedClass = pinned?.index === row.index ? " class=\"pinned-row\"" : "";
+      return authorEntities
+        ? `<tr${pinnedClass}><td>${row.rank}</td><td>${escapeHtml(row.entity.author || "Auteur inconnu")}</td><td>${row.percentile.toFixed(0)} %</td></tr>`
+        : `<tr${pinnedClass}><td>${row.rank}</td><td>${escapeHtml(row.entity.title || "Œuvre")}</td><td>${escapeHtml(row.entity.author || "Auteur inconnu")}</td><td>${row.percentile.toFixed(0)} %</td></tr>`;
+    }).join("");
+    table.innerHTML = `<table><thead><tr>${columns}</tr></thead><tbody>${body}</tbody></table>`;
+  }
   const box = document.querySelector(".neighborhood-box"); if (box) box.style.height = "auto";
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
   evolutionCharts = [];
-  const books = [...selectedBooks].filter(book => book.publication_date && !Number.isNaN(Date.parse(book.publication_date))).sort((a, b) => Date.parse(a.publication_date) - Date.parse(b.publication_date));
+  const authorMode = Boolean(authorProfile);
+  const books = [...(authorMode ? authorEvolutionEntities(selectedBooks) : selectedBooks)].filter(book => authorMode || (book.publication_date && !Number.isNaN(Date.parse(book.publication_date)))).sort((a, b) => authorMode ? String(a.author).localeCompare(String(b.author), "fr") : Date.parse(a.publication_date) - Date.parse(b.publication_date));
   const definitions = checkedMetrics().map(key => [key, metricLabel(key)]).filter(Boolean);
   const container = document.getElementById("evolution-charts");
   container.innerHTML = "";
   definitions.forEach(([key, label], i) => {
+    const plotBooks = authorMode
+      // L'ordre suit le score effectivement affiché sur l'axe. Ainsi une
+      // mesure inversée (par ex. la sparsité des adverbes) est naturellement
+      // présentée dans le sens de son affichage, et non dans celui de sa
+      // valeur brute.
+      ? [...books].sort((a, b) => (scale(key, value(a, key)) ?? Infinity) - (scale(key, value(b, key)) ?? Infinity))
+      : books;
     const id = `evolution-${i}`;
-    const evolutionTitle = `${label}${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
+    const evolutionTitle = `${label}${!authorMode && singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
     const noteId = data.metric_note_ids?.[key] ? data.note_ids?.[data.metric_note_ids[key]] : null;
     const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
     container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: books.map(book => book.title), datasets: [{ label, data: books.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => `${books[items[0].dataIndex].publication_date.slice(0, 4)} · ${books[items[0].dataIndex].title}` } } } } });
-    lineChart.$years = books.map(book => book.publication_date.slice(0, 4));
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, font: context => ({ weight: isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
+    lineChart.$years = authorMode ? [] : plotBooks.map(book => book.publication_date.slice(0, 4));
+    lineChart.$pointLabels = authorMode ? plotBooks.map(book => format(value(book, key), key)) : [];
+    lineChart.$pointEntities = plotBooks;
     evolutionCharts.push(lineChart);
   });
 }
-Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const years = instance.$years || []; const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.font = "11px system-ui"; ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (years[i]) ctx.fillText(years[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); }); ctx.restore(); } });
+function authorEvolutionEntities(books) {
+  const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
+  return Object.entries(groups).map(([author, authorBooks]) => {
+    const dated = authorBooks.filter(book => book.publication_date && !Number.isNaN(Date.parse(book.publication_date))).sort((a, b) => Date.parse(a.publication_date) - Date.parse(b.publication_date));
+    const stats = {};
+    for (const [key] of ALL_METRICS) {
+      const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite);
+      if (values.length) stats[key] = values.reduce((sum, n) => sum + n, 0) / values.length;
+    }
+    return { author, title: author, publication_date: dated[0]?.publication_date || "", analyses: [{ stats }] };
+  });
+}
+function authorMedians(books) {
+  const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
+  return Object.entries(groups).map(([author, authorBooks]) => {
+    const stats = {};
+    for (const [key] of ALL_METRICS) {
+      const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite).sort((a, b) => a - b);
+      if (values.length) stats[key] = values[Math.floor((values.length - 1) / 2)];
+    }
+    return { author, title: author, analyses: [{ stats }] };
+  });
+}
+Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const labels = instance.$pointLabels?.length ? instance.$pointLabels : (instance.$years || []); const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (labels[i]) { ctx.font = `${isAI(instance.$pointEntities?.[i]) ? "700" : "400"} 11px system-ui`; ctx.fillText(labels[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); } }); ctx.restore(); } });
 function chartExportTitle(canvas, name) {
   const frame = canvas?.closest(".chart-frame");
   if (frame?.dataset.exportTitle) return frame.dataset.exportTitle;
@@ -541,6 +622,7 @@ function downloadCanvas(canvas, name, format = "png") {
   const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
 }
 function renderTables(books) {
+  const tableBooks = authorProfile || authorLimits ? authorMedians(books) : books;
   const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key));
   const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key));
   const technicalCharacterIndex = technical.findIndex(([key]) => key === "document_char_count");
@@ -549,7 +631,7 @@ function renderTables(books) {
   const characterIndex = details.findIndex(([key]) => key === "document_char_count");
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · synthèse</h2>${table(books, RADAR)}</div><div class="table-wrap"><h2>Tableau 2 · détails</h2>${table(books, details)}</div><div class="table-wrap"><h2>Tableau 3 · données objectives</h2>${table(books, technical)}</div>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · synthèse</h2>${table(tableBooks, RADAR)}</div><div class="table-wrap"><h2>Tableau 2 · détails</h2>${table(tableBooks, details)}</div><div class="table-wrap"><h2>Tableau 3 · données objectives</h2>${table(tableBooks, technical)}</div>`;
 }
 function dispersion(values) {
   const numbers = values.filter(Number.isFinite);
@@ -576,7 +658,8 @@ function table(books, definitions) {
   const rows = definitions.map(([key, label]) => {
     const displayed = books.map(b => { const n = value(b, key); return DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n; });
     const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
-    const note = noteEntry(key).id == null ? "" : ` <button class="table-note-help metric-help" type="button" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
+    const noteId = noteEntry(key).id;
+    const note = noteId == null ? "" : ` <button class="table-note-help metric-help" type="button" data-note-id="${noteId}" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
     return `<tr><td>${metricLabel(key)}${note}</td>${displayed.map(n => `<td>${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
@@ -639,22 +722,27 @@ function controls() {
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
   if (bonusLinks && tablesBlock) tablesBlock.parentNode.appendChild(bonusLinks);
+  const mdsBox = document.querySelector(".mds-box");
+  if (bonusLinks && distanceBox) bonusLinks.before(distanceBox);
+  if (bonusLinks && mdsBox) bonusLinks.before(mdsBox);
   document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Singularité"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
   if (oldTableDownload?.tagName === "BUTTON") {
     const tableDownload = document.createElement("select"); tableDownload.id = "neighborhood-download"; tableDownload.className = "chart-download table-download"; tableDownload.dataset.table = "neighborhood-table"; tableDownload.setAttribute("aria-label", "Télécharger le tableau"); tableDownload.innerHTML = '<option value="" selected>Télécharger le tableau</option><option value="png">PNG</option><option value="svg">SVG</option>'; oldTableDownload.replaceWith(tableDownload); document.getElementById("neighborhood-table")?.before(tableDownload);
   }
-  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { distanceBox.hidden = !distanceBox.hidden; event.currentTarget.textContent = distanceBox.hidden ? "Singularité" : "Masquer Singularité"; } });
-  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { box.hidden = !box.hidden; event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
+  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { const show = distanceBox.hidden; distanceBox.hidden = !show; if (show && mdsBox) { mdsBox.hidden = true; document.getElementById("show-mds").textContent = "Carte MDS"; } event.currentTarget.textContent = distanceBox.hidden ? "Singularité" : "Masquer Singularité"; } });
+  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { const show = box.hidden; box.hidden = !show; if (show && distanceBox) { distanceBox.hidden = true; document.getElementById("show-distance").textContent = "Singularité"; } event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
   document.getElementById("mds-zoom-out")?.addEventListener("click", () => mdsZoom(1.25));
   document.getElementById("mds-zoom-in")?.addEventListener("click", () => mdsZoom(.8));
   document.getElementById("mds-reset")?.addEventListener("click", mdsReset);
   const neighborhoodCount = document.getElementById("neighborhood-count");
   if (neighborhoodCount) neighborhoodCount.innerHTML = [5, 10, 15, 20, 25, 30, 35, 40, 45].map(value => `<option value="${value}"${value === 5 ? " selected" : ""}>${value}</option>`).join("") + '<option value="all">Tous</option>';
-  document.getElementById("neighborhood-reference")?.addEventListener("change", () => drawNeighborhood(selected()));
-  document.getElementById("neighborhood-pinned")?.addEventListener("change", () => drawNeighborhood(selected()));
-  document.getElementById("neighborhood-count")?.addEventListener("change", () => drawNeighborhood(selected()));
+  const savedNeighborhood = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+  if (savedNeighborhood?.count && neighborhoodCount.querySelector(`option[value="${savedNeighborhood.count}"]`)) neighborhoodCount.value = savedNeighborhood.count;
+  document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
+  document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
+  document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   const savedBooks = new Set(JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number));
   const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey));
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
@@ -706,13 +794,14 @@ function controls() {
     const remove = document.createElement("span"); remove.className = "preset-remove"; remove.textContent = "×"; remove.title = "Supprimer cette configuration"; remove.setAttribute("role", "button");
     remove.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); delete presets[name]; localStorage.setItem("unshiter-presets", JSON.stringify(presets)); button.remove(); });
     button.appendChild(remove);
-    button.addEventListener("click", () => { const preset = presets[name]; localStorage.setItem("unshiter-books", JSON.stringify(preset.books)); localStorage.setItem("unshiter-metrics", JSON.stringify(preset.metrics)); location.reload(); }); presetList.appendChild(button);
+    button.addEventListener("click", () => { const preset = presets[name]; localStorage.setItem("unshiter-books", JSON.stringify(preset.books)); localStorage.setItem("unshiter-metrics", JSON.stringify(preset.metrics)); localStorage.setItem("unshiter-flipped", JSON.stringify(preset.flipped || [])); localStorage.setItem("unshiter-neighborhood", JSON.stringify(preset.neighborhood || {})); localStorage.setItem("unshiter-view-mode", preset.view_mode || "works"); location.reload(); }); presetList.appendChild(button);
   });
   presetBox.querySelector("#config-save").addEventListener("click", () => {
     const name = window.prompt("Nom de la configuration :")?.trim();
     if (!name) return;
     Object.keys(presets).filter(existing => existing.toLocaleLowerCase() === name.toLocaleLowerCase()).forEach(existing => delete presets[existing]);
-    presets[name] = { books: selected().map(book => book.id), metrics: checkedMetrics().map(publicMetricId) };
+    saveNeighborhoodState();
+    presets[name] = { books: selected().map(book => book.id), metrics: checkedMetrics().map(publicMetricId), flipped: [...flippedAxes].map(publicMetricId), neighborhood: JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null"), view_mode: authorProfile ? "authors" : authorLimits ? "author-limits" : corpusProfile ? "limits" : "works" };
     localStorage.setItem("unshiter-presets", JSON.stringify(presets));
     location.reload();
   });
@@ -721,24 +810,35 @@ function controls() {
   document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
-  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
+  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
   document.querySelector("aside")?.appendChild(exportBox);
+  const savedViewMode = localStorage.getItem("unshiter-view-mode") || "works";
+  if (savedViewMode === "authors") { authorProfile = true; corpusProfile = false; authorLimits = false; }
+  else if (savedViewMode === "author-limits") { authorProfile = false; corpusProfile = true; authorLimits = true; }
+  else if (savedViewMode === "limits") { authorProfile = false; corpusProfile = true; authorLimits = false; }
   worksButton.hidden = true; authorsButton.hidden = false;
   const showWorksMode = () => { limitsButton.hidden = false; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = true; };
   const showLimitsMode = () => { limitsButton.hidden = true; authorsButton.hidden = false; authorLimitsButton.hidden = true; worksButton.hidden = false; };
-  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; showLimitsMode(); draw(); });
-  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); });
-  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; draw(); });
-  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; showWorksMode(); draw(); });
+  if (authorProfile) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; }
+  else if (authorLimits) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = true; worksButton.hidden = false; }
+  else if (corpusProfile) showLimitsMode();
+  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "limits"); showLimitsMode(); draw(); });
+  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "authors"); limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); });
+  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
+  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260822202249749269000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260823065417000552000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
+  // Les inversions d'axes font partie de la configuration persistante, au
+  // même titre que les œuvres et les mesures cochées.
+  const savedFlips = JSON.parse(localStorage.getItem("unshiter-flipped") || "[]");
+  savedFlips.map(metricKey).forEach(key => flippedAxes.add(key));
   // L’ordre et la sélection par défaut viennent exclusivement des marqueurs
   // #tab1_N des notes, jamais d’une liste parallèle dans le JavaScript.
   if (Array.isArray(data.default_radar) && data.default_radar.length) {

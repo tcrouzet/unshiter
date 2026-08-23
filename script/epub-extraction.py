@@ -16,11 +16,11 @@ import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 
-from detector.config import EPUB_DIR, PUBLICATION_FILE, TEXT_ENCODING
+from detector.config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, PUBLICATION_FILE, TEXT_ENCODING
 
 
 SKIP_DOCUMENT_WORDS = ("cover", "titlepage", "toc", "nav", "copyright", "imprint", "colophon")
-TOC_FRONT_WORDS = ("couverture", "page de titre", "titre", "copyright", "du même auteur", "avertissement", "avant-propos", "mentions légales", "table des matières")
+TOC_FRONT_WORDS = ("couverture", "page de titre", "titre", "copyright", "auteur", "playlist", "du même auteur", "avertissement", "avant-propos", "mentions légales", "table des matières")
 NUMBERED_TOC = re.compile(r"^(?:chapitre\s+)?\d+[.)]\s|\s-\s\d+\s-\s", re.I)
 SKIP_TAGS = {"script", "style", "svg", "nav"}
 CHAPTER_HEADING = re.compile(r"^#+\s*(?:(?:chapitre|partie|chapter)\s+)?(?:\d+|[ivxlcdm]+)\s*$", re.I)
@@ -31,6 +31,19 @@ COMMON_GIVEN_NAMES = {
     "françois", "francois", "christophe", "sophie", "isabelle", "anne",
     "claude", "nicolas", "olivier", "yannick", "laurent", "jacques",
 }
+
+
+class ShortEpubError(RuntimeError):
+    """EPUB dont le texte narratif est trop court pour une fenêtre d'analyse."""
+
+    def __init__(self, source: Path, length: int, minimum: int):
+        self.source = source
+        self.length = length
+        self.minimum = minimum
+        super().__init__(
+            f"{source.name} : texte extrait de {length:,} signes, "
+            f"minimum requis {minimum:,} ; Markdown non généré"
+        )
 
 
 def local_name(tag: str) -> str:
@@ -328,11 +341,24 @@ def significant_text(archive: zipfile.ZipFile, package: ET.Element, manifest, sp
     if toc_start is None:
         toc_start = next((index for index in range(len(toc)) if index not in front_positions), 0)
     narrative_toc = toc[toc_start:]
+    # Certains EPUB n'ont aucun chapitre dans le sommaire : uniquement les
+    # pages liminaires et quelques rubriques éditoriales. Dans ce cas, le
+    # récit commence au premier document après le dernier élément du sommaire.
+    toc_only_front = not narrative_toc or all(label.casefold().strip() in TOC_FRONT_WORDS for _, label in narrative_toc)
+    first_body_index = None
+    if toc_only_front and toc:
+        title_indexes = [spine_paths.index(target) for target, label in toc if target in spine_paths and label.casefold().strip() == title.casefold().strip()]
+        if title_indexes:
+            first_body_index = min(title_indexes)
+        else:
+            front_indexes = [spine_paths.index(target) for target, _ in toc if target in spine_paths]
+            first_body_index = max(front_indexes, default=-1) + 1
+        narrative_toc = []
     numbered_toc = [(target, label) for target, label in narrative_toc if NUMBERED_TOC.match(label.strip())]
     if numbered_toc:
         narrative_toc = numbered_toc
     toc_indexes = [spine_paths.index(target) for target, _ in narrative_toc if target in spine_paths]
-    start_index = min(toc_indexes) if toc_indexes else 0
+    start_index = min(toc_indexes) if toc_indexes else (first_body_index if first_body_index is not None else 0)
     toc_labels = {target: label for target, label in narrative_toc if target in spine_paths}
     chunks = []
     for document_index, attributes in enumerate(spine):
@@ -397,6 +423,13 @@ def significant_text(archive: zipfile.ZipFile, package: ET.Element, manifest, sp
         if not compacted or paragraph.strip() != compacted[-1].strip():
             compacted.append(paragraph)
     paragraphs = compacted
+    # Une page de couverture peut être placée dans le premier XHTML narratif
+    # (sans être signalée comme document « cover »). Elle ne fait pas partie
+    # du texte : on retire cette section jusqu'au premier titre suivant.
+    if paragraphs and paragraphs[0].casefold().strip() in {"# couverture", "# cover"}:
+        next_heading = next((index for index, paragraph in enumerate(paragraphs[1:], 1) if paragraph.lstrip().startswith("#")), None)
+        if next_heading is not None:
+            paragraphs = paragraphs[next_heading:]
     if paragraphs and narrative_toc:
         # Le sommaire est l'autorité pour le premier titre : certains EPUB
         # placent dans le corps un titre interne (« Midi », par exemple).
@@ -407,6 +440,27 @@ def significant_text(archive: zipfile.ZipFile, package: ET.Element, manifest, sp
                 paragraphs.insert(0, f"# {first_label}")
             else:
                 paragraphs[first_heading] = f"# {first_label}"
+    # Dernier filet de sécurité : un intitulé de couverture réintroduit par
+    # le sommaire ne doit jamais rester dans le texte narratif exporté.
+    if paragraphs and paragraphs[0].casefold().strip() in {"# couverture", "# cover"}:
+        next_heading = next((index for index, paragraph in enumerate(paragraphs[1:], 1) if paragraph.lstrip().startswith("#")), None)
+        if next_heading is not None:
+            paragraphs = paragraphs[next_heading:]
+    # Sections éditoriales liminaires à exclure systématiquement, quel que
+    # soit le nom des fichiers XHTML dans l'EPUB.
+    preliminary = {"couverture", "cover", "auteur", "playlist", "copyright"}
+    filtered, skipping = [], False
+    for paragraph in paragraphs:
+        heading = re.match(r"^#+\s*(.+?)\s*$", paragraph.strip())
+        if heading:
+            name = heading.group(1).casefold().strip(" .:-")
+            if name in preliminary:
+                skipping = True
+                continue
+            skipping = False
+        if not skipping:
+            filtered.append(paragraph)
+    paragraphs = filtered
     return "\n\n".join(paragraphs).strip()
 
 
@@ -532,6 +586,8 @@ def extract_epub(source: Path) -> tuple[Path, None]:
         for attributes in spine:
             attributes["_path"] = str(Path(opf_path).parent / attributes["href"]).replace("\\", "/")
         text = significant_text(archive, package, manifest, spine, info["title"])
+        if len(text) < EPUB_ANALYSIS_WINDOW_SIZE:
+            raise ShortEpubError(source, len(text), EPUB_ANALYSIS_WINDOW_SIZE)
         date = info.get("publication_date", "")
         year = int(date[:4]) if re.match(r"^\d{4}", date) else 0
         if not date or year < 1500 or year > 2100:
@@ -574,11 +630,20 @@ def main(argv=None) -> int:
             source.rename(target)
             source = target
         normalized_sources.append(source)
+    skipped = False
     for source in normalized_sources:
-        markdown, _ = extract_epub(source)
+        try:
+            markdown, _ = extract_epub(source)
+        except ShortEpubError as error:
+            skipped = True
+            print(f"ALERTE : {error}", flush=True)
+            continue
         print(f"Extrait : {source.name} -> {markdown.name}", flush=True)
     organize_publication_file()
-    return 0
+    # Une source unique en échec doit interrompre epubs.sh avant toute analyse
+    # d'un ancien Markdown portant le même nom. En traitement global, les
+    # autres EPUB sont tout de même extraits et synchronisés.
+    return 1 if skipped and len(normalized_sources) == 1 else 0
 
 
 if __name__ == "__main__":

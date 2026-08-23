@@ -48,10 +48,12 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .neighborhood-table-meta { color: #756c65; font-size: .85rem; margin-bottom: .35rem; }
 .neighborhood-table table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .neighborhood-table th, .neighborhood-table td { padding: .25rem .45rem; border-bottom: 1px solid #e4dfda; text-align: left; }
+.neighborhood-table tr.pinned-row { color: #d13c36; font-weight: 600; }
 .neighborhood-table th:first-child, .neighborhood-table td:first-child, .neighborhood-table th:last-child, .neighborhood-table td:last-child { white-space: nowrap; }
 .bonus-link { display: block; margin: 1.2rem auto 0; border: 0; background: none; color: #6a5a50; text-decoration: underline; cursor: pointer; font: inherit; }
-.bonus-links { display: flex; justify-content: center; gap: .8rem; margin: 1.2rem 0; }
-.bonus-links .bonus-link + .bonus-link::before { content: "|"; color: #aaa29b; margin-right: .8rem; text-decoration: none; display: inline-block; }
+.bonus-links { display: flex; justify-content: center; align-items: center; gap: 0; margin: 1.2rem 0; }
+.bonus-links .bonus-link { display: inline; margin: 0; }
+.bonus-links .bonus-link + .bonus-link { border-left: 1px solid #aaa29b; border-radius: 0; padding-left: .8rem; margin-left: .8rem; }
 .table-download { border: 1px solid #c9c1bb; background: white; color: #514a44; padding: .35rem .65rem; border-radius: .25rem; cursor: pointer; }
 .neighborhood-box .table-download { position: static; display: block; margin: .6rem 0 0 auto; }
 .reference-select { display: block; margin: 0 0 .5rem; color: #6f6962; font-size: .9rem; }
