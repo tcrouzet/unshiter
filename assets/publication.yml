@@ -27,10 +27,6 @@ les-maitres-feu.epub: {date: "1982"}
 le-createur-chimerique.epub: {date: "1988"}
 pollen.epub: {date: "2002"}
 
-# M
-les-aventures-g-lactiques-de-lola-lokidor-caza.epub: {date: "2024"}
-nouvelles-caza.epub: {date: "2025"}
-
 # Marcel Proust
 a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
 a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
@@ -57,6 +53,8 @@ motel-valparaiso-philippe-castelneau.epub: {date: "2022"}
 nouvelles-horroristiques-1-caza.epub: {date: "2014"}
 nouvelles-humouristiques-2-caza.epub: {date: "2014"}
 ginkoo-bilooba-chronique-d-une-utopie-mod-philippe-caza.epub: {date: "2022"}
+les-aventures-g-lactiques-de-lola-lokidor-caza.epub: {date: "2024", author: "Philippe Caza"}
+nouvelles-caza.epub: {date: "2025", author: "Philippe Caza"}
 
 # Pierre Michon
 la-grande-beune-pierre-michon.epub: {date: "1984"}

@@ -115,7 +115,8 @@ def publication_overrides() -> dict[str, dict[str, str]]:
         clean_key = key.strip().strip('"\'')
         object_date = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", value)
         object_title = re.search(r"\btitle\s*:\s*[\"']([^\"']*)[\"']", value)
-        result[clean_key] = {"date": object_date.group(1) if object_date else (value if not value.startswith("{") else ""), "title": object_title.group(1) if object_title else ""}
+        object_author = re.search(r"\bauthor\s*:\s*[\"']([^\"']*)[\"']", value)
+        result[clean_key] = {"date": object_date.group(1) if object_date else (value if not value.startswith("{") else ""), "title": object_title.group(1) if object_title else "", "author": object_author.group(1) if object_author else ""}
     return result
 
 
@@ -346,7 +347,12 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
     overrides = publication_overrides()
     for path in paths:
         raw = path.read_text(encoding=TEXT_ENCODING, errors="replace")
-        metadata_by_path[path] = front_matter(raw)
+        metadata = front_matter(raw)
+        key = path.with_suffix(".epub").name if path.with_suffix(".epub").exists() else path.name
+        override_author = overrides.get(key, {}).get("author", "")
+        if override_author:
+            metadata["author"] = override_author
+        metadata_by_path[path] = metadata
     with sqlite3.connect(EPUB_DATABASE) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         init_database(connection)

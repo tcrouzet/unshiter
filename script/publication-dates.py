@@ -145,14 +145,16 @@ def read_existing() -> dict[str, dict[str, str]]:
                 date = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", value)
                 key = match.group(1).strip()
                 title = re.search(r"\btitle\s*:\s*['\"]([^'\"]*)['\"]", value)
+                author = re.search(r"\bauthor\s*:\s*['\"]([^'\"]*)['\"]", value)
                 result[key] = {
                     "date": date.group(1) if date else value.strip('"\''),
                     "title": title.group(1) if title else "",
+                    "author": author.group(1) if author else "",
                 }
     return result
 
 
-def source_authors() -> dict[str, str]:
+def source_authors(overrides: dict[str, dict[str, str]] | None = None) -> dict[str, str]:
     """Retourne l'auteur déclaré dans chaque Markdown extrait.
 
     L'auteur n'est pas dupliqué dans publication.yml : il reste une donnée
@@ -161,7 +163,8 @@ def source_authors() -> dict[str, str]:
     authors = {}
     for md in EPUB_DIR.glob("*.md"):
         _title, author = front_matter(md)
-        authors[md.with_suffix(".epub").name] = author.strip() or "Auteur inconnu"
+        key = md.with_suffix(".epub").name
+        authors[key] = (overrides or {}).get(key, {}).get("author") or author.strip() or "Auteur inconnu"
     # Rattache les formes abrégées à la forme complète disponible
     # (par exemple « Caza » -> « Philippe Caza »), sans liste de cas spéciaux.
     names = list(set(authors.values()))
@@ -203,7 +206,10 @@ def render_dates(entries: dict[str, dict[str, str]], authors: dict[str, str]) ->
         for key, item in sorted(groups[author], key=lambda pair: (date_sort_key(pair[1].get("date", "")), normalize(pair[0]))):
             date = item.get("date", "")
             title = item.get("title", "")
+            override_author = item.get("author", "")
             suffix = f', title: "{title}"' if title else ""
+            if override_author:
+                suffix += f', author: "{override_author}"'
             lines.append(f'{key}: {{date: "{date}"{suffix}}}')
     return "\n".join(lines) + "\n"
 
@@ -239,7 +245,7 @@ def main() -> int:
         merged = dict(existing)
         for key, date in updates.items():
             merged.setdefault(key, {})["date"] = date
-        rendered = render_dates(merged, source_authors())
+        rendered = render_dates(merged, source_authors(merged))
         previous = DATES_FILE.read_text(encoding="utf-8") if DATES_FILE.exists() else ""
         if rendered != previous:
             DATES_FILE.write_text(rendered, encoding="utf-8")
