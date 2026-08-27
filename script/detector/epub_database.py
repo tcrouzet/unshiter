@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import argparse
+from collections import Counter
 import hashlib
 import math
 import re
 import json
+import unicodedata
 from pathlib import Path
 import re
 import sqlite3
@@ -139,14 +141,25 @@ def ensure_publication_date_entries(paths: list[Path]) -> None:
 
 
 def canonical_authors(values: list[str], preferred: set[str] | None = None) -> dict[str, str]:
-    """Utilise une forme déjà présente lorsqu'un nom/prénom est permuté."""
+    """Regroupe les formes incomplètes ou permutées d'un même auteur.
+
+    Lorsqu'un nom est contenu dans une forme plus complète (``Caza`` dans
+    ``Philippe Caza``), la forme complète devient la référence. Les formes
+    prénom/nom permutées continuent également d'être réunies.
+    """
     present = {value.strip() for value in values if value.strip()}
     preferred = preferred or set()
     ordered = {value: index for index, value in enumerate(values)}
+    frequencies = Counter(values)
     result = {}
     for value in present:
         parts = value.split()
         permutation = " ".join(reversed(parts)) if len(parts) == 2 else ""
+        normalized_tokens = frozenset(re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()))
+        equivalent = [candidate for candidate in present if frozenset(re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKD", candidate).encode("ascii", "ignore").decode().lower())) == normalized_tokens]
+        if len(equivalent) > 1:
+            result[value] = max(equivalent, key=lambda candidate: (frequencies[candidate], len(candidate)))
+            continue
         # Une forme déjà validée dans la base reste prioritaire. On ne doit
         # jamais la retourner vers sa permutation simplement parce que celle-ci
         # apparaît aussi dans un nouveau front matter.
@@ -158,6 +171,18 @@ def canonical_authors(values: list[str], preferred: set[str] | None = None) -> d
             result[value] = permutation
         else:
             result[value] = value
+    # Une forme abrégée est rattachée à la forme complète disponible.
+    # On compare les mots normalisés, sans imposer de cas particulier à un
+    # auteur : tout nom dont les tokens sont un sous-ensemble est concerné.
+    for value in present:
+        tokens = set(re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()))
+        candidates = []
+        for candidate in present:
+            candidate_tokens = set(re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKD", candidate).encode("ascii", "ignore").decode().lower()))
+            if candidate != value and tokens and tokens < candidate_tokens:
+                candidates.append(candidate)
+        if candidates:
+            result[value] = max(candidates, key=lambda candidate: (len(candidate.split()), -ordered.get(candidate, 10**9)))
     return result
 
 

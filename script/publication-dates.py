@@ -8,6 +8,7 @@ vides et ne sont jamais transformés en date arbitraire.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 import re
 import ssl
@@ -151,6 +152,62 @@ def read_existing() -> dict[str, dict[str, str]]:
     return result
 
 
+def source_authors() -> dict[str, str]:
+    """Retourne l'auteur déclaré dans chaque Markdown extrait.
+
+    L'auteur n'est pas dupliqué dans publication.yml : il reste une donnée
+    éditoriale du livre et sert uniquement à ordonner le fichier de dates.
+    """
+    authors = {}
+    for md in EPUB_DIR.glob("*.md"):
+        _title, author = front_matter(md)
+        authors[md.with_suffix(".epub").name] = author.strip() or "Auteur inconnu"
+    # Rattache les formes abrégées à la forme complète disponible
+    # (par exemple « Caza » -> « Philippe Caza »), sans liste de cas spéciaux.
+    names = list(set(authors.values()))
+    frequencies = Counter(authors.values())
+    canonical = {}
+    for name in names:
+        name_tokens = frozenset(normalize(name).split())
+        equivalent = [other for other in names if frozenset(normalize(other).split()) == name_tokens]
+        if len(equivalent) > 1:
+            # En cas de permutation prénom/nom, la forme la plus représentée
+            # dans le corpus devient la référence.
+            canonical[name] = max(equivalent, key=lambda value: (frequencies[value], len(value)))
+            continue
+        tokens = set(normalize(name).split())
+        candidates = [other for other in names if other != name and tokens and tokens < set(normalize(other).split())]
+        canonical[name] = max(candidates, key=lambda value: len(normalize(value).split())) if candidates else name
+    return {key: canonical.get(value, value) for key, value in authors.items()}
+
+
+def date_sort_key(value: str) -> tuple[int, str]:
+    """Trie les dates connues chronologiquement, les absences à la fin."""
+    match = re.search(r"\d{4}", value or "")
+    return (int(match.group()) if match else 9999, value or "")
+
+
+def render_dates(entries: dict[str, dict[str, str]], authors: dict[str, str]) -> str:
+    """Rend publication.yml groupé par auteur, puis par date."""
+    groups: dict[str, list[tuple[str, dict[str, str]]]] = {}
+    for key, item in entries.items():
+        author = authors.get(key, item.get("author", "Auteur inconnu")) or "Auteur inconnu"
+        groups.setdefault(author, []).append((key, item))
+    lines = [
+        "# Dates vérifiées ou complétées depuis Wikipédia/Wikidata.",
+        "# Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.",
+    ]
+    for author in sorted(groups, key=lambda value: normalize(value)):
+        lines.append("")
+        lines.append(f"# {author}")
+        for key, item in sorted(groups[author], key=lambda pair: (date_sort_key(pair[1].get("date", "")), normalize(pair[0]))):
+            date = item.get("date", "")
+            title = item.get("title", "")
+            suffix = f', title: "{title}"' if title else ""
+            lines.append(f'{key}: {{date: "{date}"{suffix}}}')
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="n'écrit pas le fichier de dates")
@@ -160,31 +217,35 @@ def main() -> int:
     for md in sorted(EPUB_DIR.glob("*.md")):
         title, author = front_matter(md)
         key = md.with_suffix(".epub").name
+        # Une clé déjà présente, y compris avec une date vide, a été vérifiée
+        # précédemment. Ne pas relancer inutilement la recherche à chaque
+        # exécution d'epubs.sh ; supprimer la clé pour demander une nouvelle
+        # recherche volontairement.
+        if key in existing:
+            # Les références déjà présentes ne sont pas réaffichées : une
+            # date vide signifie qu'une recherche a déjà échoué et ne doit pas
+            # polluer chaque lancement d'epubs.sh.
+            continue
         try:
             date = wikidata_date(title, author)
         except Exception as error:
             print(f"{key}: erreur réseau ({error})", file=sys.stderr)
             date = None
         print(f"{key}: {date or '(introuvable)'} — {title}")
-        if date:
-            updates[key] = date
+        # Même une absence de résultat est mémorisée afin de ne pas interroger
+        # à nouveau Wikipédia au prochain lancement.
+        updates[key] = date or ""
     if not args.dry_run:
-        if not updates:
-            print("Aucune date récupérée : fichier inchangé.", file=sys.stderr)
-            return 1
         merged = dict(existing)
         for key, date in updates.items():
             merged.setdefault(key, {})["date"] = date
-        header = "# Dates vérifiées ou complétées depuis Wikipédia/Wikidata.\n# Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.\n"
-        lines = []
-        for key in sorted(merged):
-            item = merged[key]
-            date = item.get("date", "")
-            title = item.get("title", "")
-            suffix = f', title: "{title}"' if title else ""
-            lines.append(f'{key}: {{date: "{date}"{suffix}}}')
-        DATES_FILE.write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
-        print(f"Écrit : {DATES_FILE}")
+        rendered = render_dates(merged, source_authors())
+        previous = DATES_FILE.read_text(encoding="utf-8") if DATES_FILE.exists() else ""
+        if rendered != previous:
+            DATES_FILE.write_text(rendered, encoding="utf-8")
+            print(f"Écrit : {DATES_FILE}")
+        elif not updates:
+            print("Aucune nouvelle référence de date : fichier inchangé.")
     return 0
 
 
