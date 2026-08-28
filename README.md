@@ -82,11 +82,11 @@ Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Registre temporel de langue[^2] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % |
-| Densité stylistique[^3] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % |
-| Mode du texte[^4] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % |
-| Charge affective[^5] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % |
-| Posture énonciative[^6] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % |
+| Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % |
+| Maximaliste / Minimaliste[^42] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % |
+| Narratif / Descriptif[^47] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % |
+| Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % |
+| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % |
 
 Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
 
@@ -220,7 +220,7 @@ Les surfaces sont calculées directement sur les polygones du radar et classées
 
 [^1]: Indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure non significative.
 
-[^2]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
+[^2]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
 
 [^3]: Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
 
@@ -292,7 +292,7 @@ Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel gra
 
 [^33]: Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
-[^34]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
+[^34]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
 
 [^35]: Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
 

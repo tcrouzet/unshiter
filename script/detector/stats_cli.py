@@ -1078,11 +1078,11 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     important_dispersions = coefficient_dispersions(important_by_file, numeric_maps)
     detail_dispersions = coefficient_dispersions(details_by_file, numeric_maps)
     bigfive_fields = [
-        ("Registre temporel de langue", "classicism_score"),
-        ("Densité stylistique", "baroque_score"),
-        ("Mode du texte", "narrativity_score"),
-        ("Charge affective", "emotionality_score"),
-        ("Posture énonciative", "discursivite_score"),
+        ("Classique / Contemporain", "classicism_score"),
+        ("Maximaliste / Minimaliste", "baroque_score"),
+        ("Narratif / Descriptif", "narrativity_score"),
+        ("Émotionnel / Neutre", "emotionality_score"),
+        ("Discursif / Immersif", "discursivite_score"),
     ]
     bigfive_by_file = [[(label, f"{getattr(stats, field) * 100:.1f} %") for label, field in bigfive_fields] for _, stats in analyses]
     numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0] + technical_by_file[0], ["Dispersion"])
