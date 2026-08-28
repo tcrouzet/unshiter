@@ -71,24 +71,14 @@ python3 -m http.server 8000 --directory web
 
 Puis ouvrir <http://localhost:8000/>.
 
-## BigFive littéraire
-
-Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github.com/Znull-1220/LiteraryBigFive). Les cinq axes et leurs définitions sont présentés dans le tableau 1 et renvoient directement aux notes détaillées.
-
-| Score composite | Pôle haut (100 %) | Pôle bas (0 %) |
-|---|---|---|
-| Registre temporel de langue | Classique | Contemporain |
-| Densité stylistique | Maximaliste | Minimaliste |
-| Mode du texte | Narratif | Descriptif |
-| Charge affective | Émotionnel | Neutre |
-| Posture énonciative | Discursif | Immersif |
-
 <!-- STATS:START -->
 ## Dernier résultat
 
 Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 
 ### Tableau 1 — BigFive
+
+Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github.com/Znull-1220/LiteraryBigFive).
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules |
 |---|---:|---:|---:|---:|---:|---:|---:|

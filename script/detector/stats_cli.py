@@ -25,6 +25,7 @@ from .config import (
     METRIC_CACHE_VERSIONS,
     OUTPUT_DIR,
     README_FILE,
+    README_TEXTS_FILE,
     README_GRAMMATICAL_CHART,
     README_KIVIAT_AREA_CHART,
     README_KIVIAT_CHART,
@@ -67,6 +68,15 @@ def cached_compute_stats(text: str):
 def french_typography(text: str) -> str:
     """Applique l’espace insécable française avant le signe pour cent."""
     return text.replace(" %", "\u00a0%")
+
+
+def readme_text(section: str) -> str:
+    """Lit un texte éditable dans assets/readme-texts.md."""
+    content = README_TEXTS_FILE.read_text(encoding=TEXT_ENCODING)
+    match = re.search(rf"(?ms)^# {re.escape(section)}\s*\n\n(.*?)(?=^# |\Z)", content)
+    if not match:
+        raise RuntimeError(f"Section README absente : {section}")
+    return match.group(1).strip()
 
 
 def normalize_source_text(text: str) -> str:
@@ -1083,6 +1093,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         "# Comparaison statistique des sources", "",
         f"> Les mesures dérivées sont moyennées sur des fenêtres non chevauchantes d’environ {window} mots, arrêtées aux paragraphes. Gzip utilise des blocs UTF-8 de taille identique. Les nombres de mots, phrases et paragraphes décrivent le document complet.", "",
         "## Tableau 1 — BigFive", "",
+        readme_text("BigFive"), "",
     ]
     lines += markdown_table(headers, bigfive_by_file)
     lines += ["", "Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.", "", "## Tableau 2 — Synthèse", ""]
