@@ -1,0 +1,85 @@
+# Base modifiable des marqueurs de familiarité/oralité utilisés par l'axe Classicism.
+# Formats acceptés : "familier:graphie", "famille:motif" (préfixe/suffixe orthographique
+# recensant une classe de contractions), "position:mot" (marqueur ambigu dont l'emploi
+# discursif dépend de sa position, à ne compter qu'en tête ou fin de proposition).
+# Ce fichier mesure un registre de langue, pas une date : aucun anglicisme n'y figure
+# au seul titre de son origine — seuls comptent les emplois oraux/relâchés.
+
+
+# --- Contractions et élisions du sujet (registre oral, jamais à l'écrit soutenu) ---
+familier: chuis
+familier: t'es
+familier: t'as
+familier: t'avais
+familier: t'sais
+familier: j'sais
+familier: j'peux
+familier: j'veux
+familier: j'vais
+familier: j'crois
+familier: j'suis
+familier: y'a
+familier: y'avait
+familier: y'aura
+familier: c'est-y
+famille: suffixe:-'sais
+famille: suffixe:-'crois
+
+# --- Négation orale sans "ne" à traiter séparément dans le module classicism.py ---
+# (ne pas dupliquer ici : géré par sentence_negation_stats(), pas par une liste de mots)
+
+# --- Particules et chevilles discursives (remplissage, hésitation, connecteur informel) ---
+# Marqueurs à comptage direct, peu ambigus hors contexte :
+familier: du coup
+familier: enfin bref
+familier: du genre
+familier: à la limite
+familier: n'importe quoi
+familier: n'importe comment
+familier: tu vois
+familier: tu sais
+familier: si tu veux
+familier: en fait
+familier: du style
+
+# Marqueurs ambigus : n'ont un sens discursif qu'en incise ou en fin de proposition ;
+# à valider avec une règle de position dans classicism.py, pas un simple comptage textuel.
+position: genre
+position: style
+position: quoi
+position: hein
+position: voilà
+position: bon
+position: bref
+
+# --- Interjections et réactions orales ---
+familier: ouais
+familier: nan
+familier: mouais
+familier: ben
+familier: bah
+familier: bof
+familier: eh ben
+familier: purée
+familier: mince alors
+familier: la vache
+familier: dingue
+familier: ouah
+
+# --- Intensificateurs oraux (remplacent "très"/"extrêmement" à l'écrit soutenu) ---
+familier: trop (intensif)
+familier: hyper
+familier: super (intensif)
+familier: méga
+familier: grave (intensif)
+familier: carrément
+
+# --- Tournures syntaxiques orales ---
+familier: faut que
+familier: y a qu'à
+familier: paraît que
+familier: on dirait que
+familier: c'est pas
+familier: c'est ça
+familier: ça se fait pas
+familier: du n'importe quoi

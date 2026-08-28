@@ -1,0 +1,6 @@
+# Marqueurs pouvant former une négation discontinue avec « ne ».
+# Les négations autonomes (aucun, rien, personne) ne figurent pas ici.
+pas
+plus
+jamais
+guère

@@ -52,7 +52,8 @@ from .syntax_depth import analyze_syntax
 FULL_DOCUMENT_FIELDS = {
     "word_count", "unique_word_count", "sentence_count", "paragraph_count",
     "lexical_word_count", "unique_lemma_count", "relative_clause_count",
-    "subordinate_clause_count", "nominal_sentence_count",
+    "subordinate_clause_count", "nominal_sentence_count", "dialogue_ratio", "oral_familiarity_ratio", "classicism_score", "baroque_score",
+    "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
 }
 
 
@@ -283,6 +284,13 @@ def comparable_stats(text: str, full_stats, window: int, gzip_window: int):
         "gzip_compression_ratio": gzip_window_ratio(text, gzip_window),
         "active_voice_ratio": full_syntax["active_voice_ratio"] if full_syntax else None,
         "metaphorical_comme_ratio": full_syntax["metaphorical_comme_ratio"] if full_syntax else None,
+        "simple_past_ratio": full_syntax["simple_past"] / full_syntax["finite_verbs"] if full_syntax and full_syntax["finite_verbs"] else 0,
+        "literary_subjunctive_ratio": full_syntax["literary_subjunctive"] / full_syntax["finite_verbs"] if full_syntax and full_syntax["finite_verbs"] else 0,
+        "negation_completeness_ratio": full_syntax["negation_completeness_ratio"] if full_syntax else None,
+        "periphrastic_future_ratio": full_syntax["periphrastic_future_ratio"] if full_syntax else None,
+        "dialogue_ratio": full_syntax["dialogue_ratio"] if full_syntax else 0,
+        "oral_familiarity_ratio": full_stats.oral_familiarity_ratio if full_stats else 0,
+        "classicism_score": full_stats.classicism_score if full_stats else 0,
     })
     return replace(base, **updates)
 
@@ -297,6 +305,23 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
         (source, comparable_stats(text, stats, window, gzip_window))
         for (source, stats), text in zip(full, texts)
     ]
+    # Le score de classicisme est une position relative : le maximum observé
+    # dans le corpus vaut 100 %, afin de rendre les écarts lisibles.
+    scores = [item.classicism_score for _, item in compared]
+    if scores:
+        low, high = min(scores), max(scores)
+        span = high - low
+        compared = [(source, replace(item, classicism_score=(item.classicism_score - low) / span if span else 1.0)) for source, item in compared]
+    baroque = [item.baroque_score for _, item in compared]
+    if baroque:
+        low, high = min(baroque), max(baroque)
+        span = high - low
+        compared = [(source, replace(item, baroque_score=(item.baroque_score - low) / span if span else 1.0)) for source, item in compared]
+    emotional = [item.emotionality_score for _, item in compared]
+    if emotional:
+        low, high = min(emotional), max(emotional)
+        span = high - low
+        compared = [(source, replace(item, emotionality_score=(item.emotionality_score - low) / span if span else 1.0)) for source, item in compared]
     return compared, window
 
 
@@ -330,6 +355,29 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Adverbes", f"{stats.adverb_ratio * 100:.0f} %"),
         ("Participes présents", f"{stats.present_participle_ratio * 100:.0f} %" if stats.present_participle_ratio is not None else "indisponible"),
         ("Participes passés", f"{stats.past_participle_ratio * 100:.0f} %" if stats.past_participle_ratio is not None else "indisponible"),
+        ("Passé simple[^66]", f"{stats.simple_past_ratio * 100:.1f} %"),
+        ("Subjonctif littéraire[^67]", f"{stats.literary_subjunctive_ratio * 100:.1f} %"),
+        ("Négations complètes[^68]", f"{stats.negation_completeness_ratio * 100:.1f} %" if stats.negation_completeness_ratio is not None else "—"),
+        ("Futur périphrastique[^69]", f"{stats.periphrastic_future_ratio * 100:.1f} %" if stats.periphrastic_future_ratio is not None else "—"),
+        ("Familiarité orale[^70]", f"{stats.oral_familiarity_ratio:.1f} %"),
+        ("Classicism[^71]", f"{stats.classicism_score * 100:.1f} %"),
+        ("Dialogue[^72]", f"{stats.dialogue_ratio * 100:.1f} %"),
+        ("Négativité / Positivité[^73]", f"{stats.negation_ratio * 100:.1f} %"),
+        ("Modificateurs par nom[^74]", f"{stats.avg_modifiers_per_noun:.2f}"),
+        ("Noms fortement modifiés[^75]", f"{stats.heavily_modified_noun_ratio * 100:.1f} %"),
+        ("Rareté lexicale[^76]", f"{stats.lexical_rarity_score:.2f}"),
+        ("Chaînes adjectivales[^77]", f"{stats.adjective_chain_ratio * 100:.1f} %"),
+        ("Longueur des chaînes adjectivales[^78]", f"{stats.avg_adjective_chain_length:.2f}"),
+        ("Minimalisme / Baroque[^79]", f"{stats.baroque_score * 100:.1f} %"),
+        ("Verbes d’action[^80]", f"{stats.action_verb_ratio * 100:.1f} %"),
+        ("Connecteurs temporels[^81]", f"{stats.temporal_connector_ratio:.1f} %"),
+        ("Sujets personnels[^82]", f"{stats.personal_subject_ratio * 100:.1f} %"),
+        ("Narrativité[^84]", f"{stats.narrativity_score * 100:.1f} %"),
+        ("Mots émotionnels[^85]", f"{stats.emotion_word_ratio * 100:.1f} %"),
+        ("Verbes de réaction affective[^86]", f"{stats.affect_verb_ratio * 100:.1f} %"),
+        ("Exclamations[^87]", f"{stats.exclamation_ratio * 100:.1f} %"),
+        ("Constructions exclamatives[^88]", f"{stats.exclamative_construction_ratio * 100:.1f} %"),
+        ("Émotionnalité[^89]", f"{stats.emotionality_score * 100:.1f} %"),
         ("Ratio noms/verbes", f"{stats.noun_verb_ratio:.2f}"),
         ("Diversité des structures[^4]", f"{stats.structural_diversity * 100:.0f} %"),
         ("Diversité de longueurs de phrase (mots)", f"{stats.sentence_word_std_dev:.1f}"),
@@ -392,6 +440,9 @@ NEAREST_NEIGHBOR_FIELDS = (
     "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "gzip_compression_ratio", "relative_clause_ratio",
     "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth",
     "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev",
+    "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio",
+    "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score",
+    "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
 )
 
 
@@ -483,6 +534,12 @@ NOTE_ID_BY_LABEL = {
     "Voix active": 24, "Comparaisons métaphoriques": 25, "Profondeur syntaxique": 26,
     "Formes par lemme": 27, "Mots employés une seule fois": 28,
     "Diversité de longueurs de phrase (mots)": 41, "Mots": 30, "Phrases": 31,
+    "Négativité / Positivité": 73, "Modificateurs par nom": 74,
+    "Noms fortement modifiés": 75, "Rareté lexicale": 76,
+    "Chaînes adjectivales": 77, "Longueur des chaînes adjectivales": 78,
+    "Minimalisme / Baroque": 79,
+    "Mots émotionnels": 85, "Verbes de réaction affective": 86, "Exclamations": 87,
+    "Constructions exclamatives": 88, "Émotionnalité": 89,
     "Paragraphes": 32, "Longueur moyenne des mots (caractères)": 33,
     "Longueur moyenne des phrases (caractères)": 34,
     "Longueur médiane des phrases (caractères)": 36,

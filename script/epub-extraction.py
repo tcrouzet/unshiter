@@ -7,6 +7,8 @@ from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 import argparse
+import hashlib
+import json
 import posixpath
 import re
 import shutil
@@ -16,7 +18,7 @@ import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 
-from detector.config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, PUBLICATION_FILE, TEXT_ENCODING
+from detector.config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, EPUB_HASH_CACHE_FILE, PUBLICATION_FILE, TEXT_ENCODING
 
 
 SKIP_DOCUMENT_WORDS = ("cover", "titlepage", "toc", "nav", "copyright", "imprint", "colophon")
@@ -461,7 +463,11 @@ def significant_text(archive: zipfile.ZipFile, package: ET.Element, manifest, sp
         if not skipping:
             filtered.append(paragraph)
     paragraphs = filtered
-    return "\n\n".join(paragraphs).strip()
+    # Uniformiser les apostrophes dès l'extraction : les EPUB mélangent
+    # apostrophe ASCII, apostrophe typographique et variantes Unicode.
+    # Cela garantit une tokenisation identique dans les analyses ultérieures.
+    text = "\n\n".join(paragraphs).strip()
+    return text.translate(str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "＇": "'"}))
 
 
 def yaml_quote(value: str) -> str:
@@ -631,7 +637,17 @@ def main(argv=None) -> int:
             source = target
         normalized_sources.append(source)
     skipped = False
+    EPUB_HASH_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        hash_cache = json.loads(EPUB_HASH_CACHE_FILE.read_text(encoding=TEXT_ENCODING))
+    except (FileNotFoundError, json.JSONDecodeError):
+        hash_cache = {}
     for source in normalized_sources:
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        output_md = source.parent / f"{web_slug(source.stem)}.md"
+        if output_md.exists() and hash_cache.get(source.name) == digest:
+            print(f"Déjà extrait : {source.name} -> {output_md.name}", flush=True)
+            continue
         try:
             markdown, _ = extract_epub(source)
         except ShortEpubError as error:
@@ -639,6 +655,8 @@ def main(argv=None) -> int:
             print(f"ALERTE : {error}", flush=True)
             continue
         print(f"Extrait : {source.name} -> {markdown.name}", flush=True)
+        hash_cache[source.name] = digest
+    EPUB_HASH_CACHE_FILE.write_text(json.dumps(hash_cache, ensure_ascii=False, indent=2) + "\n", encoding=TEXT_ENCODING)
     organize_publication_file()
     # Une source unique en échec doit interrompre epubs.sh avant toute analyse
     # d'un ancien Markdown portant le même nom. En traitement global, les

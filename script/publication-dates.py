@@ -4,6 +4,10 @@
 Le script complète automatiquement assets/publication.yml. Avec
 --dry-run, il affiche seulement les propositions. Les résultats ambigus restent
 vides et ne sont jamais transformés en date arbitraire.
+
+Garantie éditoriale : une entrée déjà présente n'est jamais modifiée. Le
+script peut seulement ajouter une nouvelle clé ou de nouveaux champs à une
+nouvelle clé ; les corrections manuelles existantes sont intouchables.
 """
 from __future__ import annotations
 
@@ -244,7 +248,14 @@ def main() -> int:
     if not args.dry_run:
         merged = dict(existing)
         for key, date in updates.items():
-            merged.setdefault(key, {})["date"] = date
+            # Les mises à jour ne concernent que des clés absentes : ne jamais
+            # écraser une date, un titre ou un auteur saisi manuellement.
+            if key not in merged:
+                merged[key] = {"date": date}
+        for key, item in existing.items():
+            for field in ("date", "title", "author"):
+                if merged.get(key, {}).get(field, "") != item.get(field, ""):
+                    raise RuntimeError(f"Protection publication.yml : champ existant modifié ({key}.{field})")
         rendered = render_dates(merged, source_authors(merged))
         previous = DATES_FILE.read_text(encoding="utf-8") if DATES_FILE.exists() else ""
         if rendered != previous:

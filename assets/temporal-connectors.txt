@@ -1,0 +1,93 @@
+# Base modifiable des connecteurs temporels et séquentiels utilisés par
+# temporal_connector_ratio (axe Narrativité).
+#
+# Format accepté : "connecteur:expression" — comptage textuel direct (occurrences
+# de la chaîne dans le texte normalisé, insensible à la casse). Ces marqueurs
+# signalent une progression du récit dans le temps, par opposition aux
+# connecteurs logiques/argumentatifs (donc, cependant, ainsi) qui relèvent
+# d'un autre axe (Analyticité) et ne doivent pas être dupliqués ici.
+
+# --- Succession immédiate ---
+connecteur: puis
+connecteur: ensuite
+connecteur: aussitôt
+connecteur: aussitôt après
+connecteur: sur ce
+connecteur: là-dessus
+connecteur: sitôt
+connecteur: à peine
+connecteur: dès lors
+
+# --- Surgissement / rupture temporelle ---
+connecteur: soudain
+connecteur: tout à coup
+connecteur: tout d'un coup
+connecteur: brusquement
+connecteur: subitement
+connecteur: d'un seul coup
+connecteur: sans crier gare
+
+# --- Simultanéité ---
+connecteur: pendant que
+connecteur: tandis que
+connecteur: en même temps
+connecteur: au même moment
+connecteur: cependant que
+connecteur: alors que (simultanéité)
+
+# --- Postériorité relative ---
+connecteur: plus tard
+connecteur: un peu plus tard
+connecteur: quelques instants après
+connecteur: quelques minutes après
+connecteur: quelque temps après
+connecteur: le lendemain
+connecteur: le surlendemain
+connecteur: la semaine suivante
+connecteur: le mois suivant
+connecteur: l'année suivante
+connecteur: par la suite
+connecteur: dans les jours qui suivirent
+connecteur: peu après
+connecteur: bientôt
+
+# --- Antériorité relative ---
+connecteur: auparavant
+connecteur: la veille
+connecteur: l'avant-veille
+connecteur: quelque temps avant
+connecteur: peu avant
+connecteur: avant cela
+connecteur: jusque-là
+connecteur: jusqu'alors
+
+# --- Marqueurs de reprise / clôture narrative ---
+connecteur: finalement
+connecteur: à la fin
+connecteur: pour finir
+connecteur: c'est ainsi que (narratif)
+connecteur: depuis lors
+connecteur: dès lors
+
+# --- Subordonnants temporels ---
+connecteur: quand
+connecteur: lorsque
+connecteur: dès que
+connecteur: une fois que
+connecteur: chaque fois que
+connecteur: au moment où
+connecteur: au moment de
+
+# --- Datation absolue générique (marque une temporalité narrative datée) ---
+connecteur: ce jour-là
+connecteur: cette nuit-là
+connecteur: cette année-là
+connecteur: à cette époque
+connecteur: en ce temps-là
+
+# --- Corrections facultatives ---
+# "alors" seul est volontairement exclu de ce fichier : trop fréquemment
+# employé comme marqueur discursif ("alors, tu viens ?") ou logique
+# ("alors, c'est décidé") plutôt que temporel ("il partit, alors elle pleura").
+# Une détection fiable demanderait une règle de position ou de dépendance
+# syntaxique, hors périmètre de ce fichier de comptage textuel simple.

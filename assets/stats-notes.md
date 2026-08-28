@@ -191,3 +191,94 @@ Part des formes verbales identifiées comme participes présents (`VerbForm=Part
 # **Densité de participes passés** / Sparcité de participes passés #65
 
 Part des formes verbales identifiées comme participes passés (`VerbForm=Part`, `Tense=Past`) parmi les mots analysés. Un participe employé comme adjectif est compté dans les adjectifs, pas ici.
+
+# **Passé simple** / Présence du passé simple #66
+
+Part des verbes finis à l’indicatif passé, sans auxiliaire, parmi les verbes finis. Elle mesure l’emploi d’une forme narrative classique, indépendamment de l’âge du texte.
+
+# **Subjonctif imparfait ou plus-que-parfait** / Subjonctif littéraire #67
+
+Part des verbes finis au subjonctif imparfait ou plus-que-parfait parmi les verbes finis. Le subjonctif présent n’est pas compté.
+
+# **Négations complètes** / Négations sans « ne » #68
+
+Part des marqueurs négatifs détectés qui sont précédés d’un « ne » dans la même phrase. La mesure porte uniquement sur les négations repérées, et « ne...que » est exclu.
+
+# **Futur périphrastique** / Futur simple #69
+
+Part des futurs employés qui sont construits avec « aller » au présent suivi d’un infinitif. Elle est calculée parmi les futurs détectés, pas sur l’ensemble du texte.
+
+# **Familiarité orale** / Registre soutenu #70
+
+Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
+
+# **Littéraire** / Parlé #71
+
+Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "litétraire".
+
+# **Modificateurs par nom** #74
+
+Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
+
+# **Noms fortement modifiés** #75
+
+Part des noms portant au moins deux modificateurs directs (voir modificateurs par nom).
+
+# **Rareté lexicale** #76
+
+Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un vocabulaire moins fréquent ; Lexique383 ne distingue pas le vocabulaire littéraire du vocabulaire technique.
+
+# **Chaînes adjectivales** #77
+
+Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
+
+# **Longueur des chaînes adjectivales** #78
+
+Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
+
+# **Minimalisme** / Baroque #79
+
+Score composite : proche de 0, minimalisme ; proche de 1, baroque. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
+
+# **Verbes d’action** #80
+Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
+
+# **Connecteurs temporels** #81
+Occurrences de connecteurs temporels ou séquentiels pour 100 phrases.
+
+# **Sujets personnels** #82
+Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.
+
+<!-- Note conservée pour référence historique : la mesure n’est plus calculée ni exposée. -->
+# **Passé narratif** #83
+Part des verbes finis narratifs au passé, hors dialogues.
+
+# **Narrativité** #84
+Score composite de récit d’événements séquencés : proche de 0, exposition ou description statique ; proche de 1, récit porté par des actions, des personnages et une progression temporelle.
+
+# **Dialogue** #72
+
+Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
+
+# **Négativité** / Positivité #73
+
+ Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
+# Mots émotionnels #85
+
+Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expanded Emotion Lexicon). Le lexique ne tient pas compte du contexte ni de la négation : « peur » est compté de la même façon dans une phrase affirmative ou négative. Source : http://advanse.lirmm.fr/feel.php.
+
+# Verbes de réaction affective #86
+
+Part des verbes finis appartenant à `assets/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
+
+# Exclamations #87
+
+Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
+
+# Constructions exclamatives #88
+
+Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
+
+# Émotionnalité #89
+
+Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.

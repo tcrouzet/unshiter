@@ -198,6 +198,38 @@ def export_json() -> int:
                     "publication_date": book["publication_date"], "size": book["size"],
                     "sha256": book["sha256"], "analyses": analyses,
                 })
+            # Même échelle pour tout le corpus : l’œuvre au score brut maximal
+            # devient la référence 100 % dans l’interface.
+            score_id = METRIC_ID_BY_FIELD["classicism_score"]
+            scores = [analysis["stats"].get(score_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(score_id), (int, float))]
+            if scores:
+                low, high = min(scores), max(scores)
+                span = high - low
+                for book in books:
+                    for analysis in book["analyses"]:
+                        value = analysis["stats"].get(score_id)
+                        if isinstance(value, (int, float)):
+                            analysis["stats"][score_id] = (value - low) / span if span else 1.0
+            baroque_id = METRIC_ID_BY_FIELD["baroque_score"]
+            scores = [analysis["stats"].get(baroque_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(baroque_id), (int, float))]
+            if scores:
+                low, high = min(scores), max(scores)
+                span = high - low
+                for book in books:
+                    for analysis in book["analyses"]:
+                        value = analysis["stats"].get(baroque_id)
+                        if isinstance(value, (int, float)):
+                            analysis["stats"][baroque_id] = (value - low) / span if span else 1.0
+            emotional_id = METRIC_ID_BY_FIELD["emotionality_score"]
+            scores = [analysis["stats"].get(emotional_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(emotional_id), (int, float))]
+            if scores:
+                low, high = min(scores), max(scores)
+                span = high - low
+                for book in books:
+                    for analysis in book["analyses"]:
+                        value = analysis["stats"].get(emotional_id)
+                        if isinstance(value, (int, float)):
+                            analysis["stats"][emotional_id] = (value - low) / span if span else 1.0
         payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])

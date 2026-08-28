@@ -1,0 +1,102 @@
+# Base modifiable des verbes d'état, de cognition et de perception exclus du
+# calcul de action_verb_ratio (axe Narrativité).
+#
+# Format accepté : "lemme:lemme" — un verbe est exclu du décompte des verbes
+# d'action si son lemme figure ici, quelle que soit sa forme conjuguée.
+# Ces verbes ne portent pas d'événement séquencé dans le temps : ils décrivent
+# un état, une qualité, une relation, une pensée ou une perception continue.
+
+# --- Verbes d'état et d'existence ---
+lemme: être
+lemme: exister
+lemme: rester
+lemme: demeurer
+lemme: subsister
+lemme: durer
+lemme: sembler
+lemme: paraître
+lemme: apparaître (état)
+lemme: constituer
+lemme: représenter
+lemme: correspondre
+lemme: équivaloir
+lemme: valoir
+
+# --- Verbes de possession et de relation ---
+lemme: avoir
+lemme: posséder
+lemme: appartenir
+lemme: comporter
+lemme: contenir
+lemme: inclure
+lemme: impliquer
+lemme: concerner
+lemme: dépendre
+lemme: manquer (état)
+
+# --- Verbes de cognition et d'opinion ---
+lemme: penser
+lemme: croire
+lemme: savoir
+lemme: connaître
+lemme: ignorer
+lemme: supposer
+lemme: imaginer (opinion)
+lemme: estimer
+lemme: considérer
+lemme: juger (opinion)
+lemme: douter
+lemme: comprendre
+lemme: reconnaître (constater)
+lemme: se souvenir
+lemme: oublier (état)
+lemme: se rappeler
+lemme: méditer
+lemme: réfléchir
+lemme: songer
+
+# --- Verbes de perception statique ---
+lemme: voir (percevoir)
+lemme: entendre (percevoir)
+lemme: sentir (percevoir)
+lemme: percevoir
+lemme: apercevoir (constater)
+lemme: remarquer (constater)
+lemme: observer (constater)
+lemme: distinguer (percevoir)
+
+# --- Verbes de sentiment et d'affection continue ---
+lemme: aimer
+lemme: adorer
+lemme: détester
+lemme: haïr
+lemme: apprécier
+lemme: préférer
+lemme: désirer
+lemme: souhaiter
+lemme: espérer
+lemme: craindre
+lemme: redouter
+lemme: envier
+
+# --- Verbes modaux et auxiliaires de mode ---
+lemme: pouvoir
+lemme: devoir
+lemme: vouloir
+lemme: falloir
+lemme: sembler (falloir)
+lemme: convenir (falloir)
+
+# --- Verbes de qualification et d'apparence ---
+lemme: paraître
+lemme: avoir l'air
+lemme: ressembler
+lemme: différer (comparaison statique)
+lemme: égaler
+
+# --- Corrections facultatives ---
+# Certains de ces verbes ont aussi un emploi ponctuel/événementiel selon le
+# contexte ("il comprit soudain" est un événement cognitif, pas un état
+# continu). Ce fichier ne désambiguïse pas ces cas : il exclut le lemme
+# systématiquement, quitte à sous-compter certains emplois narratifs de
+# verbes de cognition. Cette limite est documentée dans stats-notes.md.

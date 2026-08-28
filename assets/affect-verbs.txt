@@ -1,0 +1,99 @@
+# Base modifiable des verbes de réaction affective/physiologique utilisés par
+# affect_verb_ratio (axe Émotionnalité).
+#
+# Format accepté : "lemme:lemme" — un verbe est compté comme marqueur d'affect
+# si son lemme figure ici, quelle que soit sa forme conjuguée. Ce sont des
+# événements ponctuels de manifestation émotionnelle ou physiologique, pas des
+# états continus (les attitudes/sentiments continus — aimer, craindre, désirer
+# — relèvent de stative-verbs.txt et de l'axe Narrativité, pas de celui-ci).
+
+# --- Pleurs et détresse ---
+lemme: pleurer
+lemme: sangloter
+lemme: gémir
+lemme: se lamenter
+lemme: pleurnicher
+lemme: éclater en sanglots
+lemme: fondre en larmes
+
+# --- Peur et sursaut ---
+lemme: trembler
+lemme: frissonner
+lemme: sursauter
+lemme: tressaillir
+lemme: frémir
+lemme: blêmir
+lemme: pâlir
+lemme: se figer
+lemme: se raidir
+lemme: reculer (réaction de peur)
+lemme: suffoquer
+lemme: étouffer (émotion)
+
+# --- Colère ---
+lemme: crier
+lemme: hurler
+lemme: rugir
+lemme: fulminer
+lemme: enrager
+lemme: exploser (colère)
+lemme: s'emporter
+lemme: bondir (colère)
+lemme: serrer les poings
+lemme: taper du poing
+
+# --- Joie et rire ---
+lemme: rire
+lemme: sourire
+lemme: éclater de rire
+lemme: pouffer
+lemme: exulter
+lemme: jubiler
+lemme: sautiller
+lemme: rayonner
+lemme: s'illuminer
+
+# --- Honte et gêne ---
+lemme: rougir
+lemme: se troubler
+lemme: bafouiller
+lemme: bredouiller
+lemme: se cacher (honte)
+lemme: baisser les yeux
+
+# --- Surprise ---
+lemme: sursauter
+lemme: écarquiller les yeux
+lemme: rester bouche bée
+lemme: suffoquer (surprise)
+lemme: béer
+
+# --- Tendresse et amour manifesté ---
+lemme: embrasser
+lemme: enlacer
+lemme: étreindre
+lemme: serrer (dans ses bras)
+lemme: caresser
+lemme: cajoler
+
+# --- Douleur et souffrance manifestée ---
+lemme: gémir
+lemme: grimacer
+lemme: se tordre (douleur)
+lemme: se crisper
+lemme: haleter
+
+# --- Manifestations corporelles diffuses de l'émotion ---
+lemme: rougir
+lemme: pâlir
+lemme: transpirer (émotion)
+lemme: suer (émotion)
+lemme: vaciller
+lemme: chanceler
+lemme: défaillir
+
+# --- Corrections facultatives ---
+# Certains lemmes apparaissent dans plusieurs sections (ex. "pleurer" et
+# "gémir" pour deux émotions distinctes) : cela n'a pas d'incidence, le calcul
+# ne teste que l'appartenance au lexique, pas la catégorie précise. Ajouter
+# une graphie ad hoc au fil des textes analysés directement en fin de fichier.

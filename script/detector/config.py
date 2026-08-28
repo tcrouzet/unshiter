@@ -18,10 +18,11 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v15-participles-20k"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v42-no-narrative-past"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
+EPUB_HASH_CACHE_FILE = TEMP_DIR / "epub-hashes.json"
 
 DEFAULT_INPUT_FILE = SOURCE_DIR / "IA.md"
 REPORT_FILENAME_SUFFIX = "_report"
@@ -36,6 +37,34 @@ MORPHALOU_CSV_MEMBER = "Morphalou3.1_formatCSV_toutEnUn/Morphalou3.1_CSV.csv"
 MORPHALOU_INDEX = MORPHALOU_DIR / "morphalou.sqlite3"
 FUNCTION_WORDS_FILE = ASSETS_DIR / "function-words.txt"
 COMPARISON_MARKERS_FILE = ASSETS_DIR / "comparison-markers.txt"
+FAMILIARITY_MARKERS_FILE = ASSETS_DIR / "familiarity-markers.txt"
+NEGATION_COMPLETE_MARKERS_FILE = ASSETS_DIR / "negation-complete-markers.txt"
+LEXIQUE_DIR = ASSETS_DIR / "lexique"
+LEXIQUE_ARCHIVE = LEXIQUE_DIR / "Lexique383.tsv"
+LEXIQUE_INDEX = LEXIQUE_DIR / "lexique.sqlite3"
+STATIVE_VERBS_FILE = ASSETS_DIR / "stative-verbs.txt"
+TEMPORAL_CONNECTORS_FILE = ASSETS_DIR / "temporal-connectors.txt"
+AFFECT_VERBS_FILE = ASSETS_DIR / "affect-verbs.txt"
+NARRATIVITY_WEIGHTS = {"action_verb_ratio": 0.20, "temporal_connector_ratio": 0.15, "personal_subject_ratio": 0.20, "dialogue_ratio": 0.15, "active_voice_ratio": 0.05, "nominal_sentence_ratio": -0.05}
+FEEL_DIR = ASSETS_DIR / "feel"
+FEEL_ARCHIVE = FEEL_DIR / "FEEL.csv"
+FEEL_INDEX = FEEL_DIR / "feel.sqlite3"
+EMOTIONALITY_WEIGHTS = {"emotion_word_ratio": 0.40, "affect_verb_ratio": 0.25, "exclamation_ratio": 0.20, "exclamative_construction_ratio": 0.15}
+BAROQUE_WEIGHTS = {
+    "heavily_modified_noun_ratio": 0.25, "lexical_rarity_score": 0.25,
+    "metaphorical_comme_ratio": 0.15, "adjective_chain_ratio": 0.15,
+    "average_syntactic_depth": 0.10, "avg_sentence_length": 0.10,
+}
+CLASSICISM_WEIGHTS = {
+    "literary_tense_ratio": 0.25,
+    "periphrastic_future_ratio": -0.10,
+    "oral_familiarity_ratio": -0.15,
+    "structural_diversity": 0.20,
+    "verb_ratio": 0.10,
+    "gzip_incompressibility": 0.10,
+    "active_voice_ratio": 0.15,
+    "dialogue_ratio": -0.10,
+}
 STATS_NOTES_FILE = ASSETS_DIR / "stats-notes.md"
 STRUCTURE_REPORT_SUFFIX = "_structure"
 LEMMA_REPORT_SUFFIX = "_lemmes"
@@ -92,7 +121,11 @@ METRIC_FIELDS = (
     "lexical_word_count", "unique_lemma_count", "avg_paragraph_length", "structural_repetition_rate",
     "relative_clause_count", "subordinate_clause_count", "subordinate_clause_ratio", "nominal_sentence_count",
     "pos_common_noun_ratio", "pos_proper_noun_ratio", "pos_verb_ratio", "pos_adjective_ratio", "pos_adverb_ratio", "flesch",
-    "present_participle_ratio", "past_participle_ratio",
+    "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio",
+    "negation_completeness_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score", "dialogue_ratio", "negation_ratio",
+    "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "baroque_score",
+    "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrativity_score",
+    "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
 )
 METRIC_ID_BY_FIELD = {field: f"mesure_{index}" for index, field in enumerate(METRIC_FIELDS, 1)}
 FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
@@ -137,6 +170,12 @@ _NOTE_FIELD_IDS = {
     "paragraph_length_std_dev": "mesure_39", "document_char_count": "mesure_40",
     "sentence_word_std_dev": "mesure_41",
     "present_participle_ratio": "mesure_64", "past_participle_ratio": "mesure_65",
+    "simple_past_ratio": "mesure_66", "literary_subjunctive_ratio": "mesure_67",
+    "negation_completeness_ratio": "mesure_68", "periphrastic_future_ratio": "mesure_69",
+    "oral_familiarity_ratio": "mesure_70", "classicism_score": "mesure_71", "dialogue_ratio": "mesure_72", "negation_ratio": "mesure_73",
+    "avg_modifiers_per_noun": "mesure_74", "heavily_modified_noun_ratio": "mesure_75", "lexical_rarity_score": "mesure_76", "adjective_chain_ratio": "mesure_77", "avg_adjective_chain_length": "mesure_78", "baroque_score": "mesure_79",
+    "action_verb_ratio": "mesure_80", "temporal_connector_ratio": "mesure_81", "personal_subject_ratio": "mesure_82", "narrativity_score": "mesure_84",
+    "emotion_word_ratio": "mesure_85", "affect_verb_ratio": "mesure_86", "exclamation_ratio": "mesure_87", "exclamative_construction_ratio": "mesure_88", "emotionality_score": "mesure_89",
 }
 METRIC_ID_BY_FIELD.update(_NOTE_FIELD_IDS)
 METRIC_ID_BY_FIELD.update({

@@ -6,10 +6,15 @@ import gzip
 import math
 import re
 
-from .config import FIELD_BY_METRIC_ID, FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO, PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT, STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING
+from .config import (BAROQUE_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
+    FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
+    PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
+    STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING)
 from .demonette import family_map, phonetic_map
 from .morphalou import contextual_lemma_map, lemma_map, lexical_map
-from .syntax_depth import analyze_contextual_tokens, analyze_syntax
+from .syntax_depth import analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges
+from .lexical_frequency import frequency_map
+from .emotion_lexicon import emotion_map
 
 
 def _load_function_words() -> tuple[set[str], set[str], set[str], set[str]]:
@@ -30,12 +35,86 @@ def _load_function_words() -> tuple[set[str], set[str], set[str], set[str]]:
             lemmas.add(value.strip().replace("’", "'"))
         elif kind == "catégorie":
             categories.add(value.strip())
+        elif kind in {"familier", "famille", "position"}:
+            # Anciennes entrées conservées pour compatibilité avec le fichier
+            # historique ; les nouveaux marqueurs sont dans leur fichier dédié.
+            words.add(value.strip().replace("’", "'"))
         else:
             raise ValueError(f"Type inconnu dans {FUNCTION_WORDS_FILE}: {kind!r}")
     return words, categories, lemmas, kept_words
 
 
 FUNCTION_WORDS, GRAMMATICAL_CATEGORIES, FUNCTION_LEMMAS, KEPT_WORDS = _load_function_words()
+
+
+def _load_familiarity_markers() -> tuple[set[str], set[str]]:
+    """Charge les marqueurs oraux : ``direct: mot`` et ``positionnel: mot``."""
+    direct, positional = set(), set()
+    if not FAMILIARITY_MARKERS_FILE.exists():
+        return direct, positional
+    for raw in FAMILIARITY_MARKERS_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+        line = raw.strip().lower()
+        if not line or line.startswith("#"):
+            continue
+        kind, separator, value = line.partition(":")
+        if not separator or not value.strip():
+            continue
+        target = positional if kind.strip() in {"position", "positionnel", "positional"} else direct
+        target.add(value.strip().replace("’", "'"))
+    return direct, positional
+
+
+FAMILIARITY_DIRECT, FAMILIARITY_POSITIONAL = _load_familiarity_markers()
+
+
+def lexical_rarity_score(words: list[str]) -> float:
+    lemmas, _ = lexical_lemmas(words)
+    frequencies = frequency_map(tuple(lemmas))
+    rarities = [-math.log10(max(frequencies.get(lemma, 0.01), 0.01)) for lemma in lemmas]
+    return sum(rarities) / len(rarities) if rarities else 0
+
+
+def _load_simple_markers(path):
+    try:
+        return [line.split(":", 1)[-1].strip().casefold() for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")]
+    except OSError:
+        return []
+
+
+def temporal_connector_ratio(text: str, sentence_count: int) -> float:
+    normalized = text.casefold().replace("’", "'")
+    markers = _load_simple_markers(TEMPORAL_CONNECTORS_FILE)
+    return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+
+
+def _load_affect_verbs() -> set[str]:
+    return set(_load_simple_markers(AFFECT_VERBS_FILE))
+
+
+def affect_verb_ratio(contextual_tokens) -> float:
+    """Part des verbes finis dont le lemme décrit une réaction affective."""
+    if not contextual_tokens:
+        return 0.0
+    verbs = [token for token in contextual_tokens if token[2] == "verbe"]
+    affect = _load_affect_verbs()
+    return sum(token[1].casefold() in affect for token in verbs) / len(verbs) if verbs else 0.0
+
+
+def punctuation_pattern_counts(text: str) -> dict[str, int]:
+    return {"point_final": len(re.findall(r"\.", text)), "virgule": len(re.findall(r",", text)),
+            "exclamation": len(re.findall(r"!", text)), "suspension": len(re.findall(r"…|\.\.\.", text))}
+
+
+def exclamation_ratio(text: str, sentence_count: int) -> float:
+    return punctuation_pattern_counts(text)["exclamation"] / sentence_count if sentence_count else 0.0
+
+
+def emotion_word_ratio(words: list[str]) -> float:
+    lemmas, _ = lexical_lemmas(words)
+    if not lemmas:
+        return 0.0
+    tags = emotion_map(tuple(lemmas))
+    return sum(bool(tags.get(lemma)) for lemma in lemmas) / len(lemmas)
 WORD_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?", re.UNICODE)
 PUNCTUATION_MARK_RE = re.compile(r'[.,;:!?…—–\-()«»"]')
 STRUCTURE_TOKEN_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?|\.\.\.|[…,.!?;:—–()«»\"-]", re.UNICODE)
@@ -57,6 +136,30 @@ def _is_function_word(word: str, category: str = "", lemma: str = "") -> bool:
     if word in KEPT_WORDS:
         return False
     return word in FUNCTION_WORDS or lemma in FUNCTION_WORDS or lemma in FUNCTION_LEMMAS or category.lower() in GRAMMATICAL_CATEGORIES or len(word) <= 1
+
+
+def oral_familiarity_ratio(text: str, word_count: int | None = None) -> float:
+    """Pourcentage de mots correspondant à des marqueurs familiers.
+
+    Les marqueurs positionnels ne comptent qu'en incise ou en fin de
+    proposition ; les marqueurs directs comptent partout.
+    """
+    matches = list(WORD_RE.finditer(text))
+    words = [match.group(0).lower().replace("’", "'") for match in matches]
+    total_words = word_count or len(words)
+    if not total_words:
+        return 0.0
+    count = 0
+    for index, word in enumerate(words):
+        if word in FAMILIARITY_DIRECT:
+            count += 1
+        elif word in FAMILIARITY_POSITIONAL:
+            following = text[matches[index].end():]
+            # approximation robuste sans dépendre du parseur : incise ou fin
+            # de proposition signalée par une ponctuation forte.
+            if re.match(r"^[,;:.!?]", following.lstrip()):
+                count += 1
+    return count / total_words * 100
 
 
 @dataclass
@@ -122,6 +225,29 @@ class TextStats:
     pos_adverb_ratio: float | None = None
     present_participle_ratio: float | None = None
     past_participle_ratio: float | None = None
+    simple_past_ratio: float = 0
+    literary_subjunctive_ratio: float = 0
+    negation_completeness_ratio: float | None = None
+    periphrastic_future_ratio: float | None = None
+    oral_familiarity_ratio: float = 0
+    classicism_score: float = 0
+    dialogue_ratio: float = 0
+    negation_ratio: float = 0
+    avg_modifiers_per_noun: float = 0
+    heavily_modified_noun_ratio: float = 0
+    lexical_rarity_score: float = 0
+    adjective_chain_ratio: float = 0
+    avg_adjective_chain_length: float = 0
+    baroque_score: float = 0
+    action_verb_ratio: float = 0
+    temporal_connector_ratio: float = 0
+    personal_subject_ratio: float = 0
+    narrativity_score: float = 0
+    emotion_word_ratio: float = 0
+    affect_verb_ratio: float = 0
+    exclamation_ratio: float = 0
+    exclamative_construction_ratio: float = 0
+    emotionality_score: float = 0
     flesch: float = 0
     document_char_count: int = 0
 
@@ -733,9 +859,72 @@ def compute_stats(text: str) -> TextStats:
         pos_total = sum(1 for word in words if word.isalpha()) or 1
         present_participle_ratio = syntax["present_participles"] / pos_total
         past_participle_ratio = syntax["past_participles"] / pos_total
+        simple_past_ratio = syntax["simple_past"] / syntax["finite_verbs"] if syntax["finite_verbs"] else 0
+        literary_subjunctive_ratio = syntax["literary_subjunctive"] / syntax["finite_verbs"] if syntax["finite_verbs"] else 0
+        negation_completeness = syntax["negation_completeness_ratio"]
+        periphrastic_future_ratio = syntax["periphrastic_future_ratio"]
     else:
         noun_ratio, verb_ratio, adjective_ratio, adverb_ratio = _grammatical_ratios(words)
         present_participle_ratio = past_participle_ratio = None
+        simple_past_ratio = literary_subjunctive_ratio = 0
+        negation_completeness = periphrastic_future_ratio = None
+    dialogue_ranges = dialogue_char_ranges(text)
+    narrative_text = text
+    if dialogue_ranges:
+        chars = list(text)
+        for start, end in dialogue_ranges:
+            chars[start:end] = [" "] * (end - start)
+        narrative_text = "".join(chars)
+    # Les marqueurs familiers des répliques ne décrivent pas la voix
+    # narrative : ils sont exclus de cette mesure.
+    oral_ratio = oral_familiarity_ratio(narrative_text)
+    dialogue_ratio_value = syntax.get("dialogue_ratio", 0) if syntax else 0
+    avg_modifiers = syntax.get("avg_modifiers_per_noun", 0) if syntax else 0
+    heavily_modified = syntax.get("heavily_modified_noun_ratio", 0) if syntax else 0
+    adjective_chain_ratio = syntax.get("adjective_chain_ratio", 0) if syntax else 0
+    avg_adjective_chain = syntax.get("avg_adjective_chain_length", 0) if syntax else 0
+    lexical_rarity = lexical_rarity_score(words)
+    action_ratio = syntax.get("action_verb_ratio", 0) if syntax else 0
+    personal_ratio = syntax.get("personal_subject_ratio", 0) if syntax else 0
+    temporal_ratio = temporal_connector_ratio(text, len(sentences))
+    # Les ratios noun/verb et voix active sont ramenés à des échelles bornées
+    # ici pour fournir un score local stable ; le rapport comparatif applique
+    # ensuite sa normalisation par percentiles pour les comparaisons.
+    active_ratio = syntax["active_voice_ratio"] if syntax and syntax["active_voice_ratio"] is not None else 0
+    literary_ratio = simple_past_ratio + literary_subjunctive_ratio
+    classicism = (
+        CLASSICISM_WEIGHTS["literary_tense_ratio"] * literary_ratio
+        + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * (periphrastic_future_ratio or 0)
+        + CLASSICISM_WEIGHTS["oral_familiarity_ratio"] * min(oral_ratio / 10, 1)
+        + CLASSICISM_WEIGHTS["structural_diversity"] * structural_diversity(structures)
+        + CLASSICISM_WEIGHTS["verb_ratio"] * verb_ratio
+        + CLASSICISM_WEIGHTS["gzip_incompressibility"] * (1 - gzip_ratio)
+        + CLASSICISM_WEIGHTS["active_voice_ratio"] * active_ratio
+        + CLASSICISM_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
+    )
+    baroque = (
+        BAROQUE_WEIGHTS["heavily_modified_noun_ratio"] * heavily_modified
+        + BAROQUE_WEIGHTS["lexical_rarity_score"] * min(max(lexical_rarity / 3, 0), 1)
+        + BAROQUE_WEIGHTS["metaphorical_comme_ratio"] * (syntax.get("metaphorical_comme_ratio", 0) if syntax else 0)
+        + BAROQUE_WEIGHTS["adjective_chain_ratio"] * adjective_chain_ratio
+        + BAROQUE_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
+        + BAROQUE_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
+    )
+    narrativity = (NARRATIVITY_WEIGHTS["action_verb_ratio"] * action_ratio
+        + NARRATIVITY_WEIGHTS["temporal_connector_ratio"] * min(temporal_ratio / 20, 1)
+        + NARRATIVITY_WEIGHTS["personal_subject_ratio"] * personal_ratio
+        + NARRATIVITY_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
+        + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
+        + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (1 - (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)))
+    contextual_for_affect = analyze_contextual_tokens(text)
+    emotion_ratio = emotion_word_ratio(words)
+    affect_ratio = affect_verb_ratio(contextual_for_affect)
+    exclaim_ratio = exclamation_ratio(text, len(sentences))
+    exclamative_ratio = syntax.get("exclamative_construction_ratio", 0) if syntax else 0
+    emotionality = (EMOTIONALITY_WEIGHTS["emotion_word_ratio"] * emotion_ratio
+                    + EMOTIONALITY_WEIGHTS["affect_verb_ratio"] * affect_ratio
+                    + EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio
+                    + EMOTIONALITY_WEIGHTS["exclamative_construction_ratio"] * exclamative_ratio)
     return TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
@@ -783,6 +972,19 @@ def compute_stats(text: str) -> TextStats:
         pos_adverb_ratio=r(syntax["pos_distribution"]["adverbs"]) if syntax else None,
         present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
         past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
+        simple_past_ratio=r(simple_past_ratio), literary_subjunctive_ratio=r(literary_subjunctive_ratio),
+        negation_completeness_ratio=r(negation_completeness) if negation_completeness is not None else None,
+        periphrastic_future_ratio=r(periphrastic_future_ratio) if periphrastic_future_ratio is not None else None,
+        oral_familiarity_ratio=r(oral_ratio), classicism_score=r(classicism),
+        dialogue_ratio=r(dialogue_ratio_value),
+        negation_ratio=r(syntax.get("negation_ratio", 0)) if syntax else 0,
+        avg_modifiers_per_noun=r(avg_modifiers), heavily_modified_noun_ratio=r(heavily_modified),
+        lexical_rarity_score=r(lexical_rarity), adjective_chain_ratio=r(adjective_chain_ratio),
+        avg_adjective_chain_length=r(avg_adjective_chain), baroque_score=r(baroque),
+        action_verb_ratio=r(action_ratio), temporal_connector_ratio=r(temporal_ratio),
+        personal_subject_ratio=r(personal_ratio), narrativity_score=r(narrativity),
+        emotion_word_ratio=r(emotion_ratio), affect_verb_ratio=r(affect_ratio), exclamation_ratio=r(exclaim_ratio),
+        exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),
         flesch=r(flesch),
     )
 

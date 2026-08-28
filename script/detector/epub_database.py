@@ -14,13 +14,14 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, windowed_metric_fields
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, FIELD_BY_METRIC_ID, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, windowed_metric_fields
 from .stats import TextStats, compute_stats, punctuation_diversity
 
 FULL_DOCUMENT_FIELDS = {
     "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
     "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
     "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
+    "dialogue_ratio",
 }
 
 def full_document_fields(text: str) -> dict[str, float]:
@@ -37,13 +38,15 @@ def full_document_fields(text: str) -> dict[str, float]:
     percentile = lambda values, q: values[min(len(values) - 1, int(q * (len(values) - 1)))] if values else 0
     para_mean = sum(paragraph_lengths) / len(paragraph_lengths) if paragraph_lengths else 0
     para_std = math.sqrt(sum((n - para_mean) ** 2 for n in paragraph_lengths) / len(paragraph_lengths)) if paragraph_lengths else 0
+    dialogue_words = sum(len(re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", paragraph)) for paragraph in paragraphs if paragraph.lstrip().startswith(("—", "–", "«")))
     return {"document_char_count": len(text), "word_count": word_count, "sentence_count": len(sentences), "paragraph_count": len(paragraphs),
             "avg_word_length": sum(map(len, words)) / word_count if word_count else 0,
             "avg_sentence_length": mean_chars, "avg_sentence_word_count": mean_words,
             "median_sentence_length": percentile(sorted_chars, .5), "sentence_length_p10": percentile(sorted_chars, .1),
             "sentence_length_p90": percentile(sorted_chars, .9), "paragraph_length_std_dev": para_std,
             "punctuation_per_300_words": len(re.findall(r"[.,;:!?…—–\-()\[\]«»\"]", text)) / word_count * 100 if word_count else 0,
-            "punctuation_diversity": punctuation_diversity(text)}
+            "punctuation_diversity": punctuation_diversity(text),
+            "dialogue_ratio": dialogue_words / word_count if word_count else 0}
 
 
 SENTENCE_END = re.compile(r"[.!?…]+[\"»”’'\)\]]*(?=\s|$)")
@@ -318,8 +321,20 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
             # contrairement aux mesures stylistiques limitées à la première fenêtre.
             for field in FULL_DOCUMENT_FIELDS:
                 setattr(stats, field, full_fields[field])
+            # Les champs documentaires (dont dialogue_ratio) viennent du texte
+            # complet : resérialiser après leur affectation pour ne pas garder
+            # la valeur de la fenêtre initiale.
+            metric_values = stats.to_metric_dict()
             if previous_stats is None:
                 metric_values = stats.to_metric_dict()
+            # Une absence de négation ou de futur est une mesure nulle, pas
+            # une analyse manquante : on encode 0 dans SQLite pour garantir
+            # que chaque œuvre possède toutes les colonnes métriques.
+            for nullable_identifier in ("mesure_68", "mesure_69"):
+                if metric_values.get(nullable_identifier) is None:
+                    metric_values[nullable_identifier] = 0
+                    field = FIELD_BY_METRIC_ID[nullable_identifier]
+                    setattr(stats, field, 0)
             incomplete = [identifier for field, identifier in METRIC_ID_BY_FIELD.items() if metric_values.get(identifier) is None]
             if incomplete:
                 raise RuntimeError(f"Analyse incomplète pour {path.name}: {', '.join(incomplete)}")

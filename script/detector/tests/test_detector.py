@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from detector.config import OUTPUT_DIR, SOURCE_DIR
+from detector.syntax_depth import analyze_syntax, dialogue_char_ranges
 from detector.stats_cli import (
     comparison_sources,
     comparison_documents,
@@ -24,6 +25,15 @@ from detector.stats_cli import (
 
 
 class DetectorTests(unittest.TestCase):
+    def test_dialogue_is_excluded_from_classicism_narrative_counters(self):
+        narrative = analyze_syntax("Il chanta.")
+        mixed = analyze_syntax("Il chanta.\n\n— Il chanta.")
+        self.assertEqual(dialogue_char_ranges("Il chanta.\n\n— Il chanta."), [(12, 24)])
+        self.assertEqual(narrative["simple_past"], mixed["simple_past"])
+        self.assertGreater(mixed["dialogue_ratio"], 0)
+
+    def test_dialogue_ratio_is_zero_for_narration(self):
+        self.assertEqual(analyze_syntax("Il marche dans la rue.")["dialogue_ratio"], 0)
     def test_editorial_comments_are_injected_in_markdown_source(self):
         rendered = "\n".join(notes(["Diversité des structures"]))
         self.assertIn("[^1]:", rendered)

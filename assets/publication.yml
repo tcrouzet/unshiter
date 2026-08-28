@@ -12,6 +12,9 @@ salammbo-gustave-flaubert.epub: {date: "1862"}
 leducation-sentimentale.epub: {date: "1869"}
 trois-contes-flaubert-gustave.epub: {date: "1877"}
 
+# Jean de La Bruyère
+les-caracteres-jean-de-la-bruyere.epub: {date: "2011"}
+
 # Jean Echenoz
 cherokee-jean-echenoz.epub: {date: "1983"}
 lac-echenoz-jean.epub: {date: "1989"}
@@ -26,6 +29,9 @@ les-olympiades-truquees.epub: {date: "1980"}
 les-maitres-feu.epub: {date: "1982"}
 le-createur-chimerique.epub: {date: "1988"}
 pollen.epub: {date: "2002"}
+
+# Madame de la Fayette
+la-princesse-de-cleves-madame-de-la-fayette.epub: {date: "1678"}
 
 # Marcel Proust
 a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
