@@ -932,16 +932,8 @@ def bigfive_profiles(analyses: list[tuple[Path, object]]):
     dimensions = []
     for label, field in BIGFIVE_AXES:
         values = [float(getattr(stats, field, 0) or 0) for _, stats in analyses]
-        ordered = sorted(values)
-        if len(ordered) <= 1:
-            normalized = [0.0 for _ in values]
-        else:
-            normalized = [
-                (sum(item < value for item in ordered) +
-                 (sum(item == value for item in ordered) - 1) / 2) /
-                (len(ordered) - 1)
-                for value in values
-            ]
+        maximum = max(values, default=0)
+        normalized = [value / maximum if maximum else 0.0 for value in values]
         dimensions.append((label, normalized, sum(values) / (len(values) or 1), 0, False, True))
     profiles = [[max(.05, min(.05 + .90 * dimensions[index][1][series], 1)) for index in range(len(dimensions))] for series in range(len(analyses))]
     return dimensions, profiles

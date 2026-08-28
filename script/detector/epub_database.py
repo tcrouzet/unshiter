@@ -15,13 +15,14 @@ import re
 import sqlite3
 
 from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, FIELD_BY_METRIC_ID, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, windowed_metric_fields
-from .stats import TextStats, compute_stats, punctuation_diversity
+from .stats import TextStats, compute_stats, punctuation_diversity, logical_connector_ratio, temporal_connector_ratio
 
 FULL_DOCUMENT_FIELDS = {
     "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
     "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
     "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
     "dialogue_ratio",
+    "logical_connector_ratio", "temporal_connector_ratio",
 }
 
 def full_document_fields(text: str) -> dict[str, float]:
@@ -46,7 +47,9 @@ def full_document_fields(text: str) -> dict[str, float]:
             "sentence_length_p90": percentile(sorted_chars, .9), "paragraph_length_std_dev": para_std,
             "punctuation_per_300_words": len(re.findall(r"[.,;:!?…—–\-()\[\]«»\"]", text)) / word_count * 100 if word_count else 0,
             "punctuation_diversity": punctuation_diversity(text),
-            "dialogue_ratio": dialogue_words / word_count if word_count else 0}
+            "dialogue_ratio": dialogue_words / word_count if word_count else 0,
+            "logical_connector_ratio": logical_connector_ratio(text, len(sentences)),
+            "temporal_connector_ratio": temporal_connector_ratio(text, len(sentences))}
 
 
 SENTENCE_END = re.compile(r"[.!?…]+[\"»”’'\)\]]*(?=\s|$)")

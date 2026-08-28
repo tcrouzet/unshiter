@@ -696,11 +696,11 @@ function table(books, definitions) {
     const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
     const noteId = noteEntry(key).id;
     const note = noteId == null ? "" : ` <button class="table-note-help metric-help" type="button" data-note-id="${noteId}" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
-    return `<tr><td>${metricLabel(key)}${note}</td>${displayed.map(n => `<td>${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
+    return `<tr><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${isAI(books[i]) ? "ai-value" : ""}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function format(n, key) { if (n == null) return "—"; if (["word_count", "sentence_count", "paragraph_count", "document_char_count"].includes(key)) return Number(n).toLocaleString("fr-FR"); if (["punctuation_per_300_words", "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "average_syntactic_depth", "burstiness"].includes(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
+function format(n, key) { if (n == null) return "—"; if (["word_count", "sentence_count", "paragraph_count", "document_char_count"].includes(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (["punctuation_per_300_words", "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun", "avg_adjective_chain_length"].includes(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
 function downloadSvg() {
   if (!chart) return;
   const w = 1000, h = 760, cx = 500, cy = 350, radius = 260, count = chart.data.labels.length;
@@ -758,15 +758,11 @@ function exportPromptAndData() {
     if (!nonNormalizable.has(field)) {
       info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
       info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
-      // Toutes les mesures normalisables utilisent le même rang percentile
-      // sur le corpus complet. Les mesures objectives restent absolues.
-      if (rawValue != null && corpusValues.length > 1) {
-        const ordered = [...corpusValues].sort((a, b) => a - b);
-        const lower = ordered.filter(value => value < rawValue).length;
-        const equal = ordered.filter(value => value === rawValue).length;
-        info.value = round2((lower + (equal - 1) / 2) / (ordered.length - 1));
-      } else if (rawValue != null && corpusValues.length === 1) {
-        info.value = 0;
+      // Toutes les mesures normalisables sont rapportées au maximum observé
+      // dans le corpus complet. Le minimum ne fixe jamais l'origine.
+      if (rawValue != null && corpusValues.length) {
+        const maximum = Math.max(...corpusValues);
+        info.value = round2(maximum ? rawValue / maximum : 0);
       }
     }
   }
@@ -904,7 +900,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828215516079456000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828221728324962000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

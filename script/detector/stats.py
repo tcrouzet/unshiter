@@ -70,7 +70,9 @@ FAMILIARITY_DIRECT, FAMILIARITY_POSITIONAL = _load_familiarity_markers()
 def lexical_rarity_score(words: list[str]) -> float:
     lemmas, _ = lexical_lemmas(words)
     frequencies = frequency_map(tuple(lemmas))
-    rarities = [-math.log10(max(frequencies.get(lemma, 0.01), 0.01)) for lemma in lemmas]
+    # Les fréquences supérieures à 1 par million sont ramenées à une
+    # rareté nulle : une rareté ne peut pas devenir négative.
+    rarities = [max(0.0, -math.log10(max(frequencies.get(lemma, 0.01), 0.01))) for lemma in lemmas]
     return sum(rarities) / len(rarities) if rarities else 0
 
 

@@ -200,27 +200,40 @@ def export_json() -> int:
                 })
             # Même échelle pour tout le corpus : l’œuvre au score brut maximal
             # devient la référence 100 % dans l’interface.
-            def percentile(value, values):
-                ordered = sorted(values)
-                if len(ordered) <= 1:
+            # Normalisation des composantes brutes avant pondération. Les
+            # scores composites ne sont jamais normalisés après coup.
+            def component(field, analysis, maxima):
+                value = analysis["stats"].get(METRIC_ID_BY_FIELD[field], 0)
+                if not isinstance(value, (int, float)):
                     return 0.0
-                # Rang moyen, ramené de 0 (minimum) à 1 (maximum).
-                lower = sum(item < value for item in ordered)
-                equal = sum(item == value for item in ordered)
-                return (lower + (equal - 1) / 2) / (len(ordered) - 1)
+                maximum = maxima.get(field, 0)
+                return value / maximum if maximum else 0.0
 
-            def normalize_score(field):
-                identifier = METRIC_ID_BY_FIELD[field]
-                values = [a["stats"][identifier] for b in books for a in b["analyses"] if isinstance(a["stats"].get(identifier), (int, float))]
-                for book in books:
-                    for analysis in book["analyses"]:
-                        value = analysis["stats"].get(identifier)
-                        if isinstance(value, (int, float)):
-                            analysis["stats"][identifier] = percentile(value, values)
-
-            for score_name in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score"):
-                normalize_score(score_name)
-            normalize_score("discursivite_score")
+            component_fields = {
+                "classicism_score": ("simple_past_ratio", "literary_subjunctive_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "structural_diversity", "verb_ratio", "gzip_compression_ratio", "active_voice_ratio", "dialogue_ratio"),
+                "baroque_score": ("heavily_modified_noun_ratio", "lexical_rarity_score", "metaphorical_comme_ratio", "adjective_chain_ratio", "average_syntactic_depth", "avg_sentence_length"),
+                "narrativity_score": ("action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "dialogue_ratio", "active_voice_ratio", "nominal_sentence_ratio", "adjective_ratio"),
+                "emotionality_score": ("emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio"),
+                "discursivite_score": ("logical_connector_ratio",),
+            }
+            maxima = {}
+            for fields_for_axis in component_fields.values():
+                for field in fields_for_axis:
+                    identifier = METRIC_ID_BY_FIELD.get(field)
+                    values = [a["stats"].get(identifier) for b in books for a in b["analyses"] if identifier and isinstance(a["stats"].get(identifier), (int, float))]
+                    maxima[field] = max(values, default=0)
+            for book in books:
+                for analysis in book["analyses"]:
+                    c = lambda field: component(field, analysis, maxima)
+                    values = {
+                        "classicism_score": .25*(c("simple_past_ratio") + c("literary_subjunctive_ratio")) -.10*c("periphrastic_future_ratio") -.15*c("oral_familiarity_ratio") + .20*c("structural_diversity") + .10*c("verb_ratio") + .10*(1-c("gzip_compression_ratio")) + .15*c("active_voice_ratio") -.10*c("dialogue_ratio"),
+                        "baroque_score": .25*c("heavily_modified_noun_ratio") + .25*c("lexical_rarity_score") + .15*c("metaphorical_comme_ratio") + .15*c("adjective_chain_ratio") + .10*c("average_syntactic_depth") + .10*c("avg_sentence_length"),
+                        "narrativity_score": .20*c("action_verb_ratio") + .15*c("temporal_connector_ratio") + .20*c("personal_subject_ratio") + .15*c("dialogue_ratio") + .05*c("active_voice_ratio") -.05*c("nominal_sentence_ratio") -.10*c("adjective_ratio"),
+                        "emotionality_score": .40*c("emotion_word_ratio") + .25*c("affect_verb_ratio") + .20*c("exclamation_ratio") + .15*c("exclamative_construction_ratio"),
+                        "discursivite_score": c("logical_connector_ratio"),
+                    }
+                    for field, value in values.items():
+                        analysis["stats"][METRIC_ID_BY_FIELD[field]] = value
         payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
