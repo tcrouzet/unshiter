@@ -246,7 +246,7 @@ Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combin
 Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
 
 # **Connecteurs temporels** #81
-Occurrences de connecteurs temporels ou séquentiels pour 100 phrases.
+Occurrences de connecteurs temporels ou séquentiels par phrases.
 
 # **Sujets personnels** #82
 Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.

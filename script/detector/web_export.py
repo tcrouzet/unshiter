@@ -228,7 +228,7 @@ def export_json() -> int:
                     values = {
                         "classicism_score": .25*(c("simple_past_ratio") + c("literary_subjunctive_ratio")) -.10*c("periphrastic_future_ratio") -.15*c("oral_familiarity_ratio") + .20*c("structural_diversity") + .10*c("verb_ratio") + .10*(1-c("gzip_compression_ratio")) + .15*c("active_voice_ratio") -.10*c("dialogue_ratio"),
                         "baroque_score": .25*c("heavily_modified_noun_ratio") + .25*c("lexical_rarity_score") + .15*c("metaphorical_comme_ratio") + .15*c("adjective_chain_ratio") + .10*c("average_syntactic_depth") + .10*c("avg_sentence_length"),
-                        "narrativity_score": .20*c("action_verb_ratio") + .15*c("temporal_connector_ratio") + .20*c("personal_subject_ratio") + .15*c("dialogue_ratio") + .05*c("active_voice_ratio") -.05*c("nominal_sentence_ratio") -.10*c("adjective_ratio"),
+                        "narrativity_score": .30*c("action_verb_ratio") + .20*c("temporal_connector_ratio") + .02*c("personal_subject_ratio") + .15*c("dialogue_ratio") + .10*c("active_voice_ratio") -.07*c("nominal_sentence_ratio") -.10*c("adjective_ratio"),
                         "emotionality_score": .40*c("emotion_word_ratio") + .25*c("affect_verb_ratio") + .20*c("exclamation_ratio") + .15*c("exclamative_construction_ratio"),
                         "discursivite_score": c("logical_connector_ratio"),
                     }

@@ -88,7 +88,7 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | 7.2 % |
 | Maximaliste / Minimaliste[^42] | 12.4 % | 22.0 % | 17.2 % | 15.5 % | 14.3 % | 23.7 % | 24.2 % | 24.0 % |
-| Narratif / Descriptif[^47] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % | 9.2 % |
+| Narratif / Descriptif[^47] | 27.3 % | 37.6 % | 34.1 % | 31.4 % | 37.2 % | 42.7 % | 44.6 % | 15.5 % |
 | Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % | 3.8 % |
 | Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | 47.9 % |
 
@@ -141,7 +141,7 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 | Connecteurs temporels[^44] | 10.2 % | 21.3 % | 16.3 % | 14.3 % | 12.6 % | 32.8 % | 28.1 % | — |
 | Sujets personnels[^45] | 99.4 % | 100.0 % | 99.0 % | 99.0 % | 99.3 % | 100.0 % | 98.3 % | — |
 | Passé narratif[^46] | 0.3 % | 0.3 % | 13.5 % | 0.2 % | 0.8 % | 0.3 % | 22.1 % | — |
-| Narratif / Descriptif[^47] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % | — |
+| Narratif / Descriptif[^47] | 27.3 % | 37.6 % | 34.1 % | 31.4 % | 37.2 % | 42.7 % | 44.6 % | — |
 | Mots émotionnels[^48] | 52.4 % | 50.5 % | 52.0 % | 47.4 % | 52.6 % | 49.3 % | 51.4 % | — |
 | Verbes de réaction affective[^49] | 1.1 % | 0.6 % | 1.2 % | 0.1 % | 0.4 % | 0.5 % | 0.8 % | — |
 | Exclamations[^50] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.4 % | 0.0 % | 0.0 % | — |
@@ -182,16 +182,16 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.73 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.72 |
 |  | Nouvelles horroristiques — Philippe Caza | 0.75 |
-|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.86 |
-|  | L'Été 80 — Marguerite Duras | 0.87 |
+|  | L'Été 80 — Marguerite Duras | 0.86 |
 |  | La Carte et le Territoire — Michel Houellebecq | 0.87 |
+|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.87 |
 | Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
-|  | Sortie d'usine — François Bon | 0.88 |
-|  | Le temps retrouvé — Marcel Proust | 0.92 |
-|  | L'Été 80 — Marguerite Duras | 0.95 |
-|  | Autobiographie des objets — François Bon | 0.97 |
+|  | Sortie d'usine — François Bon | 0.87 |
+|  | Le temps retrouvé — Marcel Proust | 0.91 |
+|  | L'Été 80 — Marguerite Duras | 0.93 |
+|  | Autobiographie des objets — François Bon | 0.95 |
 
 ### Profil comparatif
 
@@ -306,7 +306,7 @@ Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel gra
 
 [^43]: Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
 
-[^44]: Occurrences de connecteurs temporels ou séquentiels pour 100 phrases.
+[^44]: Occurrences de connecteurs temporels ou séquentiels par phrases.
 
 [^45]: Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.
 

@@ -19,7 +19,7 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v49-full-connectors"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v50-narrativity-weights"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -199,4 +199,4 @@ FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRIC_ID_BY_FI
 
 DEFAULT_UNIT = "paragraph"
 TEXT_ENCODING = "utf-8"
-NARRATIVITY_WEIGHTS = {"action_verb_ratio": 0.20, "temporal_connector_ratio": 0.15, "personal_subject_ratio": 0.20, "dialogue_ratio": 0.15, "active_voice_ratio": 0.05, "nominal_sentence_ratio": -0.05, "pos_adjective_ratio": -0.10}
+NARRATIVITY_WEIGHTS = {"action_verb_ratio": 0.30, "temporal_connector_ratio": 0.20, "personal_subject_ratio": 0.02, "dialogue_ratio": 0.15, "active_voice_ratio": 0.10, "nominal_sentence_ratio": -0.07, "pos_adjective_ratio": -0.10}
