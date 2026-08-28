@@ -157,18 +157,23 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur
 | Comparaisons métaphoriques[^62] | 6.4 % | 16.9 % | 2.3 % | 7.5 % | 1.8 % | 12.7 % | 8.9 % | 62.1 % |
 | Formes par lemme[^63] | 0.86 | 0.86 | 0.85 | 0.94 | 0.85 | 0.87 | 0.86 | 0.8 % |
 | Mots employés une seule fois[^64] | 62 % | 63 % | 71 % | 59 % | 73 % | 71 % | 73 % | 8.3 % |
-| Mots[^65] | 40970 | 56777 | 89770 | 29525 | 49521 | 22553 | 58719 | — |
-| Phrases[^66] | 3118 | 2224 | 4774 | 1982 | 3585 | 878 | 1343 | — |
-| Paragraphes[^67] | 939 | 940 | 665 | 257 | 774 | 146 | 274 | — |
-| Longueur moyenne des mots (caractères)[^68] | 4.5 | 4.6 | 5.0 | 4.4 | 4.8 | 4.7 | 4.8 | — |
-| Longueur moyenne des phrases (caractères)[^69] | 75.4 | 147.8 | 116.1 | 81.7 | 81.2 | 149.0 | 262.6 | — |
-| Longueur moyenne des phrases (mots) | 13.9 | 27.1 | 20.0 | 15.9 | 14.8 | 27.5 | 46.8 | — |
-| Longueur médiane des phrases (caractères)[^70] | 62.0 | 112.0 | 98.0 | 59.0 | 64.0 | 138.0 | 211.0 | — |
-| Longueur P10 des phrases (caractères)[^71] | 21.0 | 21.0 | 38.0 | 22.0 | 24.0 | 38.0 | 39.0 | — |
-| Longueur P90 des phrases (caractères)[^72] | 147.0 | 331.0 | 214.0 | 162.0 | 159.0 | 267.0 | 546.0 | — |
-| Écart-type des paragraphes (mots)[^73] | 30.6 | 42.9 | 125.4 | 118.0 | 45.7 | 62.6 | 156.1 | — |
-| Fenêtres analysées | 2 | 2 | 4 | 1 | 2 | 1 | 2 | — |
-| Longueur moyenne des paragraphes (mots) | 56.9 | 80.3 | 116.6 | 110.1 | 60.3 | 162.1 | 166.7 | — |
+
+### Tableau 4 — Données objectives
+
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Mots[^65] | 40970 | 56777 | 89770 | 29525 | 49521 | 22553 | 58719 |
+| Phrases[^66] | 3118 | 2224 | 4774 | 1982 | 3585 | 878 | 1343 |
+| Paragraphes[^67] | 939 | 940 | 665 | 257 | 774 | 146 | 274 |
+| Longueur moyenne des mots (caractères)[^68] | 4.5 | 4.6 | 5.0 | 4.4 | 4.8 | 4.7 | 4.8 |
+| Longueur moyenne des phrases (caractères)[^69] | 75.4 | 147.8 | 116.1 | 81.7 | 81.2 | 149.0 | 262.6 |
+| Longueur moyenne des phrases (mots) | 13.9 | 27.1 | 20.0 | 15.9 | 14.8 | 27.5 | 46.8 |
+| Longueur médiane des phrases (caractères)[^70] | 62.0 | 112.0 | 98.0 | 59.0 | 64.0 | 138.0 | 211.0 |
+| Longueur P10 des phrases (caractères)[^71] | 21.0 | 21.0 | 38.0 | 22.0 | 24.0 | 38.0 | 39.0 |
+| Longueur P90 des phrases (caractères)[^72] | 147.0 | 331.0 | 214.0 | 162.0 | 159.0 | 267.0 | 546.0 |
+| Écart-type des paragraphes (mots)[^73] | 30.6 | 42.9 | 125.4 | 118.0 | 45.7 | 62.6 | 156.1 |
+| Fenêtres analysées | 2 | 2 | 4 | 1 | 2 | 1 | 2 |
+| Longueur moyenne des paragraphes (mots) | 56.9 | 80.3 | 116.6 | 110.1 | 60.3 | 162.1 | 166.7 |
 
 ### Attribution au plus proche voisin
 

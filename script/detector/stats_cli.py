@@ -1069,6 +1069,12 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         important, details = split_rows(rows)
         important_by_file.append(important)
         details_by_file.append(details)
+    # Les volumes et longueurs sont conservés dans un tableau séparé : ils
+    # décrivent le document, mais ne sont pas des mesures stylistiques.
+    technical_by_file = []
+    for rows in details_by_file:
+        technical_by_file.append([row for row in rows if row[0] in TECHNICAL_LABELS])
+    details_by_file = [[row for row in rows if row[0] not in TECHNICAL_LABELS] for rows in details_by_file]
     important_dispersions = coefficient_dispersions(important_by_file, numeric_maps)
     detail_dispersions = coefficient_dispersions(details_by_file, numeric_maps)
     bigfive_fields = [
@@ -1079,7 +1085,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         ("Posture énonciative", "discursivite_score"),
     ]
     bigfive_by_file = [[(label, f"{getattr(stats, field) * 100:.1f} %") for label, field in bigfive_fields] for _, stats in analyses]
-    numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0], ["Dispersion"])
+    numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0] + technical_by_file[0], ["Dispersion"])
     bigfive_count = len(bigfive_by_file[0])
     important_count = len(important_by_file[0])
     number_map = {
@@ -1089,6 +1095,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     bigfive_by_file = [[(number_map[label], value) for label, value in rows] for rows in bigfive_by_file]
     important_by_file = [[(number_map[label], value) for label, value in rows] for rows in important_by_file]
     details_by_file = [[(number_map[label], value) for label, value in rows] for rows in details_by_file]
+    technical_by_file = [[(number_map[label], value) for label, value in rows] for rows in technical_by_file]
     lines = [
         "# Comparaison statistique des sources", "",
         f"> Les mesures dérivées sont moyennées sur des fenêtres non chevauchantes d’environ {window} mots, arrêtées aux paragraphes. Gzip utilise des blocs UTF-8 de taille identique. Les nombres de mots, phrases et paragraphes décrivent le document complet.", "",
@@ -1100,6 +1107,8 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     lines += markdown_table(headers, important_by_file, important_dispersions)
     lines += ["", "## Tableau 3 — Détails", ""]
     lines += markdown_table(headers, details_by_file, detail_dispersions)
+    lines += ["", "## Tableau 4 — Données objectives", ""]
+    lines += markdown_table(headers, technical_by_file)
     nearest = nearest_neighbor_markdown()
     if nearest:
         lines += [""] + nearest
