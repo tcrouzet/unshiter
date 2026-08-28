@@ -89,7 +89,7 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 | Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | 7.2 % |
 | Maximaliste / Minimaliste[^42] | 12.4 % | 22.0 % | 17.2 % | 15.5 % | 14.3 % | 23.7 % | 24.2 % | 24.0 % |
 | Narratif / Descriptif[^47] | 27.3 % | 37.6 % | 34.1 % | 31.4 % | 37.2 % | 42.7 % | 44.6 % | 15.5 % |
-| Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % | 3.8 % |
+| Émotionnel / Neutre[^52] | 8.3 % | 7.8 % | 8.3 % | 7.2 % | 8.2 % | 7.6 % | 8.1 % | 4.8 % |
 | Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | 47.9 % |
 
 ### Tableau 2 — Synthèse
@@ -146,7 +146,7 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 | Verbes de réaction affective[^49] | 1.1 % | 0.6 % | 1.2 % | 0.1 % | 0.4 % | 0.5 % | 0.8 % | — |
 | Exclamations[^50] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.4 % | 0.0 % | 0.0 % | — |
 | Constructions exclamatives[^51] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | — |
-| Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % | — |
+| Émotionnel / Neutre[^52] | 8.3 % | 7.8 % | 8.3 % | 7.2 % | 8.2 % | 7.6 % | 8.1 % | — |
 | Connecteurs logiques[^53] | 25.2 % | 49.0 % | 44.2 % | 37.4 % | 29.3 % | 66.6 % | 108.6 % | — |
 | Noms abstraits[^54] | 5.5 % | 5.4 % | 10.7 % | 6.1 % | 5.9 % | 5.4 % | 6.7 % | — |
 | Présent gnomique[^55] | 19.1 % | 13.6 % | 5.3 % | 3.7 % | 23.0 % | 18.1 % | 10.3 % | — |
@@ -184,13 +184,13 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 |---|---|---:|
 | Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.72 |
 |  | Nouvelles horroristiques — Philippe Caza | 0.75 |
-|  | L'Été 80 — Marguerite Duras | 0.86 |
+|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.86 |
+|  | L'Été 80 — Marguerite Duras | 0.87 |
 |  | La Carte et le Territoire — Michel Houellebecq | 0.87 |
-|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.87 |
 | Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
 |  | Sortie d'usine — François Bon | 0.87 |
-|  | Le temps retrouvé — Marcel Proust | 0.91 |
-|  | L'Été 80 — Marguerite Duras | 0.93 |
+|  | Le temps retrouvé — Marcel Proust | 0.92 |
+|  | L'Été 80 — Marguerite Duras | 0.94 |
 |  | Autobiographie des objets — François Bon | 0.95 |
 
 ### Profil comparatif
