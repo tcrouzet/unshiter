@@ -216,7 +216,7 @@ Occurrences de mots et expression fammilières. La liste est modifiable dans `as
 
 # **Classique** / Contemporain #71
 
-Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
+Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
 
 # **Modificateurs par nom** #74
 

@@ -725,7 +725,7 @@ function exportPromptAndData() {
   for (const [field, label] of Object.entries(data.metric_labels || {})) {
     const id = data.metric_note_ids?.[field] || field;
     const noteId = data.note_ids?.[id];
-    metrics[field] = { id, label, definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
+    metrics[field] = { id, label, title: noteId == null ? label : (data.note_titles?.[String(noteId)] || label), definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
   }
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
@@ -746,6 +746,16 @@ function exportPromptAndData() {
     const corpusValues = data.books.flatMap(book => (book.analyses || []).map(analysis => Number(analysis.stats?.[info.id]))).filter(Number.isFinite);
     const rawValue = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     info.value = round2(rawValue);
+    if (rawValue != null && corpusValues.length) {
+      const rank = 1 + corpusValues.filter(value => value < rawValue).length;
+      info["rank-in-corpus"] = `${rank}/${corpusValues.length}`;
+    }
+    const mean = corpusValues.length ? corpusValues.reduce((sum, value) => sum + value, 0) / corpusValues.length : 0;
+    const variance = corpusValues.length ? corpusValues.reduce((sum, value) => sum + (value - mean) ** 2, 0) / corpusValues.length : 0;
+    const coefficient = mean ? Math.sqrt(variance) / Math.abs(mean) : 0;
+    // Transformation bornée : 0 = valeurs identiques ; la dispersion tend
+    // vers 100 % quand les écarts deviennent très grands.
+    info.dispersion = round2(coefficient / (1 + coefficient));
     if (!nonNormalizable.has(field)) {
       info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
       info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
@@ -755,7 +765,7 @@ function exportPromptAndData() {
     }
   }
   const save = (name, content, type) => { const href = URL.createObjectURL(new Blob([content], { type })); const link = document.createElement("a"); link.href = href; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); };
-  save("style-interpretation-data.json", JSON.stringify({ metrics: orderedFields.map(field => ({ field, ...metrics[field] })) }, null, 2), "application/json");
+  save("style-interpretation-data.json", JSON.stringify({ metrics: orderedFields.map(field => { const { id, label, ...entry } = metrics[field]; return entry; }) }, null, 2), "application/json");
 }
 function controls() {
   const distanceTitle = document.querySelector(".distance-box h2");
@@ -888,7 +898,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828172217667216000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828194126502904000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
