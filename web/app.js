@@ -5,6 +5,12 @@ const RADAR = [
   ["emotionality_score", "Émotionnel ↔ Neutre"],
   ["discursivite_score", "Discursif ↔ Immersif"],
 ];
+const SUMMARY = [
+  ["punctuation_per_300_words", "Densité de ponctuations"], ["punctuation_diversity", "Diversité de ponctuation"],
+  ["structural_diversity", "Diversité des structures"], ["structural_rhythm", "Rythme des structures"],
+  ["average_syntactic_depth", "Profondeur syntaxique"], ["sentence_start_diversity", "Diversité des débuts de phrase"],
+  ["burstiness", "Burstiness"], ["noun_verb_ratio", "Ratio noms/verbes"], ["filtered_repetition_rate", "Répétitions lexicales"],
+];
 const DETAILS = [
   ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
   ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
@@ -659,7 +665,7 @@ function downloadCanvas(canvas, name, format = "png") {
 }
 function renderTables(books) {
   const tableBooks = authorProfile || authorLimits ? authorMedians(books) : books;
-  const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key));
+  const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key) && !SUMMARY.some(([field]) => field === key));
   const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key));
   const technicalCharacterIndex = technical.findIndex(([key]) => key === "document_char_count");
   const technicalWordsIndex = technical.findIndex(([key]) => key === "word_count");
@@ -667,7 +673,24 @@ function renderTables(books) {
   const characterIndex = details.findIndex(([key]) => key === "document_char_count");
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · synthèse</h2>${table(tableBooks, RADAR)}</div><div class="table-wrap"><h2>Tableau 2 · détails</h2>${table(tableBooks, details)}</div><div class="table-wrap"><h2>Tableau 3 · données objectives</h2>${table(tableBooks, technical)}</div>`;
+  const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive</h2>${exportMenu("table-bigfive")}<div id="table-bigfive">${table(tableBooks, RADAR)}</div></div><div class="table-wrap"><h2>Tableau 2 · Synthèse</h2>${exportMenu("table-summary")}<div id="table-summary">${table(tableBooks, SUMMARY)}</div></div><div class="table-wrap" id="details-table-wrap"><h2>Tableau 3 · détails</h2>${exportMenu("table-details")}<div id="table-details">${table(tableBooks, details)}</div></div><div class="table-wrap"><h2>Tableau 4 · données objectives</h2>${exportMenu("table-technical")}<div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+}
+function downloadRenderedTable(container, name, format) {
+  const table = container?.querySelector("table"); if (!table) return;
+  const rows = [...table.rows].map(row => [...row.cells].map(cell => cell.textContent.trim()));
+  const link = document.createElement("a");
+  if (format === "csv") {
+    const csv = rows.map(row => row.map(cell => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\n");
+    link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })); link.download = `${name}.csv`;
+  } else {
+    const widths = rows[0].map((_, i) => Math.max(80, ...rows.map(row => (row[i] || "").length * 7 + 20)));
+    const height = rows.length * 28 + 20; let y = 22;
+    const body = rows.map((row, ri) => { let x = 5; const cells = row.map((cell, i) => { const out = `<rect x="${x}" y="${y - 18}" width="${widths[i]}" height="28" fill="${ri === 0 ? "#eee" : "white"}" stroke="#ddd"/><text x="${x + 5}" y="${y}" font-family="system-ui" font-size="12">${esc(cell)}</text>`; x += widths[i]; return out; }).join(""); y += 28; return cells; }).join("");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${widths.reduce((a,b)=>a+b,0)+10}" height="${height}"><rect width="100%" height="100%" fill="white"/>${body}</svg>`;
+    link.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); link.download = `${name}.svg`;
+  }
+  document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 function dispersion(values) {
   const numbers = values.filter(Number.isFinite);
@@ -875,7 +898,7 @@ function controls() {
   document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); }));
   document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); }));
   updateClearBooksLabel();
-  document.addEventListener("change", event => { const select = event.target.closest(".chart-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
+  document.addEventListener("change", event => { const select = event.target.closest(".chart-download, .table-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else if (select.dataset.tableId) downloadRenderedTable(document.getElementById(select.dataset.tableId), select.dataset.tableId, select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { if (event.target.closest(".open-app-help")) { event.preventDefault(); showApplicationHelp(); } });
@@ -900,7 +923,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828221728324962000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828231130156855000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

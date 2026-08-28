@@ -69,7 +69,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .downloads { margin: .5rem 0; display: flex; justify-content: flex-end; gap: .5rem; } button, select { padding: .45rem .8rem; border: 1px solid #cfc8c0; border-radius: .375rem; background: white; cursor: pointer; }
 .download-icon { width: 2.2rem; height: 2.2rem; padding: 0; font-size: 1.45rem; line-height: 1; }
 dialog { border: 1px solid #cfc8c0; border-radius: .5rem; padding: 1.2rem; box-shadow: 0 .5rem 1.875rem #0002; } dialog::backdrop { background: #0003; } dialog h3 { margin: 0 0 1rem; } .download-choices { display: flex; gap: .5rem; } dialog .cancel { margin-top: 1rem; width: 100%; }
-.table-wrap { margin-top: 1.5rem; overflow-x: auto; background: white; padding: 1rem; border-radius: .75rem; box-sizing: border-box; } table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: white; } .ai-value { color: #b3261e; font-weight: 600; }
+.table-wrap { margin-top: 1.5rem; overflow-x: auto; background: white; padding: 1rem; border-radius: .75rem; box-sizing: border-box; position: relative; } table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: white; } .ai-value { color: #b3261e; font-weight: 600; }
 footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
 @media (max-width: 50rem) {
   main { display: block; padding: 0; overflow-x: hidden; }
