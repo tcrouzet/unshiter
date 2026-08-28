@@ -2,6 +2,8 @@
 
 Unshiter compare des textes français à partir de mesures reproductibles : ponctuation, rythme, répétitions lexicales et sonores, structures syntaxiques, catégories grammaticales et statistiques de longueur. Les résultats décrivent un corpus ; ils ne constituent ni une preuve d’origine humaine ou artificielle, ni un jugement littéraire.
 
+[Plusieurs articles commente cette exérience…](https://tcrouzet.com/tag/textstat/)
+
 ## Installation
 
 ```bash
@@ -196,13 +198,6 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 ![Profils comparatifs](./assets/readme/kiviat-github.png)
 
 Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.
-
-
-### Profil des mesures secondaires
-
-![Radar des mesures secondaires](./assets/readme/kiviat-details-github.png)
-
-Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %, en excluant la diversité de longueur des phrases déjà intégrée à la diversité des structures. Les répétitions, les adjectifs, les adverbes, les relatives et subordonnées et les comparaisons métaphoriques sont inversés : pour ces indices négatifs, l’extérieur correspond à une valeur plus faible. Pour les autres axes, l’extérieur correspond à une valeur plus élevée.
 
 
 ### Surface des profils

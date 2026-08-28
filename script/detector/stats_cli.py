@@ -1116,8 +1116,6 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         lines += [""] + nearest
     lines += ["", "## Profil comparatif", "", f"![Diagramme de Kiviat]({KIVIAT_CHART.name})", ""]
     lines += ["Le diagramme reprend exactement les mesures du tableau principal. L’anneau médian représente la moyenne du corpus avec le même gris que les autres lignes de lecture. Les écarts relatifs à cette moyenne sont amplifiés pour rendre les profils lisibles ; les répétitions lexicales sont inversées afin que l’extérieur indique toujours davantage de diversité ou de complexité.", ""]
-    lines += ["", "## Profil des mesures secondaires", "", f"![Radar des mesures secondaires]({KIVIAT_DETAIL_CHART.name})", ""]
-    lines += ["Ce radar reprend les mesures du tableau 2 dont la dispersion σ atteint au moins 10 %, en excluant la diversité de longueur des phrases déjà intégrée à la diversité des structures. Les répétitions, les adjectifs, les adverbes, les relatives et subordonnées et les comparaisons métaphoriques sont inversés : pour ces indices négatifs, l’extérieur correspond à une valeur plus faible. Pour les autres axes, l’extérieur correspond à une valeur plus élevée.", ""]
     lines += ["", "## Surface des profils", "", f"![Surface des profils du radar]({KIVIAT_AREA_CHART.name})", ""]
     lines += ["Les surfaces sont calculées directement sur les polygones du radar et classées de la plus petite à la plus grande. Leur unité est arbitraire.", ""]
     lines += ["", "## Répartition grammaticale par document", "", f"![Répartition grammaticale]({GRAMMATICAL_DISTRIBUTION_CHART.name})", ""]
