@@ -299,4 +299,4 @@ Part des verbes finis au présent de l’indicatif dont le sujet est générique
 
 # **Discursif** / Immersif #93
 
-Score de posture énonciative : proche de 1, commentaire, généralisation et argumentation ; proche de 0, immersion dans la scène. Il combine uniquement les connecteurs logiques, noms abstraits, présent gnomique et ratio noms/verbes. Aucune variable du score Narrativité / Descriptivité n’est réutilisée ; les mesures élémentaires restent disponibles séparément.
+Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.

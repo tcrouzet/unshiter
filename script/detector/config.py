@@ -19,7 +19,7 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v45-narrativity-discursivite"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v47-discursivite-scale"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -52,11 +52,7 @@ FEEL_ARCHIVE = FEEL_DIR / "FEEL.csv"
 FEEL_INDEX = FEEL_DIR / "feel.sqlite3"
 EMOTIONALITY_WEIGHTS = {"emotion_word_ratio": 0.40, "affect_verb_ratio": 0.25, "exclamation_ratio": 0.20, "exclamative_construction_ratio": 0.15}
 DISCURSIVITE_WEIGHTS = {
-    "personal_subject_ratio": 0.15, "active_voice_ratio": 0.10,
-    "dialogue_ratio": 0.10, "action_verb_ratio": 0.15,
-    "temporal_connector_ratio": 0.10, "logical_connector_ratio": 0.10,
-    "abstract_noun_ratio": 0.10, "gnomic_present_ratio": 0.10,
-    "noun_verb_ratio": 0.10,
+    "logical_connector_ratio": 1.0,
 }
 BAROQUE_WEIGHTS = {
     "heavily_modified_noun_ratio": 0.25, "lexical_rarity_score": 0.25,

@@ -86,7 +86,7 @@ Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github
 | Densité stylistique[^3] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % |
 | Mode du texte[^4] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % |
 | Charge affective[^5] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % |
-| Posture énonciative[^6] | 17.2 % | 17.2 % | 17.9 % | 14.4 % | 20.4 % | 18.4 % | 17.0 % |
+| Posture énonciative[^6] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % |
 
 Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
 
@@ -148,7 +148,7 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur
 | Connecteurs logiques[^53] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | — |
 | Noms abstraits[^54] | 5.5 % | 5.4 % | 10.7 % | 6.1 % | 5.9 % | 5.4 % | 6.7 % | — |
 | Présent gnomique[^55] | 19.1 % | 13.6 % | 5.3 % | 3.7 % | 23.0 % | 18.1 % | 10.3 % | — |
-| Discursif / Immersif[^56] | 17.2 % | 17.2 % | 17.9 % | 14.4 % | 20.4 % | 18.4 % | 17.0 % | — |
+| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | — |
 | Diversité de longueurs de phrase (mots)[^57] | 6.2 | 24.1 | 12.5 | 14.0 | 9.3 | 14.8 | 41.1 | 41.1 % |
 | Compression gzip[^58] | 41 % | 40 % | 43 % | 39 % | 44 % | 44 % | 43 % | 3.9 % |
 | Relatives et subordonnées[^59] | 82 % | 262 % | 98 % | 131 % | 95 % | 272 % | 202 % | 46.3 % |
@@ -181,16 +181,16 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.75 |
-|  | Nouvelles horroristiques — Philippe Caza | 0.76 |
-|  | L'Été 80 — Marguerite Duras | 0.85 |
-|  | Extension du domaine de la lutte — Michel Houellebecq | 0.87 |
-|  | La Carte et le Territoire — Michel Houellebecq | 0.89 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.74 |
+|  | Nouvelles horroristiques — Philippe Caza | 0.77 |
+|  | L'Été 80 — Marguerite Duras | 0.86 |
+|  | Extension du domaine de la lutte — Michel Houellebecq | 0.88 |
+|  | Résistants — Thierry Crouzet | 0.89 |
 | Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
 |  | Le temps retrouvé — Marcel Proust | 0.87 |
 |  | Sortie d'usine — François Bon | 0.88 |
-|  | L'Été 80 — Marguerite Duras | 0.89 |
-|  | Autobiographie des objets — François Bon | 0.95 |
+|  | L'Été 80 — Marguerite Duras | 0.91 |
+|  | Autobiographie des objets — François Bon | 0.96 |
 
 ### Profil comparatif
 
@@ -228,7 +228,7 @@ Les surfaces sont calculées directement sur les polygones du radar et classées
 
 [^5]: Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
 
-[^6]: Score de posture énonciative : proche de 1, commentaire, généralisation et argumentation ; proche de 0, immersion dans la scène. Il combine uniquement les connecteurs logiques, noms abstraits, présent gnomique et ratio noms/verbes. Aucune variable du score Narrativité / Descriptivité n’est réutilisée ; les mesures élémentaires restent disponibles séparément.
+[^6]: Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
 
 [^7]: Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
 
@@ -338,7 +338,7 @@ Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel gra
 
 [^55]: Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
 
-[^56]: Score de posture énonciative : proche de 1, commentaire, généralisation et argumentation ; proche de 0, immersion dans la scène. Il combine uniquement les connecteurs logiques, noms abstraits, présent gnomique et ratio noms/verbes. Aucune variable du score Narrativité / Descriptivité n’est réutilisée ; les mesures élémentaires restent disponibles séparément.
+[^56]: Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
 
 [^57]: Dans la fenêtre 20, écart-type du nombre de mots par phrase. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues. La diversité des structures intègre déjà une partie de cette information en accordant progressivement davantage de poids aux phrases contenant plusieurs propositions.
 

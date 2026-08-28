@@ -719,32 +719,43 @@ function exportStylePrompt() {
   });
 }
 function exportPromptAndData() {
+  const round2 = value => Number.isFinite(value) ? Math.round(value * 100) / 100 : value;
   const books = selected();
-  const surfaceKeys = checkedMetrics();
-  const surfaceAxes = surfaceKeys.map(field => {
-    const id = data.metric_note_ids?.[field] || field;
-    const noteId = data.note_ids?.[id];
-    return { field, id, label: metricLabel(field), definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
-  });
-  const surfaceFor = book => {
-    const values = surfaceKeys.map(key => scale(key, value(book, key))).filter(Number.isFinite);
-    if (values.length < 3) return 0;
-    return Math.abs(values.reduce((sum, current, index) => sum + current * values[(index + 1) % values.length] * Math.sin(2 * Math.PI / values.length), 0) / 2);
-  };
   const metrics = {};
   for (const [field, label] of Object.entries(data.metric_labels || {})) {
     const id = data.metric_note_ids?.[field] || field;
     const noteId = data.note_ids?.[id];
     metrics[field] = { id, label, definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
   }
-  const authors = {};
-  for (const book of books) {
-    const author = book.author || "Auteur inconnu", stats = book.analyses?.[0]?.stats || {};
-    (authors[author] ||= { work_count: 0, works: [] }).work_count += 1;
-    authors[author].works.push({ title: book.title, publication_date: book.publication_date, stylistic_coverage: surfaceFor(book), metrics: Object.fromEntries(Object.entries(metrics).map(([field, info]) => [field, stats[info.id]]).filter(([, value]) => value != null)) });
+  const tableOrder = [
+    ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
+    ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
+    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
+    ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
+  ];
+  // L’export reprend toutes les mesures affichées dans les tableaux, quelle
+  // que soit la sélection courante à gauche.
+  const orderedFields = [...new Set(tableOrder.flat().concat(Object.keys(metrics)))].filter(field => metrics[field]);
+  const nonNormalizable = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"]);
+  const preNormalized = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
+  // Export brut du corpus sélectionné : une seule valeur moyenne par mesure.
+  // Les noms d’œuvres et d’auteurs restent dans l’interface, pas dans ce fichier.
+  for (const field of orderedFields) {
+    const info = metrics[field];
+    const values = books.map(book => Number(book.analyses?.[0]?.stats?.[info.id])).filter(Number.isFinite);
+    const corpusValues = data.books.flatMap(book => (book.analyses || []).map(analysis => Number(analysis.stats?.[info.id]))).filter(Number.isFinite);
+    const rawValue = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    info.value = round2(rawValue);
+    if (!nonNormalizable.has(field)) {
+      info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
+      info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
+      if (!preNormalized.has(field)) {
+        info.value = round2(rawValue == null || info.corpus_min == null ? null : (info.corpus_max === info.corpus_min ? 1 : (rawValue - info.corpus_min) / (info.corpus_max - info.corpus_min)));
+      }
+    }
   }
   const save = (name, content, type) => { const href = URL.createObjectURL(new Blob([content], { type })); const link = document.createElement("a"); link.href = href; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); };
-  save("style-interpretation-data.json", JSON.stringify({ metrics, surface: { label: "Couverture stylistique", definition: data.notes?.["29"] || "", axes: surfaceAxes }, authors }, null, 2), "application/json");
+  save("style-interpretation-data.json", JSON.stringify({ metrics: orderedFields.map(field => ({ field, ...metrics[field] })) }, null, 2), "application/json");
 }
 function controls() {
   const distanceTitle = document.querySelector(".distance-box h2");
@@ -877,7 +888,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828153243085334000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828172217667216000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

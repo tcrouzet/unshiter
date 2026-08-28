@@ -949,10 +949,12 @@ def compute_stats(text: str) -> TextStats:
         + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
         + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)
         + NARRATIVITY_WEIGHTS["pos_adjective_ratio"] * (syntax.get("pos_distribution", {}).get("adjectives", 0) if syntax else 0))
-    discursivite = (DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 20, 1)
-        + DISCURSIVITE_WEIGHTS["abstract_noun_ratio"] * abstract_ratio
-        + DISCURSIVITE_WEIGHTS["gnomic_present_ratio"] * gnomic_ratio
-        + DISCURSIVITE_WEIGHTS["noun_verb_ratio"] * noun_verb_normalized)
+    # La discursivité repose uniquement sur les marqueurs logiques : les
+    # noms, adjectifs et sujets génériques peuvent relever de la description.
+    # logical_ratio est calculé sur toutes les phrases du document (le « pour
+    # 100 » sert uniquement à l'affichage). On le convertit en proportion pour
+    # le score composite, sans fenêtre ni dénominateur arbitraire.
+    discursivite = DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 100, 1)
     return TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),

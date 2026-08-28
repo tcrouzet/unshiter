@@ -200,55 +200,26 @@ def export_json() -> int:
                 })
             # Même échelle pour tout le corpus : l’œuvre au score brut maximal
             # devient la référence 100 % dans l’interface.
-            score_id = METRIC_ID_BY_FIELD["classicism_score"]
-            scores = [analysis["stats"].get(score_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(score_id), (int, float))]
-            if scores:
-                low, high = min(scores), max(scores)
-                span = high - low
+            for score_name in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score"):
+                score_id = METRIC_ID_BY_FIELD[score_name]
+                scores = [a["stats"].get(score_id) for b in books for a in b["analyses"] if isinstance(a["stats"].get(score_id), (int, float))]
+                high = max(scores, default=0)
                 for book in books:
                     for analysis in book["analyses"]:
                         value = analysis["stats"].get(score_id)
                         if isinstance(value, (int, float)):
-                            analysis["stats"][score_id] = (value - low) / span if span else 1.0
-            baroque_id = METRIC_ID_BY_FIELD["baroque_score"]
-            scores = [analysis["stats"].get(baroque_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(baroque_id), (int, float))]
-            if scores:
-                low, high = min(scores), max(scores)
-                span = high - low
-                for book in books:
-                    for analysis in book["analyses"]:
-                        value = analysis["stats"].get(baroque_id)
-                        if isinstance(value, (int, float)):
-                            analysis["stats"][baroque_id] = (value - low) / span if span else 1.0
-            emotional_id = METRIC_ID_BY_FIELD["emotionality_score"]
-            scores = [analysis["stats"].get(emotional_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(emotional_id), (int, float))]
-            if scores:
-                low, high = min(scores), max(scores)
-                span = high - low
-                for book in books:
-                    for analysis in book["analyses"]:
-                        value = analysis["stats"].get(emotional_id)
-                        if isinstance(value, (int, float)):
-                            analysis["stats"][emotional_id] = (value - low) / span if span else 1.0
+                            analysis["stats"][score_id] = value / high if high else 0.0
             analytic_id = METRIC_ID_BY_FIELD["discursivite_score"]
             scores = [analysis["stats"].get(analytic_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(analytic_id), (int, float))]
             if scores:
-                low, high = min(scores), max(scores); span = high - low
+                # Pour cet axe, l'origine a un sens : 0 connecteur = immersion.
+                # On rapporte donc au maximum du corpus, sans soustraire le minimum.
+                high = max(scores)
                 for book in books:
                     for analysis in book["analyses"]:
                         value = analysis["stats"].get(analytic_id)
                         if isinstance(value, (int, float)):
-                            analysis["stats"][analytic_id] = (value - low) / span if span else 1.0
-            for score_name in ("narrativity_score",):
-                score_id = METRIC_ID_BY_FIELD[score_name]
-                scores = [a["stats"].get(score_id) for b in books for a in b["analyses"] if isinstance(a["stats"].get(score_id), (int, float))]
-                if scores:
-                    low, high = min(scores), max(scores); span = high - low
-                    for b in books:
-                        for a in b["analyses"]:
-                            value = a["stats"].get(score_id)
-                            if isinstance(value, (int, float)):
-                                a["stats"][score_id] = (value - low) / span if span else 1.0
+                            analysis["stats"][analytic_id] = value / high if high else 0.0
         payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
