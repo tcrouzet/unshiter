@@ -80,15 +80,15 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 
 Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github.com/Znull-1220/LiteraryBigFive).
 
-| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % |
-| Maximaliste / Minimaliste[^42] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % |
-| Narratif / Descriptif[^47] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % |
-| Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % |
-| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % |
+Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée du corpus observée pour l’axe. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
 
-Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | 7.2 % |
+| Maximaliste / Minimaliste[^42] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % | 30.8 % |
+| Narratif / Descriptif[^47] | 36.3 % | 44.4 % | 41.1 % | 39.2 % | 43.1 % | 47.1 % | 48.1 % | 9.2 % |
+| Émotionnel / Neutre[^52] | 21.2 % | 20.3 % | 21.1 % | 19.0 % | 21.2 % | 19.8 % | 20.8 % | 3.8 % |
+| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | 47.9 % |
 
 ### Tableau 2 — Synthèse
 
@@ -172,7 +172,6 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur
 | Longueur P10 des phrases (caractères)[^71] | 21.0 | 21.0 | 38.0 | 22.0 | 24.0 | 38.0 | 39.0 |
 | Longueur P90 des phrases (caractères)[^72] | 147.0 | 331.0 | 214.0 | 162.0 | 159.0 | 267.0 | 546.0 |
 | Écart-type des paragraphes (mots)[^73] | 30.6 | 42.9 | 125.4 | 118.0 | 45.7 | 62.6 | 156.1 |
-| Fenêtres analysées | 2 | 2 | 4 | 1 | 2 | 1 | 2 |
 | Longueur moyenne des paragraphes (mots) | 56.9 | 80.3 | 116.6 | 110.1 | 60.3 | 162.1 | 166.7 |
 
 ### Attribution au plus proche voisin

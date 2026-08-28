@@ -1073,7 +1073,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     # décrivent le document, mais ne sont pas des mesures stylistiques.
     technical_by_file = []
     for rows in details_by_file:
-        technical_by_file.append([row for row in rows if row[0] in TECHNICAL_LABELS])
+        technical_by_file.append([row for row in rows if row[0] in TECHNICAL_LABELS and row[0] != "Fenêtres analysées"])
     details_by_file = [[row for row in rows if row[0] not in TECHNICAL_LABELS] for rows in details_by_file]
     important_dispersions = coefficient_dispersions(important_by_file, numeric_maps)
     detail_dispersions = coefficient_dispersions(details_by_file, numeric_maps)
@@ -1085,6 +1085,8 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         ("Discursif / Immersif", "discursivite_score"),
     ]
     bigfive_by_file = [[(label, f"{getattr(stats, field) * 100:.1f} %") for label, field in bigfive_fields] for _, stats in analyses]
+    bigfive_numeric = [{label: getattr(stats, field) * 100 for label, field in bigfive_fields} for _, stats in analyses]
+    bigfive_dispersions = coefficient_dispersions(bigfive_by_file, bigfive_numeric)
     numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0] + technical_by_file[0], ["Dispersion"])
     bigfive_count = len(bigfive_by_file[0])
     important_count = len(important_by_file[0])
@@ -1102,8 +1104,8 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         "## Tableau 1 — BigFive", "",
         readme_text("BigFive"), "",
     ]
-    lines += markdown_table(headers, bigfive_by_file)
-    lines += ["", "Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.", "", "## Tableau 2 — Synthèse", ""]
+    lines += markdown_table(headers, bigfive_by_file, bigfive_dispersions)
+    lines += ["", "## Tableau 2 — Synthèse", ""]
     lines += markdown_table(headers, important_by_file, important_dispersions)
     lines += ["", "## Tableau 3 — Détails", ""]
     lines += markdown_table(headers, details_by_file, detail_dispersions)
