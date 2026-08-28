@@ -41,6 +41,7 @@ from .config import (
     STATS_NOTES_FILE,
     EPUB_ANALYSIS_WINDOW_SIZE,
     STATS_COMPARISON_FILE,
+    WEB_DATA_FILE,
     STATS_FILENAME_SUFFIX,
     STRUCTURE_REPORT_SUFFIX,
     TEXT_ENCODING,
@@ -457,6 +458,8 @@ NEAREST_NEIGHBOR_FIELDS = (
     "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio",
     "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score",
     "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
+    "dialogue_ratio", "negation_ratio", "narrative_past_ratio", "narrativity_score",
+    "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "discursivite_score",
 )
 
 
@@ -465,16 +468,29 @@ def nearest_neighbor_markdown() -> list[str]:
     if not EPUB_DATABASE.exists():
         return []
     rows = []
-    with sqlite3.connect(EPUB_DATABASE) as connection:
-        for book_id, title, author, path in connection.execute("SELECT id, title, author, path FROM books ORDER BY title"):
-            analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (book_id,)).fetchone()
-            if not analysis:
-                continue
-            try:
-                values = json.loads(analysis[0])
-            except (TypeError, json.JSONDecodeError):
-                continue
-            rows.append({"title": title or Path(path).stem, "author": author or "Auteur inconnu", "values": values})
+    # Le site exporte la représentation canonique des œuvres et des mesures.
+    # Le rapport réutilise ce JSON pour éviter une seconde définition du corpus.
+    if WEB_DATA_FILE.exists():
+        try:
+            payload = json.loads(WEB_DATA_FILE.read_text(encoding=TEXT_ENCODING))
+            for book in payload.get("books", []):
+                analysis = (book.get("analyses") or [{}])[0]
+                rows.append({"title": book.get("title") or Path(book.get("filename", "")).stem,
+                             "author": book.get("author") or "Auteur inconnu",
+                             "values": analysis.get("stats", {})})
+        except (OSError, json.JSONDecodeError, TypeError):
+            rows = []
+    if not rows:
+        with sqlite3.connect(EPUB_DATABASE) as connection:
+            for book_id, title, author, path in connection.execute("SELECT id, title, author, path FROM books ORDER BY title"):
+                analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (book_id,)).fetchone()
+                if not analysis:
+                    continue
+                try:
+                    values = json.loads(analysis[0])
+                except (TypeError, json.JSONDecodeError):
+                    continue
+                rows.append({"title": title or Path(path).stem, "author": author or "Auteur inconnu", "values": values})
     if len(rows) < 3:
         return []
     ids = [METRIC_ID_BY_FIELD[field] for field in NEAREST_NEIGHBOR_FIELDS]
@@ -492,7 +508,7 @@ def nearest_neighbor_markdown() -> list[str]:
     if not ia:
         return []
     human = [index for index, book in enumerate(rows) if book["author"].strip().casefold() != "ia"]
-    lines = ["## Attribution au plus proche voisin", "", "Distance de Burrows : moyenne des écarts absolus entre z-scores sur 30 mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.", "", "| Texte IA | Voisin humain | Δ |", "|---|---|---:|"]
+    lines = ["## Attribution au plus proche voisin", "", f"Distance de Burrows : moyenne des écarts absolus entre z-scores sur {len(NEAREST_NEIGHBOR_FIELDS)} mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.", "", "| Texte IA | Voisin humain | Δ |", "|---|---|---:|"]
     for ia_index in ia:
         candidates = [(distance(usable[ia_index], usable[index]), index) for index in human]
         candidates = sorted((value, index) for value, index in candidates if value is not None)[:5]
@@ -889,9 +905,51 @@ def kiviat_chart(analyses: list[tuple[Path, object]], profile_data=None) -> str:
     return french_typography("\n".join(parts))
 
 
-def kiviat_area_chart(analyses: list[tuple[Path, object]]) -> str:
+BIGFIVE_AXES = (
+    ("Classique", "classicism_score"),
+    ("Maximaliste", "baroque_score"),
+    ("Narratif", "narrativity_score"),
+    ("Émotionnel", "emotionality_score"),
+    ("Discursif", "discursivite_score"),
+)
+
+
+def bigfive_profiles(analyses: list[tuple[Path, object]]):
+    """Construit les cinq axes BigFive, agrégés par auteur et normalisés au corpus."""
+    dimensions = []
+    for label, field in BIGFIVE_AXES:
+        values = [float(getattr(stats, field, 0) or 0) for _, stats in analyses]
+        low, high = min(values, default=0), max(values, default=1)
+        span = high - low
+        normalized = [(value - low) / span if span else 1.0 for value in values]
+        dimensions.append((label, normalized, sum(values) / (len(values) or 1), 0, False, True))
+    profiles = [[max(.05, min(.05 + .90 * dimensions[index][1][series], 1)) for index in range(len(dimensions))] for series in range(len(analyses))]
+    return dimensions, profiles
+
+
+def author_analyses(sources, analyses):
+    """Moyenne les œuvres d'un même auteur pour les graphiques du README."""
+    authors = {}
+    with sqlite3.connect(EPUB_DATABASE) as connection:
+        for source, stats in analyses:
+            row = connection.execute("SELECT author FROM books WHERE path = ?", (str(source.resolve()),)).fetchone()
+            author = (row[0] if row and row[0] else source.stem).strip()
+            authors.setdefault(author, []).append(stats)
+    result = []
+    for author in sorted(authors, key=str.casefold):
+        values = authors[author]
+        averaged = {}
+        for field in fields(TextStats):
+            numbers = [getattr(item, field.name) for item in values if isinstance(getattr(item, field.name), (int, float))]
+            if numbers:
+                averaged[field.name] = sum(numbers) / len(numbers)
+        result.append((Path(author), TextStats(**averaged)))
+    return result
+
+
+def kiviat_area_chart(analyses: list[tuple[Path, object]], profile_data=None) -> str:
     """Histogramme des surfaces des profils du radar, en unités arbitraires."""
-    _, profiles = kiviat_profiles(analyses)
+    _, profiles = profile_data or kiviat_profiles(analyses)
     count = len(profiles[0]) if profiles else 0
     angles = [-math.pi / 2 + index * 2 * math.pi / count for index in range(count)] if count else []
     areas = []
@@ -1157,7 +1215,11 @@ def main(argv=None) -> int:
             else:
                 cached = None
         if cached is not None:
-            KIVIAT_DETAIL_CHART.write_text(kiviat_chart(compared_analyses, detail_kiviat_profiles(compared_analyses)) + "\n", encoding=TEXT_ENCODING)
+            chart_analyses = author_analyses(sources, compared_analyses)
+            chart_profile = bigfive_profiles(chart_analyses)
+            KIVIAT_CHART.write_text(kiviat_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
+            KIVIAT_DETAIL_CHART.write_text(kiviat_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
+            KIVIAT_AREA_CHART.write_text(kiviat_area_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
             svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
             svg_to_png(KIVIAT_CHART, README_KIVIAT_CHART)
             svg_to_png(KIVIAT_AREA_CHART, README_KIVIAT_AREA_CHART)
@@ -1178,10 +1240,12 @@ def main(argv=None) -> int:
         comparison = markdown_comparison(sources, compared_analyses, window)
         STATS_COMPARISON_FILE.write_text(comparison + "\n", encoding=TEXT_ENCODING)
         sync_readme(comparison)
-        KIVIAT_CHART.write_text(kiviat_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
-        KIVIAT_DETAIL_CHART.write_text(kiviat_chart(compared_analyses, detail_kiviat_profiles(compared_analyses)) + "\n", encoding=TEXT_ENCODING)
+        chart_analyses = author_analyses(sources, compared_analyses)
+        chart_profile = bigfive_profiles(chart_analyses)
+        KIVIAT_CHART.write_text(kiviat_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
+        KIVIAT_DETAIL_CHART.write_text(kiviat_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
         svg_to_png(KIVIAT_DETAIL_CHART, README_KIVIAT_DETAIL_CHART)
-        KIVIAT_AREA_CHART.write_text(kiviat_area_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
+        KIVIAT_AREA_CHART.write_text(kiviat_area_chart(chart_analyses, chart_profile) + "\n", encoding=TEXT_ENCODING)
         GRAMMATICAL_DISTRIBUTION_CHART.write_text(grammatical_distribution_chart(compared_analyses) + "\n", encoding=TEXT_ENCODING)
         svg_to_png(KIVIAT_CHART, README_KIVIAT_CHART)
         svg_to_png(KIVIAT_AREA_CHART, README_KIVIAT_AREA_CHART)

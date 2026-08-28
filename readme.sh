@@ -6,4 +6,5 @@ PYTHON="$PROJECT_DIR/venv/bin/python"
 if [ ! -x "$PYTHON" ]; then
     PYTHON=python3
 fi
-PYTHONPATH="$PROJECT_DIR/script${PYTHONPATH:+:$PYTHONPATH}" exec "$PYTHON" -m detector.stats "$@"
+PYTHONPATH="$PROJECT_DIR/script${PYTHONPATH:+:$PYTHONPATH}" "$PYTHON" -m detector.web_export
+PYTHONPATH="$PROJECT_DIR/script${PYTHONPATH:+:$PYTHONPATH}" exec "$PYTHON" -m detector.readme "$@"

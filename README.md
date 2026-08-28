@@ -182,20 +182,20 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur
 
 ### Attribution au plus proche voisin
 
-Distance de Burrows : moyenne des écarts absolus entre z-scores sur 30 mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.
+Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures stylistiques. Les textes IA sont comparés aux œuvres humaines du corpus complet ; une distance faible signifie seulement une proximité statistique, pas une preuve d’auteur ou de modèle.
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Nouvelles horroristiques — Philippe Caza | 0.69 |
-|  | Motel Valparaiso — Philippe Castelneau | 0.72 |
-|  | La Carte et le Territoire — Michel Houellebecq | 0.82 |
-|  | Extension du domaine de la lutte — Michel Houellebecq | 0.84 |
-|  | L'Été 80 — Marguerite Duras | 0.84 |
-| Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.79 |
-|  | L'Été 80 — Marguerite Duras | 0.84 |
-|  | Le temps retrouvé — Marcel Proust | 0.84 |
-|  | Sortie d'usine — François Bon | 0.89 |
-|  | Autobiographie des objets — François Bon | 0.92 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.75 |
+|  | Nouvelles horroristiques — Philippe Caza | 0.76 |
+|  | L'Été 80 — Marguerite Duras | 0.85 |
+|  | Extension du domaine de la lutte — Michel Houellebecq | 0.87 |
+|  | La Carte et le Territoire — Michel Houellebecq | 0.89 |
+| Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
+|  | Le temps retrouvé — Marcel Proust | 0.87 |
+|  | Sortie d'usine — François Bon | 0.88 |
+|  | L'Été 80 — Marguerite Duras | 0.89 |
+|  | Autobiographie des objets — François Bon | 0.95 |
 
 ### Profil comparatif
 
