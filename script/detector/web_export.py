@@ -200,26 +200,27 @@ def export_json() -> int:
                 })
             # Même échelle pour tout le corpus : l’œuvre au score brut maximal
             # devient la référence 100 % dans l’interface.
+            def percentile(value, values):
+                ordered = sorted(values)
+                if len(ordered) <= 1:
+                    return 0.0
+                # Rang moyen, ramené de 0 (minimum) à 1 (maximum).
+                lower = sum(item < value for item in ordered)
+                equal = sum(item == value for item in ordered)
+                return (lower + (equal - 1) / 2) / (len(ordered) - 1)
+
+            def normalize_score(field):
+                identifier = METRIC_ID_BY_FIELD[field]
+                values = [a["stats"][identifier] for b in books for a in b["analyses"] if isinstance(a["stats"].get(identifier), (int, float))]
+                for book in books:
+                    for analysis in book["analyses"]:
+                        value = analysis["stats"].get(identifier)
+                        if isinstance(value, (int, float)):
+                            analysis["stats"][identifier] = percentile(value, values)
+
             for score_name in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score"):
-                score_id = METRIC_ID_BY_FIELD[score_name]
-                scores = [a["stats"].get(score_id) for b in books for a in b["analyses"] if isinstance(a["stats"].get(score_id), (int, float))]
-                high = max(scores, default=0)
-                for book in books:
-                    for analysis in book["analyses"]:
-                        value = analysis["stats"].get(score_id)
-                        if isinstance(value, (int, float)):
-                            analysis["stats"][score_id] = value / high if high else 0.0
-            analytic_id = METRIC_ID_BY_FIELD["discursivite_score"]
-            scores = [analysis["stats"].get(analytic_id) for book in books for analysis in book["analyses"] if isinstance(analysis["stats"].get(analytic_id), (int, float))]
-            if scores:
-                # Pour cet axe, l'origine a un sens : 0 connecteur = immersion.
-                # On rapporte donc au maximum du corpus, sans soustraire le minimum.
-                high = max(scores)
-                for book in books:
-                    for analysis in book["analyses"]:
-                        value = analysis["stats"].get(analytic_id)
-                        if isinstance(value, (int, float)):
-                            analysis["stats"][analytic_id] = value / high if high else 0.0
+                normalize_score(score_name)
+            normalize_score("discursivite_score")
         payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_note_ids": metric_note_map, "metric_labels": metric_labels, "note_ids": public_note_ids, "default_radar": radar_ids, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])

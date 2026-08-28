@@ -317,31 +317,34 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
         (source, comparable_stats(text, stats, window, gzip_window))
         for (source, stats), text in zip(full, texts)
     ]
-    # Le score de classicisme est une position relative : le maximum observé
-    # dans le corpus vaut 100 %, afin de rendre les écarts lisibles.
-    scores = [item.classicism_score for _, item in compared]
-    if scores:
-        low, high = min(scores), max(scores)
-        span = high - low
-        compared = [(source, replace(item, classicism_score=(item.classicism_score - low) / span if span else 1.0)) for source, item in compared]
-    baroque = [item.baroque_score for _, item in compared]
-    if baroque:
-        low, high = min(baroque), max(baroque)
-        span = high - low
-        compared = [(source, replace(item, baroque_score=(item.baroque_score - low) / span if span else 1.0)) for source, item in compared]
-    emotional = [item.emotionality_score for _, item in compared]
-    if emotional:
-        low, high = min(emotional), max(emotional)
-        span = high - low
-        compared = [(source, replace(item, emotionality_score=(item.emotionality_score - low) / span if span else 1.0)) for source, item in compared]
-    narrative = [item.narrativity_score for _, item in compared]
-    if narrative:
-        low, high = min(narrative), max(narrative); span = high - low
-        compared = [(source, replace(item, narrativity_score=(item.narrativity_score - low) / span if span else 1.0)) for source, item in compared]
-    discursivite = [item.discursivite_score for _, item in compared]
-    if discursivite:
-        low, high = min(discursivite), max(discursivite); span = high - low
-        compared = [(source, replace(item, discursivite_score=(item.discursivite_score - low) / span if span else 1.0)) for source, item in compared]
+    # Les axes sont classés sur toutes les fenêtres présentes en SQLite, et
+    # non sur la seule sélection affichée. Le rang percentile donne une
+    # échelle commune sans inventer de maximum propre à chaque mesure.
+    corpus_values = {}
+    try:
+        with sqlite3.connect(EPUB_DATABASE) as db:
+            rows = db.execute("SELECT stats_json FROM analyses").fetchall()
+        for field in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score", "discursivite_score"):
+            identifier = METRIC_ID_BY_FIELD[field]
+            values = []
+            for (raw,) in rows:
+                data = json.loads(raw)
+                value = data.get(identifier)
+                if isinstance(value, (int, float)) and math.isfinite(value):
+                    values.append(float(value))
+            corpus_values[field] = values
+    except (OSError, sqlite3.Error, json.JSONDecodeError):
+        corpus_values = {}
+    for field in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score", "discursivite_score"):
+        values = corpus_values.get(field) or [float(getattr(item, field, 0) or 0) for _, item in compared]
+        ordered = sorted(values)
+        def rank(value):
+            if len(ordered) <= 1:
+                return 0.0
+            lower = sum(v < value for v in ordered)
+            equal = sum(v == value for v in ordered)
+            return (lower + (equal - 1) / 2) / (len(ordered) - 1)
+        compared = [(source, replace(item, **{field: rank(float(getattr(item, field, 0) or 0))})) for source, item in compared]
     return compared, window
 
 
@@ -929,9 +932,16 @@ def bigfive_profiles(analyses: list[tuple[Path, object]]):
     dimensions = []
     for label, field in BIGFIVE_AXES:
         values = [float(getattr(stats, field, 0) or 0) for _, stats in analyses]
-        low, high = min(values, default=0), max(values, default=1)
-        span = high - low
-        normalized = [(value - low) / span if span else 1.0 for value in values]
+        ordered = sorted(values)
+        if len(ordered) <= 1:
+            normalized = [0.0 for _ in values]
+        else:
+            normalized = [
+                (sum(item < value for item in ordered) +
+                 (sum(item == value for item in ordered) - 1) / 2) /
+                (len(ordered) - 1)
+                for value in values
+            ]
         dimensions.append((label, normalized, sum(values) / (len(values) or 1), 0, False, True))
     profiles = [[max(.05, min(.05 + .90 * dimensions[index][1][series], 1)) for index in range(len(dimensions))] for series in range(len(analyses))]
     return dimensions, profiles

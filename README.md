@@ -82,7 +82,7 @@ Ces tableaux et leurs notes sont actualisés automatiquement par `./readme.sh`.
 
 Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github.com/Znull-1220/LiteraryBigFive).
 
-Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée du corpus observée pour l’axe. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
+Les cinq scores sont positionnés sur le corpus par rang percentile : 0 % correspond à la valeur la plus basse et 100 % à la plus haute ; les égalités reçoivent leur rang moyen. Cette mise à l’échelle est calculée sur toutes les fenêtres de la base, jamais sur la seule sélection affichée. Les mesures objectives restent exprimées dans leur unité. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -182,16 +182,16 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.74 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.75 |
 |  | Nouvelles horroristiques — Philippe Caza | 0.77 |
-|  | L'Été 80 — Marguerite Duras | 0.86 |
-|  | Extension du domaine de la lutte — Michel Houellebecq | 0.88 |
+|  | L'Été 80 — Marguerite Duras | 0.87 |
+|  | Extension du domaine de la lutte — Michel Houellebecq | 0.87 |
 |  | Résistants — Thierry Crouzet | 0.89 |
 | Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
 |  | Le temps retrouvé — Marcel Proust | 0.87 |
-|  | Sortie d'usine — François Bon | 0.88 |
-|  | L'Été 80 — Marguerite Duras | 0.91 |
-|  | Autobiographie des objets — François Bon | 0.96 |
+|  | Sortie d'usine — François Bon | 0.89 |
+|  | L'Été 80 — Marguerite Duras | 0.92 |
+|  | Autobiographie des objets — François Bon | 0.98 |
 
 ### Profil comparatif
 

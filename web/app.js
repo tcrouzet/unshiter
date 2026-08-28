@@ -737,7 +737,6 @@ function exportPromptAndData() {
   // que soit la sélection courante à gauche.
   const orderedFields = [...new Set(tableOrder.flat().concat(Object.keys(metrics)))].filter(field => metrics[field]);
   const nonNormalizable = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"]);
-  const preNormalized = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
   // Export brut du corpus sélectionné : une seule valeur moyenne par mesure.
   // Les noms d’œuvres et d’auteurs restent dans l’interface, pas dans ce fichier.
   for (const field of orderedFields) {
@@ -759,8 +758,15 @@ function exportPromptAndData() {
     if (!nonNormalizable.has(field)) {
       info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
       info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
-      if (!preNormalized.has(field)) {
-        info.value = round2(rawValue == null || info.corpus_min == null ? null : (info.corpus_max === info.corpus_min ? 1 : (rawValue - info.corpus_min) / (info.corpus_max - info.corpus_min)));
+      // Toutes les mesures normalisables utilisent le même rang percentile
+      // sur le corpus complet. Les mesures objectives restent absolues.
+      if (rawValue != null && corpusValues.length > 1) {
+        const ordered = [...corpusValues].sort((a, b) => a - b);
+        const lower = ordered.filter(value => value < rawValue).length;
+        const equal = ordered.filter(value => value === rawValue).length;
+        info.value = round2((lower + (equal - 1) / 2) / (ordered.length - 1));
+      } else if (rawValue != null && corpusValues.length === 1) {
+        info.value = 0;
       }
     }
   }
@@ -898,7 +904,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828212128022697000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828215516079456000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
