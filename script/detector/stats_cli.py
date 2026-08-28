@@ -54,6 +54,7 @@ FULL_DOCUMENT_FIELDS = {
     "lexical_word_count", "unique_lemma_count", "relative_clause_count",
     "subordinate_clause_count", "nominal_sentence_count", "dialogue_ratio", "oral_familiarity_ratio", "classicism_score", "baroque_score",
     "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
+    "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "discursivite_score",
 }
 
 
@@ -322,6 +323,10 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
         low, high = min(emotional), max(emotional)
         span = high - low
         compared = [(source, replace(item, emotionality_score=(item.emotionality_score - low) / span if span else 1.0)) for source, item in compared]
+    discursivite = [item.discursivite_score for _, item in compared]
+    if discursivite:
+        low, high = min(discursivite), max(discursivite); span = high - low
+        compared = [(source, replace(item, discursivite_score=(item.discursivite_score - low) / span if span else 1.0)) for source, item in compared]
     return compared, window
 
 
@@ -372,12 +377,17 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Verbes d’action[^80]", f"{stats.action_verb_ratio * 100:.1f} %"),
         ("Connecteurs temporels[^81]", f"{stats.temporal_connector_ratio:.1f} %"),
         ("Sujets personnels[^82]", f"{stats.personal_subject_ratio * 100:.1f} %"),
-        ("Narrativité[^84]", f"{stats.narrativity_score * 100:.1f} %"),
+        ("Passé narratif[^83]", f"{stats.narrative_past_ratio * 100:.1f} %" if stats.narrative_past_ratio is not None else "—"),
+        ("Narrativité ↔ Descriptivité[^84]", f"{stats.narrativity_score * 100:.1f} %"),
         ("Mots émotionnels[^85]", f"{stats.emotion_word_ratio * 100:.1f} %"),
         ("Verbes de réaction affective[^86]", f"{stats.affect_verb_ratio * 100:.1f} %"),
         ("Exclamations[^87]", f"{stats.exclamation_ratio * 100:.1f} %"),
         ("Constructions exclamatives[^88]", f"{stats.exclamative_construction_ratio * 100:.1f} %"),
         ("Émotionnalité[^89]", f"{stats.emotionality_score * 100:.1f} %"),
+        ("Connecteurs logiques[^90]", f"{stats.logical_connector_ratio:.1f} %"),
+        ("Noms abstraits[^91]", f"{stats.abstract_noun_ratio * 100:.1f} %"),
+        ("Présent gnomique[^92]", f"{stats.gnomic_present_ratio * 100:.1f} %" if stats.gnomic_present_ratio is not None else "—"),
+        ("Discursivité ↔ Immersion[^93]", f"{stats.discursivite_score * 100:.1f} %"),
         ("Ratio noms/verbes", f"{stats.noun_verb_ratio:.2f}"),
         ("Diversité des structures[^4]", f"{stats.structural_diversity * 100:.0f} %"),
         ("Diversité de longueurs de phrase (mots)", f"{stats.sentence_word_std_dev:.1f}"),
@@ -540,6 +550,8 @@ NOTE_ID_BY_LABEL = {
     "Minimalisme / Baroque": 79,
     "Mots émotionnels": 85, "Verbes de réaction affective": 86, "Exclamations": 87,
     "Constructions exclamatives": 88, "Émotionnalité": 89,
+    "Connecteurs logiques": 90, "Noms abstraits": 91, "Présent gnomique": 92,
+    "Narrativité ↔ Descriptivité": 84, "Discursivité ↔ Immersion": 93,
     "Paragraphes": 32, "Longueur moyenne des mots (caractères)": 33,
     "Longueur moyenne des phrases (caractères)": 34,
     "Longueur médiane des phrases (caractères)": 36,

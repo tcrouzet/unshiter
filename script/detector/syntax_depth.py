@@ -15,6 +15,7 @@ from .config import (
 NOMINAL_MODIFIER_DEPS = {"amod", "nmod", "acl:relcl", "acl"}
 ALWAYS_PERSONAL_PRONOUNS = {"je", "j", "tu", "nous", "vous", "elle", "elles", "ils"}
 IMPERSONAL_IL_VERBS = {"pleuvoir", "neiger", "falloir", "sembler", "arriver", "suffire", "convenir", "s'agir"}
+GENERIC_SUBJECT_PRONOUNS = {"on", "chacun", "quiconque", "nul", "tout", "certains", "beaucoup"}
 
 
 def _is_personal_subject(token) -> bool | None:
@@ -28,6 +29,16 @@ def _is_personal_subject(token) -> bool | None:
         if token.head.lemma_ == "avoir" and any(c.lower_ == "y" for c in token.head.children): return False
         return True
     return None
+
+
+def _is_generic_subject(token) -> bool:
+    return token.pos_ == "NOUN" or (token.pos_ == "PRON" and token.lower_ in GENERIC_SUBJECT_PRONOUNS)
+
+
+def _is_gnomic_present_verb(token, is_dialogue: bool = False) -> bool:
+    if is_dialogue or "Fin" not in token.morph.get("VerbForm") or "Pres" not in token.morph.get("Tense") or "Ind" not in token.morph.get("Mood"):
+        return False
+    return any(_is_generic_subject(child) for child in token.children if child.dep_ in {"nsubj", "nsubj:pass"})
 
 EXCLAMATIVE_OPENERS = {"que", "comme", "quel", "quelle", "quels", "quelles"}
 
@@ -347,6 +358,9 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
     subjects = [_is_personal_subject(t) for t in doc if t.dep_ in {"nsubj", "nsubj:pass"}]
     decided_subjects = [x for x in subjects if x is not None]
     personal_subject_ratio = sum(decided_subjects) / len(decided_subjects) if decided_subjects else 0
+    narrative_past_ratio = sum("Past" in t.morph.get("Tense") for t in finite_narrative) / len(finite_narrative) if finite_narrative else 0
+    gnomic_present_count = sum(_is_gnomic_present_verb(token) for token in narrative_tokens)
+    gnomic_present_ratio = gnomic_present_count / len(finite_narrative) if finite_narrative else 0
     return {
         "average_depth": sum(depths) / len(depths) if depths else 0,
         "sentence_count": len(depths),
@@ -380,6 +394,8 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         "avg_adjective_chain_length": sum(adjective_chains) / len(adjective_chains) if adjective_chains else 0,
         "action_verb_ratio": action_verb_ratio,
         "personal_subject_ratio": personal_subject_ratio,
+        "narrative_past_ratio": narrative_past_ratio,
+        "gnomic_present_ratio": gnomic_present_ratio,
         "exclamative_construction_ratio": sum(_is_exclamative_sentence(s) for s in sentences) / len(sentences) if sentences else 0,
     }
 

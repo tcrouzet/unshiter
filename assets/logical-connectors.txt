@@ -1,96 +1,17 @@
-# Base modifiable des connecteurs logiques et argumentatifs utilisés par
-# logical_connector_ratio (axe Analyticité).
-#
-# Format accepté : "connecteur:expression" — comptage textuel direct (occurrences
-# de la chaîne dans le texte normalisé, insensible à la casse). Ces marqueurs
-# structurent un raisonnement (cause, conséquence, opposition, addition,
-# concession) et se distinguent des connecteurs de temporal-connectors.txt,
-# qui relèvent de la progression narrative dans le temps, pas de la logique
-# argumentative. Aucune entrée ne doit être dupliquée entre les deux fichiers.
-
-# --- Conséquence ---
-connecteur: donc
-connecteur: par conséquent
-connecteur: ainsi
-connecteur: c'est pourquoi
-connecteur: de ce fait
-connecteur: dès lors que
-connecteur: si bien que
-connecteur: d'où
-connecteur: partant
-connecteur: en conséquence
-
-# --- Cause ---
-connecteur: car
-connecteur: en effet
-connecteur: parce que
-connecteur: puisque
-connecteur: étant donné que
-connecteur: du fait que
-connecteur: sous prétexte que
-connecteur: comme (cause)
-
-# --- Opposition et concession ---
-connecteur: cependant
-connecteur: néanmoins
-connecteur: toutefois
-connecteur: pourtant
-connecteur: or
-connecteur: en revanche
-connecteur: à l'inverse
-connecteur: au contraire
-connecteur: malgré tout
-connecteur: quoique
-connecteur: bien que
-connecteur: certes
-connecteur: il est vrai que
-connecteur: bien sûr, mais
-
-# --- Addition et énumération argumentative ---
-connecteur: de plus
-connecteur: en outre
-connecteur: par ailleurs
-connecteur: d'une part
-connecteur: d'autre part
-connecteur: qui plus est
-connecteur: également (addition)
-connecteur: de même
-connecteur: aussi bien
-connecteur: non seulement
-
-# --- Reformulation et illustration ---
-connecteur: autrement dit
-connecteur: c'est-à-dire
-connecteur: en d'autres termes
-connecteur: par exemple
-connecteur: ainsi que le montre
-connecteur: à savoir
-connecteur: en somme
-connecteur: en résumé
-connecteur: en définitive
-
-# --- Restriction et nuance ---
-connecteur: quant à
-connecteur: dans la mesure où
-connecteur: sauf que
-connecteur: à moins que
-connecteur: encore faut-il que
-connecteur: sous réserve que
-
-# --- Conclusion argumentative ---
-connecteur: en conclusion
-connecteur: pour conclure
-connecteur: au final
-connecteur: en définitive
-connecteur: tout compte fait
-connecteur: au demeurant
-
-# --- Corrections facultatives ---
-# "ainsi" figure ici avec un sens de conséquence logique ("ainsi, on peut
-# conclure que...") mais possède aussi un emploi comparatif ("ainsi qu'il
-# l'avait prévu") sans valeur argumentative. Ce fichier ne désambiguïse pas
-# ce cas : il compte "ainsi" systématiquement, quitte à inclure quelques
-# faux positifs comparatifs. Limite documentée dans stats-notes.md.
-# "or" (conjonction) est homographe de "or" (le métal) : le comptage textuel
-# simple ne distingue pas les deux emplois, faux positifs possibles sur des
-# textes mentionnant fréquemment ce métal.
+# Connecteurs logiques et argumentatifs (un marqueur par ligne)
+donc
+cependant
+néanmoins
+ainsi
+par conséquent
+en effet
+toutefois
+or
+d'une part
+d'autre part
+de plus
+en outre
+par ailleurs
+quant à
+dans la mesure où
+si bien que

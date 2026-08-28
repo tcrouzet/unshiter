@@ -184,6 +184,8 @@ Projection en deux dimensions des distances de Burrows calculées sur trente-deu
 
 Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
 
+Mathématiquement, chaque œuvre est représentée par le vecteur de ses mesures sélectionnées. Pour chaque mesure `j`, on calcule sur tout le corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
+
 # **Densité de participes présents** / Sparcité de participes présents #64
 
 Part des formes verbales identifiées comme participes présents (`VerbForm=Part`, `Tense=Pres`) parmi les mots analysés. Elles sont séparées des verbes conjugués.
@@ -212,9 +214,9 @@ Part des futurs employés qui sont construits avec « aller » au présent suivi
 
 Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
-# **Littéraire** / Parlé #71
+# **Classique** / Contemporain #71
 
-Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "litétraire".
+Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'abscence de futur périphrastique, l'abscence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
 
 # **Modificateurs par nom** #74
 
@@ -236,9 +238,9 @@ Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
 
 Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
 
-# **Minimalisme** / Baroque #79
+# **Maximaliste** / Minimaliste #79
 
-Score composite : proche de 0, minimalisme ; proche de 1, baroque. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
+Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
 
 # **Verbes d’action** #80
 Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
@@ -253,8 +255,8 @@ Part des sujets grammaticaux identifiables comme personnels. `on` et les noms co
 # **Passé narratif** #83
 Part des verbes finis narratifs au passé, hors dialogues.
 
-# **Narrativité** #84
-Score composite de récit d’événements séquencés : proche de 0, exposition ou description statique ; proche de 1, récit porté par des actions, des personnages et une progression temporelle.
+# **Narratif** / Descriptif #84
+Score composite : proche de 1, récit d’action ; proche de 0, peinture descriptive. Il combine les verbes d’action, connecteurs temporels, sujets personnels, dialogues et voix active, en retirant les phrases nominales et l’accumulation d’adjectifs. Le passé narratif reste une mesure informative séparée et n’entre pas dans ce score.
 
 # **Dialogue** #72
 
@@ -263,6 +265,7 @@ Part des mots appartenant aux paragraphes dont le premier caractère (hors espac
 # **Négativité** / Positivité #73
 
  Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
+
 # Mots émotionnels #85
 
 Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expanded Emotion Lexicon). Le lexique ne tient pas compte du contexte ni de la négation : « peur » est compté de la même façon dans une phrase affirmative ou négative. Source : http://advanse.lirmm.fr/feel.php.
@@ -279,6 +282,21 @@ Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure re
 
 Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
 
-# Émotionnalité #89
+# **Émotionnel** / Neutre #89
 
 Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
+# Connecteurs logiques #90
+
+Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/logical-connectors.txt`.
+
+# Noms abstraits #91
+
+Part des noms communs dont la forme se termine par un suffixe fréquent de nominalisation abstraite (`-tion`, `-isme`, `-ité`, etc.). Il s’agit d’une approximation orthographique : elle peut classer à tort des noms concrets comme « voiture ».
+
+# Présent gnomique #92
+
+Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
+
+# **Discursif** / Immersif #93
+
+Score de posture énonciative : proche de 1, commentaire, généralisation et argumentation ; proche de 0, immersion dans la scène. Il combine uniquement les connecteurs logiques, noms abstraits, présent gnomique et ratio noms/verbes. Aucune variable du score Narrativité / Descriptivité n’est réutilisée ; les mesures élémentaires restent disponibles séparément.

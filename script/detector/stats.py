@@ -6,7 +6,7 @@ import gzip
 import math
 import re
 
-from .config import (BAROQUE_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
+from .config import (BAROQUE_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
     FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
     STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING)
@@ -85,6 +85,19 @@ def temporal_connector_ratio(text: str, sentence_count: int) -> float:
     normalized = text.casefold().replace("’", "'")
     markers = _load_simple_markers(TEMPORAL_CONNECTORS_FILE)
     return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+
+
+def logical_connector_ratio(text: str, sentence_count: int) -> float:
+    """Occurrences de connecteurs logiques pour 100 phrases."""
+    normalized = text.casefold().replace("’", "'")
+    markers = _load_simple_markers(LOGICAL_CONNECTORS_FILE)
+    return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+
+
+def abstract_noun_ratio(contextual_tokens) -> float:
+    suffixes = ("tion", "sion", "isme", "ité", "esse", "ance", "ence", "ure")
+    nouns = [token for token in (contextual_tokens or []) if token[2] == "nom"]
+    return sum(token[0].casefold().endswith(suffixes) for token in nouns) / len(nouns) if nouns else 0.0
 
 
 def _load_affect_verbs() -> set[str]:
@@ -242,12 +255,17 @@ class TextStats:
     action_verb_ratio: float = 0
     temporal_connector_ratio: float = 0
     personal_subject_ratio: float = 0
-    narrativity_score: float = 0
     emotion_word_ratio: float = 0
     affect_verb_ratio: float = 0
     exclamation_ratio: float = 0
     exclamative_construction_ratio: float = 0
     emotionality_score: float = 0
+    logical_connector_ratio: float = 0
+    abstract_noun_ratio: float = 0
+    gnomic_present_ratio: float | None = None
+    narrative_past_ratio: float | None = None
+    narrativity_score: float = 0
+    discursivite_score: float = 0
     flesch: float = 0
     document_char_count: int = 0
 
@@ -910,12 +928,6 @@ def compute_stats(text: str) -> TextStats:
         + BAROQUE_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
         + BAROQUE_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
     )
-    narrativity = (NARRATIVITY_WEIGHTS["action_verb_ratio"] * action_ratio
-        + NARRATIVITY_WEIGHTS["temporal_connector_ratio"] * min(temporal_ratio / 20, 1)
-        + NARRATIVITY_WEIGHTS["personal_subject_ratio"] * personal_ratio
-        + NARRATIVITY_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
-        + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
-        + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (1 - (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)))
     contextual_for_affect = analyze_contextual_tokens(text)
     emotion_ratio = emotion_word_ratio(words)
     affect_ratio = affect_verb_ratio(contextual_for_affect)
@@ -925,6 +937,22 @@ def compute_stats(text: str) -> TextStats:
                     + EMOTIONALITY_WEIGHTS["affect_verb_ratio"] * affect_ratio
                     + EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio
                     + EMOTIONALITY_WEIGHTS["exclamative_construction_ratio"] * exclamative_ratio)
+    logical_ratio = logical_connector_ratio(text, len(sentences))
+    abstract_ratio = abstract_noun_ratio(contextual_for_affect)
+    gnomic_ratio = syntax.get("gnomic_present_ratio", 0) if syntax else 0
+    noun_verb_normalized = min(noun_ratio / max(verb_ratio, 0.001) / 5, 1)
+    past_ratio = syntax.get("narrative_past_ratio", 0) if syntax else 0
+    narrativity = (NARRATIVITY_WEIGHTS["action_verb_ratio"] * action_ratio
+        + NARRATIVITY_WEIGHTS["temporal_connector_ratio"] * min(temporal_ratio / 20, 1)
+        + NARRATIVITY_WEIGHTS["personal_subject_ratio"] * personal_ratio
+        + NARRATIVITY_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
+        + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
+        + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)
+        + NARRATIVITY_WEIGHTS["pos_adjective_ratio"] * (syntax.get("pos_distribution", {}).get("adjectives", 0) if syntax else 0))
+    discursivite = (DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 20, 1)
+        + DISCURSIVITE_WEIGHTS["abstract_noun_ratio"] * abstract_ratio
+        + DISCURSIVITE_WEIGHTS["gnomic_present_ratio"] * gnomic_ratio
+        + DISCURSIVITE_WEIGHTS["noun_verb_ratio"] * noun_verb_normalized)
     return TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
@@ -982,9 +1010,11 @@ def compute_stats(text: str) -> TextStats:
         lexical_rarity_score=r(lexical_rarity), adjective_chain_ratio=r(adjective_chain_ratio),
         avg_adjective_chain_length=r(avg_adjective_chain), baroque_score=r(baroque),
         action_verb_ratio=r(action_ratio), temporal_connector_ratio=r(temporal_ratio),
-        personal_subject_ratio=r(personal_ratio), narrativity_score=r(narrativity),
+        personal_subject_ratio=r(personal_ratio),
         emotion_word_ratio=r(emotion_ratio), affect_verb_ratio=r(affect_ratio), exclamation_ratio=r(exclaim_ratio),
         exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),
+        logical_connector_ratio=r(logical_ratio), abstract_noun_ratio=r(abstract_ratio),
+        narrative_past_ratio=r(past_ratio), narrativity_score=r(narrativity), gnomic_present_ratio=r(gnomic_ratio), discursivite_score=r(discursivite),
         flesch=r(flesch),
     )
 
