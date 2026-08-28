@@ -149,14 +149,14 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
 
 
 def default_radar_ids() -> list[str]:
-    """Lit l’ordre #tab1_N directement dans stats-notes.md."""
-    by_note = {identifier.split("_")[-1]: identifier for identifier in METRIC_ID_BY_FIELD.values()}
-    found = []
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        match = re.match(r"^# .+? #(\d+) #tab1_(\d+)\s*$", line.strip())
-        if match and match.group(1) in by_note:
-            found.append((int(match.group(2)), by_note[match.group(1)]))
-    return [identifier for _, identifier in sorted(found)]
+    """Axes BigFive affichés par défaut, dans l'ordre du tableau principal."""
+    return [
+        METRIC_ID_BY_FIELD[field]
+        for field in (
+            "classicism_score", "baroque_score", "narrativity_score",
+            "emotionality_score", "discursivite_score",
+        )
+    ]
 
 
 def export_json() -> int:

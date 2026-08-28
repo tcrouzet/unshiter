@@ -323,6 +323,10 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
         low, high = min(emotional), max(emotional)
         span = high - low
         compared = [(source, replace(item, emotionality_score=(item.emotionality_score - low) / span if span else 1.0)) for source, item in compared]
+    narrative = [item.narrativity_score for _, item in compared]
+    if narrative:
+        low, high = min(narrative), max(narrative); span = high - low
+        compared = [(source, replace(item, narrativity_score=(item.narrativity_score - low) / span if span else 1.0)) for source, item in compared]
     discursivite = [item.discursivite_score for _, item in compared]
     if discursivite:
         low, high = min(discursivite), max(discursivite); span = high - low
@@ -365,7 +369,7 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Négations complètes[^68]", f"{stats.negation_completeness_ratio * 100:.1f} %" if stats.negation_completeness_ratio is not None else "—"),
         ("Futur périphrastique[^69]", f"{stats.periphrastic_future_ratio * 100:.1f} %" if stats.periphrastic_future_ratio is not None else "—"),
         ("Familiarité orale[^70]", f"{stats.oral_familiarity_ratio:.1f} %"),
-        ("Classicism[^71]", f"{stats.classicism_score * 100:.1f} %"),
+        ("Classique / Contemporain[^71]", f"{stats.classicism_score * 100:.1f} %"),
         ("Dialogue[^72]", f"{stats.dialogue_ratio * 100:.1f} %"),
         ("Négativité / Positivité[^73]", f"{stats.negation_ratio * 100:.1f} %"),
         ("Modificateurs par nom[^74]", f"{stats.avg_modifiers_per_noun:.2f}"),
@@ -373,21 +377,21 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Rareté lexicale[^76]", f"{stats.lexical_rarity_score:.2f}"),
         ("Chaînes adjectivales[^77]", f"{stats.adjective_chain_ratio * 100:.1f} %"),
         ("Longueur des chaînes adjectivales[^78]", f"{stats.avg_adjective_chain_length:.2f}"),
-        ("Minimalisme / Baroque[^79]", f"{stats.baroque_score * 100:.1f} %"),
+        ("Maximaliste / Minimaliste[^79]", f"{stats.baroque_score * 100:.1f} %"),
         ("Verbes d’action[^80]", f"{stats.action_verb_ratio * 100:.1f} %"),
         ("Connecteurs temporels[^81]", f"{stats.temporal_connector_ratio:.1f} %"),
         ("Sujets personnels[^82]", f"{stats.personal_subject_ratio * 100:.1f} %"),
         ("Passé narratif[^83]", f"{stats.narrative_past_ratio * 100:.1f} %" if stats.narrative_past_ratio is not None else "—"),
-        ("Narrativité ↔ Descriptivité[^84]", f"{stats.narrativity_score * 100:.1f} %"),
+        ("Narratif / Descriptif[^84]", f"{stats.narrativity_score * 100:.1f} %"),
         ("Mots émotionnels[^85]", f"{stats.emotion_word_ratio * 100:.1f} %"),
         ("Verbes de réaction affective[^86]", f"{stats.affect_verb_ratio * 100:.1f} %"),
         ("Exclamations[^87]", f"{stats.exclamation_ratio * 100:.1f} %"),
         ("Constructions exclamatives[^88]", f"{stats.exclamative_construction_ratio * 100:.1f} %"),
-        ("Émotionnalité[^89]", f"{stats.emotionality_score * 100:.1f} %"),
+        ("Émotionnel / Neutre[^89]", f"{stats.emotionality_score * 100:.1f} %"),
         ("Connecteurs logiques[^90]", f"{stats.logical_connector_ratio:.1f} %"),
         ("Noms abstraits[^91]", f"{stats.abstract_noun_ratio * 100:.1f} %"),
         ("Présent gnomique[^92]", f"{stats.gnomic_present_ratio * 100:.1f} %" if stats.gnomic_present_ratio is not None else "—"),
-        ("Discursivité ↔ Immersion[^93]", f"{stats.discursivite_score * 100:.1f} %"),
+        ("Discursif / Immersif[^93]", f"{stats.discursivite_score * 100:.1f} %"),
         ("Ratio noms/verbes", f"{stats.noun_verb_ratio:.2f}"),
         ("Diversité des structures[^4]", f"{stats.structural_diversity * 100:.0f} %"),
         ("Diversité de longueurs de phrase (mots)", f"{stats.sentence_word_std_dev:.1f}"),
@@ -547,11 +551,15 @@ NOTE_ID_BY_LABEL = {
     "Négativité / Positivité": 73, "Modificateurs par nom": 74,
     "Noms fortement modifiés": 75, "Rareté lexicale": 76,
     "Chaînes adjectivales": 77, "Longueur des chaînes adjectivales": 78,
-    "Minimalisme / Baroque": 79,
+    "Minimalisme / Baroque": 79, "Maximaliste / Minimaliste": 79,
     "Mots émotionnels": 85, "Verbes de réaction affective": 86, "Exclamations": 87,
     "Constructions exclamatives": 88, "Émotionnalité": 89,
     "Connecteurs logiques": 90, "Noms abstraits": 91, "Présent gnomique": 92,
-    "Narrativité ↔ Descriptivité": 84, "Discursivité ↔ Immersion": 93,
+    "Narrativité ↔ Descriptivité": 84, "Narratif / Descriptif": 84,
+    "Discursivité ↔ Immersion": 93, "Discursif / Immersif": 93,
+    "Classique / Contemporain": 71, "Émotionnel / Neutre": 89,
+    "Registre temporel de langue": 71, "Densité stylistique": 79,
+    "Mode du texte": 84, "Charge affective": 89, "Posture énonciative": 93,
     "Paragraphes": 32, "Longueur moyenne des mots (caractères)": 33,
     "Longueur moyenne des phrases (caractères)": 34,
     "Longueur médiane des phrases (caractères)": 36,
@@ -995,21 +1003,33 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         details_by_file.append(details)
     important_dispersions = coefficient_dispersions(important_by_file, numeric_maps)
     detail_dispersions = coefficient_dispersions(details_by_file, numeric_maps)
-    numbered, note_titles = number_notes(important_by_file[0] + details_by_file[0], ["Dispersion"])
+    bigfive_fields = [
+        ("Registre temporel de langue", "classicism_score"),
+        ("Densité stylistique", "baroque_score"),
+        ("Mode du texte", "narrativity_score"),
+        ("Charge affective", "emotionality_score"),
+        ("Posture énonciative", "discursivite_score"),
+    ]
+    bigfive_by_file = [[(label, f"{getattr(stats, field) * 100:.1f} %") for label, field in bigfive_fields] for _, stats in analyses]
+    numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0], ["Dispersion"])
+    bigfive_count = len(bigfive_by_file[0])
     important_count = len(important_by_file[0])
     number_map = {
         re.sub(r"\[\^\d+\]$", "", label): label
         for label, _ in numbered
     }
+    bigfive_by_file = [[(number_map[label], value) for label, value in rows] for rows in bigfive_by_file]
     important_by_file = [[(number_map[label], value) for label, value in rows] for rows in important_by_file]
     details_by_file = [[(number_map[label], value) for label, value in rows] for rows in details_by_file]
     lines = [
         "# Comparaison statistique des sources", "",
         f"> Les mesures dérivées sont moyennées sur des fenêtres non chevauchantes d’environ {window} mots, arrêtées aux paragraphes. Gzip utilise des blocs UTF-8 de taille identique. Les nombres de mots, phrases et paragraphes décrivent le document complet.", "",
-        "## Synthèse", "",
+        "## Tableau 1 — BigFive", "",
     ]
+    lines += markdown_table(headers, bigfive_by_file)
+    lines += ["", "Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée observée pour l’axe et 0 % à la plus faible. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.", "", "## Tableau 2 — Synthèse", ""]
     lines += markdown_table(headers, important_by_file, important_dispersions)
-    lines += ["", "## Détails", ""]
+    lines += ["", "## Tableau 3 — Détails", ""]
     lines += markdown_table(headers, details_by_file, detail_dispersions)
     nearest = nearest_neighbor_markdown()
     if nearest:
@@ -1028,7 +1048,7 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
 def sync_readme(report: str, readme_path: Path = README_FILE) -> None:
     """Remplace l'instantané du README par le dernier rapport rendu."""
     readme = readme_path.read_text(encoding=TEXT_ENCODING)
-    report_start = report.index("## Synthèse")
+    report_start = report.index("## Tableau 1 — BigFive")
     snapshot = report[report_start:]
     snapshot = re.sub(r"(?m)^## ", "### ", snapshot)
     snapshot = snapshot.replace(

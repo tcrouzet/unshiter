@@ -1,16 +1,17 @@
 const RADAR = [
-  ["punctuation_per_300_words", "Densité de ponctuations"], ["punctuation_diversity", "Diversité de ponctuation"],
-  ["structural_diversity", "Diversité des structures"], ["structural_rhythm", "Rythme des structures"],
-  ["average_syntactic_depth", "Complexité syntaxique"], ["sentence_start_diversity", "Régularité des débuts de phrase"], ["burstiness", "Uniformité locale de longueur de phrase"],
-  ["noun_verb_ratio", "Ratio noms/verbes"], ["filtered_repetition_rate", "Répétitions lexicales"],
+  ["classicism_score", "Classique ↔ Contemporain"],
+  ["baroque_score", "Maximaliste ↔ Minimaliste"],
+  ["narrativity_score", "Narratif ↔ Descriptif"],
+  ["emotionality_score", "Émotionnel ↔ Neutre"],
+  ["discursivite_score", "Discursif ↔ Immersif"],
 ];
 const DETAILS = [
-  ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true], ["narrativity_score", "Narrativité ↔ Descriptivité", true],
-  ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true], ["emotionality_score", "Émotionnalité", true],
-  ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true], ["discursivite_score", "Discursivité ↔ Immersion", true],
+  ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
+  ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
+  ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
   ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
-  ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["classicism_score", "Classicism", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true], ["baroque_score", "Minimalisme / Baroque", true],
+  ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true],
   ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives et subordonnées", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
   ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
 ];
@@ -876,7 +877,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828142957480098000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260828144405168262000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
