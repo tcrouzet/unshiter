@@ -82,7 +82,7 @@ Unshiter reprend l’idée générale du projet [LiteraryBigFive](https://github
 
 Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur la plus élevée du corpus observée pour l’axe. Les pôles et les calculs détaillés sont documentés dans les notes appelées par le tableau.
 
-| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | 7.2 % |
 | Maximaliste / Minimaliste[^42] | 8.2 % | 17.7 % | 12.7 % | 11.2 % | 10.1 % | 19.1 % | 19.9 % | 30.8 % |
@@ -92,7 +92,7 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur 
 
 ### Tableau 2 — Synthèse
 
-| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Densité de ponctuations[^7] | 21.5 % | 18.5 % | 17.7 % | 16.7 % | 19.4 % | 14.6 % | 16.9 % | 11.4 % |
 | Diversité de ponctuation[^8] | 58 % | 55 % | 67 % | 41 % | 63 % | 46 % | 60 % | 15.3 % |
@@ -106,7 +106,7 @@ Les cinq scores sont normalisés sur le corpus : 100 % correspond à la valeur 
 
 ### Tableau 3 — Détails
 
-| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | σ[^1] |
+| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Diversité stylistique[^16] | 82.0 % | 82.9 % | 89.6 % | 71.9 % | 90.3 % | 89.4 % | 89.5 % | 7.4 % |
 | Répétitions familiales[^17] | 16 % | 15 % | 13 % | 19 % | 11 % | 13 % | 12 % | 17.3 % |

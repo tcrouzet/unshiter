@@ -702,7 +702,7 @@ def coefficient_dispersions(rows_by_file: list[list[tuple[str, object]]], numeri
 
 
 def markdown_table(headers: list[str], rows_by_file: list[list[tuple[str, object]]], dispersions: dict[str, str] | None = None) -> list[str]:
-    displayed_headers = headers + (["σ[^1]"] if dispersions is not None else [])
+    displayed_headers = headers + (["Dispersion (σ)[^1]"] if dispersions is not None else [])
     lines = ["| Mesure | " + " | ".join(displayed_headers) + " |", "|---|" + "---:|" * len(displayed_headers)]
     for index, (label, _) in enumerate(rows_by_file[0]):
         values = [str(rows[index][1]) for rows in rows_by_file]
