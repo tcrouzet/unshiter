@@ -307,7 +307,7 @@ Part des noms communs dont la forme se termine par un suffixe fréquent de nomin
 Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
 
 # **Discursif** / Immersif (discursivite_score)
-Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
+Score fondé sur la densité des connecteurs logiques et argumentatifs, la part de noms abstraits et le présent gnomique. Une valeur élevée indique davantage de commentaire, de généralisation ou d'argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite.
 
 # Temps littéraires (literary_tense_ratio)
 Part des verbes finis narratifs au passé simple ou au subjonctif imparfait ou plus-que-parfait, hors dialogues. Cette mesure informative est utilisée comme composante du registre classique.
