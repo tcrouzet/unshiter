@@ -57,6 +57,8 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .bonus-links .bonus-link + .bonus-link { border-left: 1px solid #aaa29b; border-radius: 0; padding-left: .8rem; margin-left: .8rem; }
 .table-download { border: 1px solid #c9c1bb; background: white; color: #514a44; padding: .35rem .65rem; border-radius: .25rem; cursor: pointer; }
 .table-wrap > .table-download { position: absolute; top: .7rem; right: .7rem; z-index: 5; display: block; opacity: 1; }
+.table-wrap > h2 { position: sticky; left: 0; z-index: 6; display: flex; align-items: center; gap: .6rem; background: white; }
+.table-wrap > h2 .table-download { position: static; display: inline-block; flex: 0 0 auto; }
 .neighborhood-box .table-download { position: static; display: block; margin: .6rem 0 0 auto; }
 .reference-select { display: block; margin: 0 0 .5rem; color: #6f6962; font-size: .9rem; }
 .evolution-box { width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; box-sizing: border-box; overflow: hidden; }
@@ -70,7 +72,11 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .downloads { margin: .5rem 0; display: flex; justify-content: flex-end; gap: .5rem; } button, select { padding: .45rem .8rem; border: 1px solid #cfc8c0; border-radius: .375rem; background: white; cursor: pointer; }
 .download-icon { width: 2.2rem; height: 2.2rem; padding: 0; font-size: 1.45rem; line-height: 1; }
 dialog { border: 1px solid #cfc8c0; border-radius: .5rem; padding: 1.2rem; box-shadow: 0 .5rem 1.875rem #0002; } dialog::backdrop { background: #0003; } dialog h3 { margin: 0 0 1rem; } .download-choices { display: flex; gap: .5rem; } dialog .cancel { margin-top: 1rem; width: 100%; }
-.table-wrap { margin-top: 1.5rem; overflow-x: auto; background: white; padding: 1rem; border-radius: .75rem; box-sizing: border-box; position: relative; } table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: white; } .ai-value { color: #b3261e; font-weight: 600; }
+.table-wrap { --table-pad: 1rem; margin-top: 1.5rem; overflow-x: auto; background: white; padding: var(--table-pad); border-radius: .75rem; box-sizing: border-box; position: relative; }
+/* Le remplissage gauche appartient à la zone fixe : il doit masquer les
+   cellules qui défilent sous la première colonne. */
+.table-wrap::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 1rem; background: white; z-index: 3; pointer-events: none; }
+table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: calc(var(--table-pad) * -1); z-index: 4; background: white; padding-left: calc(.6rem + var(--table-pad)); } .ai-value { color: #b3261e; font-weight: 600; }
 footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
 @media (max-width: 50rem) {
   main { display: block; padding: 0; overflow-x: hidden; }
@@ -85,6 +91,6 @@ footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
   .mds-box, .neighborhood-box { height: 30rem; padding: .65rem; }
   .reference-select { display: flex; flex-wrap: wrap; align-items: center; }
   .reference-select select { max-width: 100%; min-width: 0; }
-  .table-wrap { padding: .65rem; }
+  .table-wrap { --table-pad: .65rem; padding: var(--table-pad); }
   footer { padding: .8rem 1rem 1.2rem; }
 }

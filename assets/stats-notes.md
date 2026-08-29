@@ -2,39 +2,39 @@
 
 Indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure non significative.
 
-# **Densité de ponctuations** / Sparsité de ponctuations #1 #tab1_1
+# **Densité de ponctuations** / Sparsité de ponctuations #1
 
 Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
 
-# **Complexité de ponctuation** / Simplicité de ponctuation #2 #tab1_2
+# **Complexité de ponctuation** / Simplicité de ponctuation #2
 
 Répartition des signes de ponctuation en dix familles : point, virgule, point-virgule, deux-points, interrogation, exclamation, tiret, parenthèses, guillemets et points de suspension. Le calcul utilise l’entropie de cette répartition, divisée par `log₂(10)` puis ramenée entre 0 et 100 %. Le dénominateur reste donc celui de la palette complète : un texte qui emploie trois familles équilibrées n’atteint pas 100 %, car il n’utilise pas tout l’arsenal disponible. Une faible entropie indique l'usage de peu de ponctuation différente, par exemple seulement des points et virgules, alors qu'une grande entropie implique un usage équilibré de nombreuses familles.
 
-# **Diversité syntaxique** / Régularité syntaxique #3 #tab1_3
+# **Diversité syntaxique** / Régularité syntaxique #3
 
 Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions n'ont pas de rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.
 
 Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
 
-# **Alternance structurelle** / Régularité structurelle #4 #tab1_4
+# **Alternance structurelle** / Régularité structurelle #4
 
 Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
 
-# **Diversité des débuts de phrase** / Régularité des débuts de phrase #5 #tab1_6
+# **Diversité des débuts de phrase** / Régularité des débuts de phrase #5
 
 Pour chaque phrase, le premier mot est relevé après tokenisation. Le calcul examine des fenêtres glissantes de vingt phrases et mesure, dans chacune, le nombre de premiers mots différents divisé par vingt. Le rapport affiche la moyenne de ces fenêtres. Si le texte compte moins de vingt phrases, le calcul porte sur toutes ses phrases. 100 % signifie qu’aucun début ne se répète dans la fenêtre considérée.
 
-# **Diversité locale de longueur de phrase** / Uniformité locale de longueur de phrase #6 #tab1_7
+# **Diversité locale de longueur de phrase** / Uniformité locale de longueur de phrase #6
 
 Pour chaque paire de phrases consécutives, le calcul prend la différence absolue de longueur en caractères. La moyenne de ces différences est divisée par la longueur moyenne des phrases. Une valeur de 0 indique des phrases successives de même longueur. La division par la moyenne permet de comparer des textes composés de phrases globalement courtes ou longues. Cette mesure est traditionnellement nommée burstiness (par rafales, par à-coups).
 
-# Style nominal / **Style verbal** #7 #tab1_8
+# Style nominal / **Style verbal** #7
 
 Nombre de noms reconnu par [Morphalou](https://www.ortolang.fr/market/lexicons/morphalou/v3.1) divisé par le nombre de verbes reconnu par Morphalou. Une valeur de 2 signifie que le texte contient deux noms pour un verbe.
 
 Un ratio élevé traduit un style nominal : le texte s'appuie sur des substantifs plutôt que sur des actions, souvent au prix d'une syntaxe plus statique — descriptions, énumérations, écriture administrative ou théorique, phrases qui exposent plutôt qu'elles ne racontent. À l'inverse, un ratio bas traduit un style verbal : le texte progresse par l'action, les procès, les enchaînements d'événements — un rythme plus narratif et dynamique, où les choses se passent plutôt qu'elles ne sont.
 
-# Redondance lexicale / **Renouvellement lexical** #8 #tab1_9
+# Redondance lexicale / **Renouvellement lexical** #8
 
 Mesures les répétitions sur une fenêtre de {windows}. Pour chaque mot, cherche le même lemme parmi les 300 mots précédents. Les flexions sont donc regroupées : `marche`, `marches` et `marchaient` peuvent renvoyer au même lemme. Le pourcentage est le nombre de mots ayant un antécédent divisé par le nombre total de mots analysés. Les mots-outils et les graphies de moins de deux caractères ne peuvent pas être signalés, mais le dénominateur reste l’ensemble des mots retenus. La lemmatisation contextuelle vient de spaCy, avec Morphalou comme repli.
 
@@ -104,7 +104,7 @@ Pourcentage des phrases du document contenant une construction verbale active et
 
 Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/dictionnaires/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
 
-# **Complexité syntaxique** / Minimalisme syntaxique #26 #tab1_5
+# **Complexité syntaxique** / Minimalisme syntaxique #26
 
 Mesure la complexité hiérarchique des phrases reconnue par spaCy. Plus des groupes et propositions sont emboîtés les uns dans les autres, plus les mots les plus éloignés nécessitent de relations pour rejoindre le verbe principal, et plus la profondeur augmente.
 
@@ -325,10 +325,18 @@ Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient
 
 Proportion de phrases contenant au moins une proposition ou un groupe encadré par des virgules, des parenthèses ou des tirets cadratin ou demi-cadratin, inséré dans le fil syntaxique principal sans en être le sujet ou l'objet direct. La détection s'appuie sur les dépendances spaCy (`appos`, `acl:relcl`, `advcl` ou `parataxis`) lorsqu'une virgule précède le groupe. Une valeur élevée indique une phrase plus interrompue et enrichie ; une valeur faible, une phrase plus nue.
 
+# Densité de ponctuation savante #102
+
+Nombre de points-virgules et de deux-points rapporté au nombre total de phrases du document. Ces signes explicitent ou déploient une articulation logique ou énumérative à l'intérieur de la phrase ; une valeur élevée indique une syntaxe plus élaborée.
+
+# Taux de modalité généralisante #103
+
+Part des verbes qui sont des modaux (`devoir`, `pouvoir`, `falloir`) dont le sujet est générique ou impersonnel, notamment « on » ou « il » impersonnel. La liste des verbes est définie dans `assets/dictionnaires/modal_verbs.txt`. Une valeur élevée signale un discours qui énonce des règles ou des vérités générales, plutôt qu'un récit d'événements situés.
+
 # Taux d'accumulation coordonnée #100
 
 Proportion de phrases comportant plus de deux coordinations syntaxiques (`dep_ == "cc"`), par exemple des enchaînements avec « et » ou « puis ». Seules les coordinations identifiées par spaCy sont comptées, pas les virgules seules. Une valeur élevée capte une écriture par énumération ou accumulation ; une valeur faible correspond à des phrases qui tranchent davantage.
 
-# Profondeur d'finale #101
+# Profondeur d'expansion finale #101
 
 Profondeur syntaxique moyenne du sous-arbre dont la tête est le dernier mot de chaque phrase. La mesure suit les liens de dépendance de ce dernier mot vers la racine, en restant dans la phrase. Une valeur élevée indique que la phrase continue à se ramifier vers sa fin ; elle complète la profondeur syntaxique moyenne, qui porte sur toute la phrase.

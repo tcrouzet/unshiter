@@ -9,6 +9,7 @@ from .config import (
     NEGATION_COMPLETE_MARKERS_FILE,
     ABSTRACT_NOUN_SUFFIXES_FILE, CONCRETE_NOUN_EXCEPTIONS_FILE,
     STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE,
+    MODAL_VERBS_FILE,
     SPACY_FRENCH_MODEL,
     SPACY_RELATIVE_DEPENDENCIES,
     SPACY_SUBORDINATE_DEPENDENCIES,
@@ -18,6 +19,37 @@ NOMINAL_MODIFIER_DEPS = {"amod", "nmod", "acl:relcl", "acl"}
 ALWAYS_PERSONAL_PRONOUNS = {"je", "j", "tu", "nous", "vous", "elle", "elles", "ils"}
 IMPERSONAL_IL_VERBS = {"pleuvoir", "neiger", "falloir", "sembler", "arriver", "suffire", "convenir", "s'agir"}
 GENERIC_SUBJECT_PRONOUNS = {"on", "chacun", "quiconque", "nul", "tout", "certains", "beaucoup"}
+
+
+@lru_cache(maxsize=1)
+def _load_modal_verbs() -> set[str]:
+    if not MODAL_VERBS_FILE.exists():
+        return set()
+    result = set()
+    for line in MODAL_VERBS_FILE.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip().casefold()
+        if ":" in line:
+            line = line.rsplit(":", 1)[1].strip()
+        if line:
+            result.add(line)
+    return result
+
+
+def modal_generalization_ratio(doc, generic_subjects: set[str] | None = None) -> float:
+    """Part des verbes modaux dont le sujet est générique ou impersonnel."""
+    verbs = [token for token in doc if token.pos_ in {"VERB", "AUX"}]
+    if not verbs:
+        return 0.0
+    generic = set(generic_subjects or GENERIC_SUBJECT_PRONOUNS) | {"on"}
+    modals = _load_modal_verbs()
+    count = 0
+    for verb in verbs:
+        if verb.lemma_.casefold() not in modals:
+            continue
+        subjects = [child for child in verb.children if child.dep_ in {"nsubj", "nsubj:pass"}]
+        if verb.lemma_.casefold() == "falloir" or any(subject.lower_ in generic for subject in subjects):
+            count += 1
+    return count / len(verbs)
 
 
 def _is_personal_subject(token) -> bool | None:
@@ -75,7 +107,10 @@ def coordination_accumulation_ratio(doc) -> float:
 
 
 def _max_depth_from_last_token(sentence) -> int:
-    last = sentence[-1]
+    tokens = [token for token in sentence if not token.is_punct]
+    if not tokens:
+        return 0
+    last = tokens[-1]
     depth = 0
     node = last
     while node.head != node and node.head.i >= sentence.start:
@@ -377,14 +412,15 @@ def _contains_comparison(sentence) -> bool:
     return any(marker in normalized for marker in _comparison_markers())
 
 
-def analyze_syntax(text: str) -> dict[str, object] | None:
+def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     """Profondeur, propositions dépendantes et répartition grammaticale."""
-    nlp = _pipeline()
-    if nlp is None:
-        return None
-    if len(text) > nlp.max_length:
-        nlp.max_length = len(text) + 1
-    doc = nlp(text)
+    if doc is None:
+        nlp = _pipeline()
+        if nlp is None:
+            return None
+        if len(text) > nlp.max_length:
+            nlp.max_length = len(text) + 1
+        doc = nlp(text)
     paragraphs = [part for part in re.split(r"\n\s*\n+", text) if part.strip()]
     sentences = list(doc.sents)
     dialogue_ranges = dialogue_char_ranges(text)
@@ -496,17 +532,19 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         "incise_density": incise_density(doc),
         "coordination_accumulation_ratio": coordination_accumulation_ratio(doc),
         "right_branching_depth": right_branching_depth(doc),
+        "modal_generalization_ratio": modal_generalization_ratio(doc),
     }
 
 
-def analyze_contextual_tokens(text: str) -> list[tuple[str, str, str, int, int]] | None:
+def analyze_contextual_tokens(text: str, doc=None) -> list[tuple[str, str, str, int, int]] | None:
     """Graphie, lemme, catégorie française et offsets issus du contexte spaCy."""
-    nlp = _pipeline()
-    if nlp is None:
-        return None
-    if len(text) > nlp.max_length:
-        nlp.max_length = len(text) + 1
-    doc = nlp(text)
+    if doc is None:
+        nlp = _pipeline()
+        if nlp is None:
+            return None
+        if len(text) > nlp.max_length:
+            nlp.max_length = len(text) + 1
+        doc = nlp(text)
     categories = {
         "ADP": "préposition", "CCONJ": "conjonction", "DET": "déterminant",
         "INTJ": "interjection", "PRON": "pronom", "SCONJ": "conjonction",

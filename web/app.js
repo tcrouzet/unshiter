@@ -18,20 +18,24 @@ const DETAILS = [
   ["proper_noun_density", "Densité de noms propres", true],
   ["concrete_noun_ratio", "Noms concrets", true],
   ["tense_shift_rate", "Ruptures temporelles", true],
-  ["scene_summary_ratio", "Sommaire narratif", true], ["incise_density", "Densité d’incises", true], ["coordination_accumulation_ratio", "Accumulation coordonnée", true], ["right_branching_depth", "Profondeur d’expansion finale", true],
+  ["scene_summary_ratio", "Sommaire narratif", true], ["incise_density", "Densité d’incises", true], ["coordination_accumulation_ratio", "Accumulation coordonnée", true], ["right_branching_depth", "Profondeur d’expansion finale", true], ["punctuation_variety_score", "Densité de ponctuation savante", true], ["modal_generalization_ratio", "Modalité généralisante", true],
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
   ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
   ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true],
   ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives et subordonnées", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
   ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
 ];
-const BURROWS_FIELDS = ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate", "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score", "dialogue_ratio", "gzip_compression_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth", "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev", "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "narrative_past_ratio", "narrativity_score", "discursivite_score"];
 // Ensemble unique des champs pouvant être agrégés pour un profil d’auteur.
 // SUMMARY était auparavant absent : le tableau 2 devenait donc vide en mode
 // auteurs, alors que les tableaux utilisant DETAILS restaient alimentés.
 const ALL_METRICS = [...RADAR, ...SUMMARY, ...DETAILS.map(([key, label]) => [key, label])]
   .filter((item, index, all) => all.findIndex(other => other[0] === item[0]) === index);
 const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
+// La distance stylistique utilise toutes les mesures individuelles, mais
+// exclut les cinq scores BigFive (composites) et les données objectives.
+const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
+const BURROWS_FIELDS = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))]
+  .filter(key => !TECHNICAL_KEYS.has(key) && !COMPOSITE_FIELDS.has(key));
 // L’écart-type brut reste disponible dans les données, mais la mesure #6
 // affichée et indexée est bien la diversité locale (burstiness).
 const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
@@ -83,7 +87,7 @@ function markdownToHtml(raw) {
     closeList(); paragraph.push(escape(line.trim()));
   }
   flush(); closeList();
-  return output.join("").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return output.join("").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<em>$1</em>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 }
 let applicationHelpCache = null;
 function showApplicationHelp() {
@@ -132,12 +136,17 @@ function singleAuthor(books) {
   return authors.length === 1 ? authors[0] : "";
 }
 function isAI(entry) { return String(entry?.author || entry || "").trim().toLocaleLowerCase() === "ia"; }
+function authorSortKey(value) {
+  const text = String(value?.author || value || "").trim();
+  const parts = text.split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? `${parts.at(-1)}\u0000${parts.slice(0, -1).join(" ")}` : text;
+}
 function authorCompare(left, right) {
   const a = String(left?.author || left || "").trim();
   const b = String(right?.author || right || "").trim();
   if (a.toLocaleLowerCase() === "ia") return b.toLocaleLowerCase() === "ia" ? 0 : -1;
   if (b.toLocaleLowerCase() === "ia") return 1;
-  return a.localeCompare(b, "fr", { sensitivity: "base" });
+  return authorSortKey(a).localeCompare(authorSortKey(b), "fr", { sensitivity: "base" });
 }
 const INVERSE = new Set(["noun_verb_ratio", "filtered_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio", "sentence_start_diversity", "burstiness"]);
 const DISPLAY_INVERTED = new Set(["sentence_start_diversity", "burstiness"]);
@@ -207,7 +216,7 @@ function allAuthorWorksSelected(books) {
   return Object.entries(selectedCounts).every(([author, count]) => count === corpusCounts[author]);
 }
 function authorDatasets(keys, books) {
-  return authorAverages(books).map((book, i) => { const color = isAI(book) ? IA_COLOR : COLORS[i % COLORS.length]; return ({ label: book.author.trim().split(/\s+/).at(-1), isAI: isAI(book), data: keys.map(key => { const n = scale(key, value(book, key)); return n == null ? null : Math.max(10, n); }), borderColor: color, backgroundColor: pastel(color), fill: true, pointRadius: 0 }); });
+  return authorAverages(books).sort((a, b) => authorCompare(a.author, b.author)).map((book, i) => { const color = isAI(book) ? IA_COLOR : COLORS[i % COLORS.length]; return ({ label: book.author.trim().split(/\s+/).at(-1), isAI: isAI(book), data: keys.map(key => { const n = scale(key, value(book, key)); return n == null ? null : Math.max(10, n); }), borderColor: color, backgroundColor: pastel(color), fill: true, pointRadius: 0 }); });
 }
 function authorAverages(books) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
@@ -609,6 +618,10 @@ function chartExportTitle(canvas, name) {
   return titleClone.textContent.replace(/\s+/g, " ").trim() || name;
 }
 function radarLegendEntries() {
+  if (chart?.data?.datasets?.length) return chart.data.datasets.map(dataset => ({
+    label: String(dataset.label || "").trim(),
+    color: dataset.borderColor || "#777777",
+  })).filter(item => item.label);
   const domEntries = [...document.querySelectorAll("#radar-legend span")].map(item => ({
     label: item.textContent.trim(),
     color: item.querySelector("i")?.style.backgroundColor || "#777777",
@@ -688,6 +701,12 @@ function renderTables(books) {
   const canonicalLabel = ([key, fallback, ...rest]) => [key, data?.metric_labels?.[key] || fallback, ...rest];
   const summaryDefinitions = SUMMARY.map(canonicalLabel);
   const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key) && !SUMMARY.some(([field]) => field === key)).map(canonicalLabel);
+  // Les mesures secondaires sont réunies dans un seul tableau et classées
+  // par dispersion décroissante sur la sélection affichée.
+  const secondaryDefinitions = [...summaryDefinitions, ...details].sort((a, b) => {
+    const values = definition => tableBooks.map(book => value(book, definition[0])).filter(Number.isFinite);
+    return (dispersion(values(b)) ?? -1) - (dispersion(values(a)) ?? -1);
+  });
   // Le tableau de détails doit toujours exister, même si une configuration
   // de mesures est incomplète : les mesures non techniques restent affichées.
   const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key)).map(canonicalLabel);
@@ -698,7 +717,7 @@ function renderTables(books) {
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
   const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive</h2>${exportMenu("table-bigfive")}<div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap"><h2>Tableau 2 · Synthèse</h2>${exportMenu("table-summary")}<div id="table-summary">${table(tableBooks, summaryDefinitions)}</div></div><div class="table-wrap" id="details-table-wrap"><h2>Tableau 3 · détails</h2>${exportMenu("table-details")}<div id="table-details">${table(tableBooks, details)}</div></div><div class="table-wrap"><h2>Tableau 4 · données objectives</h2>${exportMenu("table-technical")}<div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions)}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
 }
 function downloadRenderedTable(container, name, format) {
   const table = container?.querySelector("table"); if (!table) return;
@@ -954,7 +973,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829111207087527000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829153425420545000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
@@ -972,7 +991,9 @@ fetch("data.json?v=20260829111207087527000").then(r => r.json()).then(json => {
   const footerAuthor = document.getElementById("footer-author");
   footerAuthor.textContent = data.site?.author || "Thierry Crouzet";
   footerAuthor.href = data.site?.author_url || "https://tcrouzet.com";
-  document.getElementById("site-description").textContent = data.site?.description || "";
+  // La présentation du site peut contenir du Markdown (liens, emphase,
+  // listes et paragraphes), comme les notes affichées dans l'application.
+  document.getElementById("site-description").innerHTML = markdownToHtml(data.site?.description || "");
   // Toutes les valeurs disponibles servent à établir chaque axe du radar.
   for (const [key] of ALL_METRICS) {
     corpusValues.set(key, data.books.map(b => value(b, key)).filter(Number.isFinite));

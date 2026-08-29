@@ -2,6 +2,7 @@
 
 from collections import Counter
 from dataclasses import dataclass, asdict
+from functools import cached_property
 import gzip
 import math
 import re
@@ -9,10 +10,10 @@ import re
 from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
     FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
-    STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING)
+    STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING, METRICS)
 from .demonette import family_map, phonetic_map
 from .morphalou import contextual_lemma_map, lemma_map, lexical_map
-from .syntax_depth import analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges
+from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth
 from .lexical_frequency import frequency_map
 from .emotion_lexicon import emotion_map
 
@@ -42,6 +43,84 @@ def _load_function_words() -> tuple[set[str], set[str], set[str], set[str]]:
         else:
             raise ValueError(f"Type inconnu dans {FUNCTION_WORDS_FILE}: {kind!r}")
     return words, categories, lemmas, kept_words
+
+
+class Metrics:
+    """Contexte et fonctions de mesure d'un même texte.
+
+    Les propriétés sont paresseuses : la tokenisation et le pipeline spaCy ne
+    sont exécutés qu'au moment où une mesure les demande, puis leur résultat
+    est réutilisé par les mesures suivantes.
+    """
+
+    def __init__(self, text: str, progress=None):
+        self.text = text
+        self.progress = progress
+        self._computed = None
+
+    @cached_property
+    def tokens(self):
+        return tokenize(self.text)
+
+    @property
+    def words(self):
+        return self.tokens
+
+    @cached_property
+    def sentences(self):
+        return split_sentences(self.text)
+
+    @cached_property
+    def paragraphs(self):
+        return [part for part in re.split(r"\n\s*\n", self.text) if part.strip()]
+
+    @cached_property
+    def doc(self):
+        pipeline = _pipeline()
+        if pipeline is None:
+            return None
+        if len(self.text) > pipeline.max_length:
+            pipeline.max_length = len(self.text) + 1
+        return pipeline(self.text)
+
+    @cached_property
+    def syntax(self):
+        return analyze_syntax(self.text, self.doc)
+
+    @cached_property
+    def contextual_tokens(self):
+        return analyze_contextual_tokens(self.text, self.doc)
+
+    @cached_property
+    def dialogue_ranges(self):
+        return dialogue_char_ranges(self.text)
+
+    def right_branching_depth(self):
+        """Calcule uniquement cette mesure, par lots de phrases.
+
+        Ce chemin évite de lancer les cent autres mesures lors d'une purge
+        ciblée et rend visible l'avancement du traitement spaCy.
+        """
+        if self._computed is not None:
+            return self._computed.right_branching_depth
+        pipeline = _pipeline()
+        if pipeline is None:
+            return 0.0
+        sentences = self.sentences
+        total = len(sentences)
+        if not total:
+            return 0.0
+        batch_size = 64
+        depth_sum = 0.0
+        done = 0
+        if self.progress:
+            self.progress(0, total, "right_branching_depth — phrases")
+        for doc in pipeline.pipe(sentences, batch_size=batch_size):
+            depth_sum += _right_branching_depth(doc)
+            done += 1
+            if self.progress and (done == total or done % batch_size == 0):
+                self.progress(done, total, "right_branching_depth — phrases")
+        return depth_sum / total
 
 
 FUNCTION_WORDS, GRAMMATICAL_CATEGORIES, FUNCTION_LEMMAS, KEPT_WORDS = _load_function_words()
@@ -126,11 +205,18 @@ def affect_verb_ratio(contextual_tokens) -> float:
 
 def punctuation_pattern_counts(text: str) -> dict[str, int]:
     return {"point_final": len(re.findall(r"\.", text)), "virgule": len(re.findall(r",", text)),
+            "semicolon": len(re.findall(r";", text)), "colon": len(re.findall(r":", text)),
             "exclamation": len(re.findall(r"!", text)), "suspension": len(re.findall(r"…|\.\.\.", text))}
 
 
 def exclamation_ratio(text: str, sentence_count: int) -> float:
     return punctuation_pattern_counts(text)["exclamation"] / sentence_count if sentence_count else 0.0
+
+
+def punctuation_variety_score(text: str, sentence_count: int) -> float:
+    """Nombre de points-virgules et deux-points par phrase."""
+    counts = punctuation_pattern_counts(text)
+    return (counts["semicolon"] + counts["colon"]) / sentence_count if sentence_count else 0.0
 
 
 def emotion_word_ratio(words: list[str]) -> float:
@@ -251,9 +337,11 @@ class TextStats:
     concrete_noun_ratio: float = 0
     tense_shift_rate: float = 0
     scene_summary_ratio: float = 0
+    punctuation_variety_score: float = 0
     incise_density: float = 0
     coordination_accumulation_ratio: float = 0
     right_branching_depth: float = 0
+    modal_generalization_ratio: float = 0
     present_participle_ratio: float | None = None
     past_participle_ratio: float | None = None
     simple_past_ratio: float = 0
@@ -600,6 +688,22 @@ def filtered_lemmas(words: list[str]) -> list[str]:
     return result
 
 
+def _install_metric_methods() -> None:
+    """Expose une méthode nommée pour chaque clé de METRICS."""
+    for field in METRICS:
+        if hasattr(Metrics, field):
+            continue
+        def metric(self, _field=field):
+            if self._computed is None:
+                self._computed = _compute_all_stats(self.text, context=self)
+            return getattr(self._computed, _field, 0)
+        metric.__name__ = field
+        setattr(Metrics, field, metric)
+
+
+_install_metric_methods()
+
+
 def lemma_hapax_ratio(words: list[str]) -> float:
     """Part des lemmes lexicaux distincts qui n'apparaissent qu'une fois."""
     lemmas = filtered_lemmas(words)
@@ -856,9 +960,20 @@ def repetition_distribution(words: list[str], window: int, step: int | None = No
     return {"window": window, "count": len(starts), "absolute": average(absolute_values), "filtered": average(filtered_values), "family": average(family_values), "phonetic": average(phonetic_values)}
 
 
-def compute_stats(text: str) -> TextStats:
-    words, sentences = tokenize(text), split_sentences(text)
-    repetition_words = tokenize_repetitions(text)
+def _compute_all_stats(text: str, progress=None, context: Metrics | None = None) -> TextStats:
+    """Calcule les mesures et signale éventuellement les grandes étapes."""
+    def report(step: int, label: str) -> None:
+        if progress is not None:
+            progress(step, 8, label)
+
+    report(1, "tokenisation")
+    context = context or Metrics(text)
+    words, sentences = context.words, context.sentences
+    repetition_words = context.contextual_tokens
+    if repetition_words is not None:
+        repetition_words = [token for token in repetition_words if len(token[0]) >= 2]
+    else:
+        repetition_words = [word for word in tokenize(text.replace("’", " ").replace("'", " ")) if len(word) >= 2]
     if not words: return TextStats()
     # Longueur stylistique des phrases en caractères, espaces compris.
     lengths = [len(s.strip()) for s in sentences if s.strip()]
@@ -869,6 +984,7 @@ def compute_stats(text: str) -> TextStats:
     word_std = math.sqrt(sum((n - word_mean) ** 2 for n in sentence_word_lengths) / len(sentence_word_lengths)) if len(sentence_word_lengths) > 1 else 0
     mean_difference = sum(abs(b-a) for a, b in zip(lengths, lengths[1:])) / (len(lengths)-1) if len(lengths)>1 else 0
     burst = mean_difference / mean if mean else 0
+    report(2, "mesures lexicales")
     trigram_lemmas = _trigram_lemmas(words, repetition_words)
     repetition = _trigram_repetition(trigram_lemmas)
     paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
@@ -886,7 +1002,8 @@ def compute_stats(text: str) -> TextStats:
     structures = sentence_structure_signatures(split_structure_units(text))
     encoded_text = text.encode("utf-8")
     gzip_ratio = len(gzip.compress(encoded_text, mtime=0)) / len(encoded_text) if encoded_text else 0
-    syntax = analyze_syntax(text)
+    report(3, "analyse syntaxique")
+    syntax = context.syntax
     if syntax:
         distribution = syntax["pos_distribution"]
         noun_ratio = distribution["common_nouns"] + distribution["proper_nouns"]
@@ -905,7 +1022,8 @@ def compute_stats(text: str) -> TextStats:
         present_participle_ratio = past_participle_ratio = None
         simple_past_ratio = literary_subjunctive_ratio = 0
         negation_completeness = periphrastic_future_ratio = None
-    dialogue_ranges = dialogue_char_ranges(text)
+    report(4, "dialogues et registres")
+    dialogue_ranges = context.dialogue_ranges
     narrative_text = text
     if dialogue_ranges:
         chars = list(text)
@@ -920,6 +1038,7 @@ def compute_stats(text: str) -> TextStats:
     heavily_modified = syntax.get("heavily_modified_noun_ratio", 0) if syntax else 0
     adjective_chain_ratio = syntax.get("adjective_chain_ratio", 0) if syntax else 0
     avg_adjective_chain = syntax.get("avg_adjective_chain_length", 0) if syntax else 0
+    report(5, "rareté lexicale")
     lexical_rarity = lexical_rarity_score(words)
     action_ratio = syntax.get("action_verb_ratio", 0) if syntax else 0
     personal_ratio = syntax.get("personal_subject_ratio", 0) if syntax else 0
@@ -929,6 +1048,7 @@ def compute_stats(text: str) -> TextStats:
     # ensuite sa normalisation par percentiles pour les comparaisons.
     active_ratio = syntax["active_voice_ratio"] if syntax and syntax["active_voice_ratio"] is not None else 0
     literary_ratio = simple_past_ratio + literary_subjunctive_ratio
+    report(6, "calcul du classicisme")
     classicism = (
         CLASSICISM_WEIGHTS["literary_tense_ratio"] * literary_ratio
         + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * (periphrastic_future_ratio or 0)
@@ -945,7 +1065,8 @@ def compute_stats(text: str) -> TextStats:
         + ORNATENESS_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
         + ORNATENESS_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
     )
-    contextual_for_affect = analyze_contextual_tokens(text)
+    report(7, "analyse des marqueurs affectifs")
+    contextual_for_affect = context.contextual_tokens
     emotion_ratio = emotion_word_ratio(words)
     affect_ratio = affect_verb_ratio(contextual_for_affect)
     exclaim_ratio = exclamation_ratio(text, len(sentences))
@@ -971,7 +1092,8 @@ def compute_stats(text: str) -> TextStats:
     discursivite = (DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 100, 1)
                     + DISCURSIVITE_WEIGHTS["abstract_noun_ratio"] * abstract_ratio
                     + DISCURSIVITE_WEIGHTS["gnomic_present_ratio"] * gnomic_ratio)
-    return TextStats(
+    report(8, "assemblage des résultats")
+    result = TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
         avg_sentence_length=r(mean), avg_sentence_word_count=r(word_mean), median_sentence_length=r(_percentile(lengths, .5)),
@@ -1020,9 +1142,11 @@ def compute_stats(text: str) -> TextStats:
         concrete_noun_ratio=r(syntax.get("concrete_noun_ratio", 0)) if syntax else 0,
         tense_shift_rate=r(syntax.get("tense_shift_rate", 0)) if syntax else 0,
         scene_summary_ratio=r(scene_summary_ratio(sentences, max_sentence_length=max(map(len, sentences), default=0))),
+        punctuation_variety_score=r(punctuation_variety_score(text, len(sentences))),
         incise_density=r(syntax.get("incise_density", 0)) if syntax else 0,
         coordination_accumulation_ratio=r(syntax.get("coordination_accumulation_ratio", 0)) if syntax else 0,
         right_branching_depth=r(syntax.get("right_branching_depth", 0)) if syntax else 0,
+        modal_generalization_ratio=r(syntax.get("modal_generalization_ratio", 0)) if syntax else 0,
         present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
         past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
         simple_past_ratio=r(simple_past_ratio), literary_subjunctive_ratio=r(literary_subjunctive_ratio),
@@ -1041,8 +1165,25 @@ def compute_stats(text: str) -> TextStats:
         exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),
         logical_connector_ratio=r(logical_ratio), abstract_noun_ratio=r(abstract_ratio),
         narrative_past_ratio=r(past_ratio), narrativity_score=r(narrativity), gnomic_present_ratio=r(gnomic_ratio), discursivite_score=r(discursivite),
-        flesch=r(flesch),
+        flesch=r(flesch), document_char_count=len(text),
     )
+    return result
+
+
+def compute_stats(text: str, progress=None) -> TextStats:
+    """API historique construite depuis l'unique registre ``METRICS``.
+
+    La génération ne connaît aucune table de fonctions : elle demande chaque
+    mesure à l'objet ``Metrics``. Ses données préparées restent mémorisées et
+    sont donc partagées entre tous les appels.
+    """
+    metrics = Metrics(text)
+    values = {}
+    for index, field in enumerate(METRICS, 1):
+        if progress is not None:
+            progress(index, len(METRICS), field)
+        values[field] = getattr(metrics, field)()
+    return TextStats(**values)
 
 
 def uniformity_components(s: TextStats, filtered_repetition: float | None = None) -> dict[str, float]:

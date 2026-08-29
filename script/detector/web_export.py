@@ -15,6 +15,7 @@ from .config import (EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRIC_ID_BY_FIEL
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
                      DISCURSIVITE_WEIGHTS)
 from .config import CHART_PALETTE_FILE, STATS_NOTES_FILE
+from .metrics import cached_metric_values
 
 
 def site_config() -> dict[str, str]:
@@ -170,8 +171,8 @@ def export_json() -> int:
             books = []
             for book in db.execute("SELECT id,path,title,author,publisher,publication_date,size,sha256 FROM books ORDER BY title COLLATE NOCASE"):
                 analyses = []
-                for row in db.execute("SELECT window_index,char_start,char_end,char_count,stats_json FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
-                    stats_data = json.loads(row["stats_json"])
+                for row in db.execute("SELECT window_index,char_start,char_end,char_count FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
+                    stats_data = cached_metric_values(db, book["id"], row["window_index"])
                     required = ("punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate")
                     missing = [field for field in required if METRIC_ID_BY_FIELD[field] not in stats_data or not isinstance(stats_data[METRIC_ID_BY_FIELD[field]], (int, float)) or not math.isfinite(stats_data[METRIC_ID_BY_FIELD[field]])]
                     if missing:

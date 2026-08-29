@@ -20,7 +20,7 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v61-right-branching"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v64-modal-generalization-optimized"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -44,6 +44,7 @@ NEGATION_COMPLETE_MARKERS_FILE = DICTIONARIES_DIR / "negation-complete-markers.t
 ABSTRACT_NOUN_SUFFIXES_FILE = DICTIONARIES_DIR / "abstract-noun-suffixes.txt"
 CONCRETE_NOUN_EXCEPTIONS_FILE = DICTIONARIES_DIR / "concrete-noun-exceptions.txt"
 DURATION_MARKERS_FILE = DICTIONARIES_DIR / "duration-markers.txt"
+MODAL_VERBS_FILE = DICTIONARIES_DIR / "modal_verbs.txt"
 LEXIQUE_DIR = DICTIONARIES_DIR / "lexique"
 LEXIQUE_ARCHIVE = LEXIQUE_DIR / "Lexique383.tsv"
 LEXIQUE_INDEX = LEXIQUE_DIR / "lexique.sqlite3"
@@ -194,21 +195,23 @@ METRICS = {
     "incise_density": "mesure_99",
     "coordination_accumulation_ratio": "mesure_100",
     "right_branching_depth": "mesure_101",
+    "punctuation_variety_score": "mesure_102",
+    "modal_generalization_ratio": "mesure_103",
 }
 
 METRIC_FIELDS = tuple(METRICS)
 METRIC_ID_BY_FIELD = dict(METRICS)
 FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRICS.items() if identifier}
 
-
-def windowed_metric_fields() -> set[str]:
-    """Champs calculés sur la fenêtre signalée par {windows} dans les notes."""
-    return {
-        "filtered_repetition_rate", "absolute_repetition_rate",
-        "family_repetition_rate", "phonetic_repetition_rate",
-        "stylistic_repetition_rate", "trigram_repetition",
-        "moving_trigram_repetition", "sentence_word_std_dev",
-    }
+# Les cinq axes de synthèse sont définis ici, au même endroit que les autres
+# références de mesures, afin que les rapports n'en maintiennent pas une copie.
+BIGFIVE_AXES = (
+    ("Classique", "classicism_score"),
+    ("Maximaliste", "baroque_score"),
+    ("Narratif", "narrativity_score"),
+    ("Émotionnel", "emotionality_score"),
+    ("Discursif", "discursivite_score"),
+)
 
 
 # Poids des scores composites. Les valeurs sont regroupées ici pour rendre

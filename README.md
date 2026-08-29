@@ -86,81 +86,76 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Classique / Contemporain[^34] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | 9.7 % |
-| Maximaliste / Minimaliste[^42] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | 31.6 % |
-| Narratif / Descriptif[^47] | 25.3 % | 35.6 % | 32.2 % | 29.4 % | 35.2 % | 40.7 % | 42.6 % | 16.3 % |
-| Émotionnel / Neutre[^52] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | 42.6 % |
-| Discursif / Immersif[^56] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | 39.9 % |
+| Classique / Contemporain[^42] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | 9.7 % |
+| Maximaliste / Minimaliste[^50] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | 31.6 % |
+| Narratif / Descriptif[^55] | 27.1 % | 37.0 % | 34.9 % | 31.9 % | 36.9 % | 43.3 % | 44.8 % | 15.6 % |
+| Émotionnel / Neutre[^60] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | 42.6 % |
+| Discursif / Immersif[^64] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | 39.9 % |
 
-### Tableau 2 — Synthèse
+### Tableau 2 — Synthèse et détails
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Densité de ponctuations[^7] | 21.5 % | 18.5 % | 17.7 % | 16.7 % | 19.4 % | 14.6 % | 16.9 % | 11.4 % |
-| Diversité de ponctuation[^8] | 58 % | 55 % | 67 % | 41 % | 63 % | 46 % | 60 % | 15.3 % |
-| Diversité des structures[^9] | 42 % | 57 % | 51 % | 51 % | 51 % | 62 % | 68 % | 14.2 % |
-| Rythme des structures[^10] | 43 % | 59 % | 49 % | 53 % | 53 % | 55 % | 62 % | 11.0 % |
-| Profondeur syntaxique[^11] | 2.8 | 4.3 | 3.7 | 3.4 | 3.2 | 5.6 | 4.6 | 22.4 % |
-| Diversité des débuts de phrase[^12] | 70 % | 63 % | 79 % | 66 % | 70 % | 79 % | 72 % | 7.9 % |
-| Burstiness[^13] | 0.67 | 0.99 | 0.68 | 0.78 | 0.73 | 0.55 | 1.07 | 22.1 % |
-| Ratio noms/verbes[^14] | 2.38 | 2.64 | 3.14 | 1.71 | 3.73 | 3.04 | 2.64 | 21.5 % |
+| Répétition locale des trigrammes[^7] | 0.9 % | 1.2 % | 0.7 % | 2.0 % | 0.1 % | 0.2 % | 0.1 % | 87.2 % |
+| Comparaisons métaphoriques[^8] | 6.4 % | 16.9 % | 2.3 % | 7.5 % | 1.8 % | 12.7 % | 8.9 % | 62.1 % |
+| Répétition globale des trigrammes[^9] | 3.4 % | 3.5 % | 1.5 % | 4.4 % | 1.1 % | 1.2 % | 0.9 % | 58.0 % |
+| Phrases nominales[^10] | 31 % | 28 % | 7 % | 13 % | 25 % | 10 % | 11 % | 51.1 % |
+| Relatives et subordonnées[^11] | 82 % | 262 % | 98 % | 131 % | 95 % | 272 % | 202 % | 46.3 % |
+| Diversité de longueurs de phrase (mots)[^12] | 6.2 | 24.1 | 12.5 | 14.0 | 9.3 | 14.8 | 41.1 | 41.1 % |
+| Adverbes[^13] | 20 % | 22 % | 12 % | 20 % | 12 % | 16 % | 12 % | 25.5 % |
+| Profondeur syntaxique[^14] | 2.8 | 4.3 | 3.7 | 3.4 | 3.2 | 5.6 | 4.6 | 22.4 % |
 | Répétitions lexicales[^15] | 14 % | 13 % | 10 % | 17 % | 9 % | 11 % | 9 % | 22.3 % |
+| Burstiness[^16] | 0.67 | 0.99 | 0.68 | 0.78 | 0.73 | 0.55 | 1.07 | 22.1 % |
+| Ratio noms/verbes[^17] | 2.38 | 2.64 | 3.14 | 1.71 | 3.73 | 3.04 | 2.64 | 21.5 % |
+| Répétitions familiales[^18] | 16 % | 15 % | 13 % | 19 % | 11 % | 13 % | 12 % | 17.3 % |
+| Diversité de ponctuation[^19] | 58 % | 55 % | 67 % | 41 % | 63 % | 46 % | 60 % | 15.3 % |
+| Diversité des structures[^20] | 42 % | 57 % | 51 % | 51 % | 51 % | 62 % | 68 % | 14.2 % |
+| Adjectifs[^21] | 12 % | 14 % | 16 % | 12 % | 15 % | 14 % | 18 % | 13.3 % |
+| Voix active[^22] | 57 % | 49 % | 63 % | 67 % | 56 % | 72 % | 67 % | 12.2 % |
+| Densité de ponctuations[^23] | 21.5 % | 18.5 % | 17.7 % | 16.7 % | 19.4 % | 14.6 % | 16.9 % | 11.4 % |
+| Rythme des structures[^24] | 43 % | 59 % | 49 % | 53 % | 53 % | 55 % | 62 % | 11.0 % |
+| Répétitions non filtrées[^25] | 59 % | 59 % | 50 % | 66 % | 50 % | 51 % | 51 % | 10.1 % |
+| Noms[^26] | 48 % | 46 % | 54 % | 43 % | 58 % | 53 % | 51 % | 9.3 % |
+| Verbes[^27] | 20 % | 18 % | 17 % | 25 % | 16 % | 17 % | 19 % | 8.3 % |
+| Mots employés une seule fois[^28] | 62 % | 63 % | 71 % | 59 % | 73 % | 71 % | 73 % | 8.3 % |
+| Diversité des débuts de phrase[^29] | 70 % | 63 % | 79 % | 66 % | 70 % | 79 % | 72 % | 7.9 % |
+| Diversité stylistique[^30] | 82.0 % | 82.9 % | 89.6 % | 71.9 % | 90.3 % | 89.4 % | 89.5 % | 7.4 % |
+| Mots-outils[^31] | 41 % | 41 % | 35 % | 40 % | 36 % | 34 % | 36 % | 7.2 % |
+| Compression gzip[^32] | 41 % | 40 % | 43 % | 39 % | 44 % | 44 % | 43 % | 3.9 % |
+| Répétitions sonores[^33] | 21 % | 21 % | 22 % | 20 % | 21 % | 20 % | 20 % | 3.4 % |
+| Formes par lemme[^34] | 0.86 | 0.86 | 0.85 | 0.94 | 0.85 | 0.87 | 0.86 | 0.8 % |
+| Participes présents[^35] | 0 % | 0 % | 1 % | 0 % | 0 % | 2 % | 1 % | — |
+| Participes passés[^36] | 4 % | 4 % | 3 % | 5 % | 3 % | 3 % | 3 % | — |
+| Passé simple[^37] | 0.0 % | 0.0 % | 10.1 % | 0.0 % | 0.0 % | 0.0 % | 7.9 % | — |
+| Subjonctif littéraire[^38] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 1.6 % | 0.3 % | 2.5 % | — |
+| Négations complètes[^39] | 96.0 % | 100.0 % | 100.0 % | 93.5 % | 100.0 % | 100.0 % | 100.0 % | — |
+| Futur périphrastique[^40] | 0.0 % | 20.0 % | 0.0 % | 33.3 % | 0.0 % | 27.3 % | 0.0 % | — |
+| Familiarité orale[^41] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.1 % | 0.1 % | 0.0 % | — |
+| Classique / Contemporain[^42] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | — |
+| Dialogue[^43] | 34.7 % | 30.1 % | 13.5 % | 0.0 % | 4.7 % | 0.0 % | 0.3 % | — |
+| Négativité / Positivité[^44] | 27.2 % | 46.1 % | 9.9 % | 25.1 % | 15.7 % | 28.6 % | 16.5 % | — |
+| Modificateurs par nom[^45] | 0.49 | 0.60 | 0.58 | 0.53 | 0.55 | 0.58 | 0.62 | — |
+| Noms fortement modifiés[^46] | 7.8 % | 11.0 % | 10.7 % | 8.9 % | 9.7 % | 11.2 % | 13.0 % | — |
+| Rareté lexicale[^47] | 0.50 | 0.52 | 0.54 | 0.51 | 0.51 | 0.55 | 0.52 | — |
+| Chaînes adjectivales[^48] | 0.0 % | 1.3 % | 0.9 % | 0.8 % | 0.4 % | 4.8 % | 5.1 % | — |
+| Longueur des chaînes adjectivales[^49] | 0.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | — |
+| Maximaliste / Minimaliste[^50] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | — |
+| Verbes d’action[^51] | 50.7 % | 46.2 % | 51.9 % | 30.7 % | 70.6 % | 51.9 % | 60.6 % | — |
+| Connecteurs temporels[^52] | 10.2 % | 21.3 % | 16.3 % | 14.3 % | 12.6 % | 32.8 % | 28.1 % | — |
+| Sujets personnels[^53] | 99.4 % | 100.0 % | 99.0 % | 99.0 % | 99.3 % | 100.0 % | 98.3 % | — |
+| Passé narratif[^54] | 0.3 % | 0.3 % | 13.5 % | 0.2 % | 0.8 % | 0.3 % | 22.1 % | — |
+| Narratif / Descriptif[^55] | 27.1 % | 37.0 % | 34.9 % | 31.9 % | 36.9 % | 43.3 % | 44.8 % | — |
+| Mots émotionnels[^56] | 52.4 % | 50.5 % | 52.0 % | 47.4 % | 52.6 % | 49.3 % | 51.4 % | — |
+| Verbes de réaction affective[^57] | 1.1 % | 0.6 % | 1.2 % | 0.1 % | 0.4 % | 0.5 % | 0.8 % | — |
+| Exclamations[^58] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.4 % | 0.0 % | 0.0 % | — |
+| Constructions exclamatives[^59] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | — |
+| Émotionnel / Neutre[^60] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | — |
+| Connecteurs logiques[^61] | 25.2 % | 49.0 % | 44.2 % | 37.4 % | 29.3 % | 66.6 % | 108.6 % | — |
+| Noms abstraits[^62] | 5.5 % | 5.4 % | 10.7 % | 6.1 % | 5.9 % | 5.4 % | 6.7 % | — |
+| Présent gnomique[^63] | 19.1 % | 13.6 % | 5.3 % | 3.7 % | 23.0 % | 18.1 % | 10.3 % | — |
+| Discursif / Immersif[^64] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | — |
 
-### Tableau 3 — Détails
-
-| Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Diversité stylistique[^16] | 82.0 % | 82.9 % | 89.6 % | 71.9 % | 90.3 % | 89.4 % | 89.5 % | 7.4 % |
-| Répétitions familiales[^17] | 16 % | 15 % | 13 % | 19 % | 11 % | 13 % | 12 % | 17.3 % |
-| Répétitions sonores[^18] | 21 % | 21 % | 22 % | 20 % | 21 % | 20 % | 20 % | 3.4 % |
-| Répétitions non filtrées[^19] | 59 % | 59 % | 50 % | 66 % | 50 % | 51 % | 51 % | 10.1 % |
-| Répétition globale des trigrammes[^20] | 3.4 % | 3.5 % | 1.5 % | 4.4 % | 1.1 % | 1.2 % | 0.9 % | 58.0 % |
-| Répétition locale des trigrammes[^21] | 0.9 % | 1.2 % | 0.7 % | 2.0 % | 0.1 % | 0.2 % | 0.1 % | 87.2 % |
-| Mots-outils[^22] | 41 % | 41 % | 35 % | 40 % | 36 % | 34 % | 36 % | 7.2 % |
-| Noms[^23] | 48 % | 46 % | 54 % | 43 % | 58 % | 53 % | 51 % | 9.3 % |
-| Verbes[^24] | 20 % | 18 % | 17 % | 25 % | 16 % | 17 % | 19 % | 8.3 % |
-| Adjectifs[^25] | 12 % | 14 % | 16 % | 12 % | 15 % | 14 % | 18 % | 13.3 % |
-| Adverbes[^26] | 20 % | 22 % | 12 % | 20 % | 12 % | 16 % | 12 % | 25.5 % |
-| Participes présents[^27] | 0 % | 0 % | 1 % | 0 % | 0 % | 2 % | 1 % | — |
-| Participes passés[^28] | 4 % | 4 % | 3 % | 5 % | 3 % | 3 % | 3 % | — |
-| Passé simple[^29] | 0.0 % | 0.0 % | 10.1 % | 0.0 % | 0.0 % | 0.0 % | 7.9 % | — |
-| Subjonctif littéraire[^30] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 1.6 % | 0.3 % | 2.5 % | — |
-| Négations complètes[^31] | 96.0 % | 100.0 % | 100.0 % | 93.5 % | 100.0 % | 100.0 % | 100.0 % | — |
-| Futur périphrastique[^32] | 0.0 % | 20.0 % | 0.0 % | 33.3 % | 0.0 % | 27.3 % | 0.0 % | — |
-| Familiarité orale[^33] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.1 % | 0.1 % | 0.0 % | — |
-| Classique / Contemporain[^34] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | — |
-| Dialogue[^35] | 34.7 % | 30.1 % | 13.5 % | 0.0 % | 4.7 % | 0.0 % | 0.3 % | — |
-| Négativité / Positivité[^36] | 27.2 % | 46.1 % | 9.9 % | 25.1 % | 15.7 % | 28.6 % | 16.5 % | — |
-| Modificateurs par nom[^37] | 0.49 | 0.60 | 0.58 | 0.53 | 0.55 | 0.58 | 0.62 | — |
-| Noms fortement modifiés[^38] | 7.8 % | 11.0 % | 10.7 % | 8.9 % | 9.7 % | 11.2 % | 13.0 % | — |
-| Rareté lexicale[^39] | 0.50 | 0.52 | 0.54 | 0.51 | 0.51 | 0.55 | 0.52 | — |
-| Chaînes adjectivales[^40] | 0.0 % | 1.3 % | 0.9 % | 0.8 % | 0.4 % | 4.8 % | 5.1 % | — |
-| Longueur des chaînes adjectivales[^41] | 0.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | — |
-| Maximaliste / Minimaliste[^42] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | — |
-| Verbes d’action[^43] | 50.7 % | 46.2 % | 51.9 % | 30.7 % | 70.6 % | 51.9 % | 60.6 % | — |
-| Connecteurs temporels[^44] | 10.2 % | 21.3 % | 16.3 % | 14.3 % | 12.6 % | 32.8 % | 28.1 % | — |
-| Sujets personnels[^45] | 99.4 % | 100.0 % | 99.0 % | 99.0 % | 99.3 % | 100.0 % | 98.3 % | — |
-| Passé narratif[^46] | 0.3 % | 0.3 % | 13.5 % | 0.2 % | 0.8 % | 0.3 % | 22.1 % | — |
-| Narratif / Descriptif[^47] | 25.3 % | 35.6 % | 32.2 % | 29.4 % | 35.2 % | 40.7 % | 42.6 % | — |
-| Mots émotionnels[^48] | 52.4 % | 50.5 % | 52.0 % | 47.4 % | 52.6 % | 49.3 % | 51.4 % | — |
-| Verbes de réaction affective[^49] | 1.1 % | 0.6 % | 1.2 % | 0.1 % | 0.4 % | 0.5 % | 0.8 % | — |
-| Exclamations[^50] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.4 % | 0.0 % | 0.0 % | — |
-| Constructions exclamatives[^51] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | — |
-| Émotionnel / Neutre[^52] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | — |
-| Connecteurs logiques[^53] | 25.2 % | 49.0 % | 44.2 % | 37.4 % | 29.3 % | 66.6 % | 108.6 % | — |
-| Noms abstraits[^54] | 5.5 % | 5.4 % | 10.7 % | 6.1 % | 5.9 % | 5.4 % | 6.7 % | — |
-| Présent gnomique[^55] | 19.1 % | 13.6 % | 5.3 % | 3.7 % | 23.0 % | 18.1 % | 10.3 % | — |
-| Discursif / Immersif[^56] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | — |
-| Diversité de longueurs de phrase (mots)[^57] | 6.2 | 24.1 | 12.5 | 14.0 | 9.3 | 14.8 | 41.1 | 41.1 % |
-| Compression gzip[^58] | 41 % | 40 % | 43 % | 39 % | 44 % | 44 % | 43 % | 3.9 % |
-| Relatives et subordonnées[^59] | 82 % | 262 % | 98 % | 131 % | 95 % | 272 % | 202 % | 46.3 % |
-| Phrases nominales[^60] | 31 % | 28 % | 7 % | 13 % | 25 % | 10 % | 11 % | 51.1 % |
-| Voix active[^61] | 57 % | 49 % | 63 % | 67 % | 56 % | 72 % | 67 % | 12.2 % |
-| Comparaisons métaphoriques[^62] | 6.4 % | 16.9 % | 2.3 % | 7.5 % | 1.8 % | 12.7 % | 8.9 % | 62.1 % |
-| Formes par lemme[^63] | 0.86 | 0.86 | 0.85 | 0.94 | 0.85 | 0.87 | 0.86 | 0.8 % |
-| Mots employés une seule fois[^64] | 62 % | 63 % | 71 % | 59 % | 73 % | 71 % | 73 % | 8.3 % |
-
-### Tableau 4 — Données objectives
+### Tableau 3 — Données objectives
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -182,14 +177,14 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.74 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.75 |
 |  | Nouvelles horroristiques — Philippe Caza | 0.76 |
 |  | La Carte et le Territoire — Michel Houellebecq | 0.85 |
 |  | L'Été 80 — Marguerite Duras | 0.86 |
-|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.87 |
-| Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
+|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.88 |
+| Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.83 |
 |  | Sortie d'usine — François Bon | 0.87 |
-|  | Le temps retrouvé — Marcel Proust | 0.92 |
+|  | Le temps retrouvé — Marcel Proust | 0.89 |
 |  | L'Été 80 — Marguerite Duras | 0.93 |
 |  | Autobiographie des objets — François Bon | 0.94 |
 
@@ -224,133 +219,133 @@ Les surfaces sont calculées directement sur les polygones du radar et classées
 
 [^6]: Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
 
-[^7]: Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
+[^7]: Même proportion de trigrammes de lemmes distincts répétés, calculée dans des fenêtres glissantes de 300 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité dans une fenêtre de 20, .
 
-[^8]: Répartition des signes de ponctuation en dix familles : point, virgule, point-virgule, deux-points, interrogation, exclamation, tiret, parenthèses, guillemets et points de suspension. Le calcul utilise l’entropie de cette répartition, divisée par `log₂(10)` puis ramenée entre 0 et 100 %. Le dénominateur reste donc celui de la palette complète : un texte qui emploie trois familles équilibrées n’atteint pas 100 %, car il n’utilise pas tout l’arsenal disponible. Une faible entropie indique l'usage de peu de ponctuation différente, par exemple seulement des points et virgules, alors qu'une grande entropie implique un usage équilibré de nombreuses familles.
+[^8]: Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/dictionnaires/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
 
-[^9]: Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions n'ont pas de rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.
+[^9]: Un trigramme est une suite de trois lemmes consécutifs. Dans une fenêtre de 20, chaque mot est d’abord remplacé par son lemme contextuel : `marche`, `marches` et `marchent` employés comme verbes deviennent ainsi `marcher`, tandis que le nom dans `la marche` reste `marche`. spaCy désambiguïse la catégorie grâce à la phrase ; Morphalou sert de repli lorsque cette analyse contextuelle est indisponible. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
 
-Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
+[^10]: Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
 
-[^10]: Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
+[^11]: spaCy compte les dépendances de relative (`acl:relcl`) et les autres dépendances subordonnées configurées (`acl`, `advcl`, `ccomp`, `csubj`, `xcomp`). Leur somme est divisée par le nombre de phrases. La valeur peut dépasser 100 % : une phrase peut contenir plusieurs subordonnées. Ce résultat dépend de l’analyse du modèle spaCy.
 
-[^11]: Mesure la complexité hiérarchique des phrases reconnue par spaCy. Plus des groupes et propositions sont emboîtés les uns dans les autres, plus les mots les plus éloignés nécessitent de relations pour rejoindre le verbe principal, et plus la profondeur augmente.
+[^12]: Dans la fenêtre 20, écart-type du nombre de mots par phrase. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues. La diversité des structures intègre déjà une partie de cette information en accordant progressivement davantage de poids aux phrases contenant plusieurs propositions.
+
+[^13]: Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+
+[^14]: Mesure la complexité hiérarchique des phrases reconnue par spaCy. Plus des groupes et propositions sont emboîtés les uns dans les autres, plus les mots les plus éloignés nécessitent de relations pour rejoindre le verbe principal, et plus la profondeur augmente.
 
 L'idée : une phrase simple (« Le chat dort ») a une profondeur faible — un seul niveau entre le mot et le verbe. Une phrase à subordonnées empilées (« Le chat que le voisin, qui venait d'emménager, avait recueilli dormait ») a une profondeur élevée — plusieurs relations à traverser pour remonter jusqu'au verbe principal.
 
-[^12]: Pour chaque phrase, le premier mot est relevé après tokenisation. Le calcul examine des fenêtres glissantes de vingt phrases et mesure, dans chacune, le nombre de premiers mots différents divisé par vingt. Le rapport affiche la moyenne de ces fenêtres. Si le texte compte moins de vingt phrases, le calcul porte sur toutes ses phrases. 100 % signifie qu’aucun début ne se répète dans la fenêtre considérée.
+[^15]: Mesures les répétitions sur une fenêtre de 20. Pour chaque mot, cherche le même lemme parmi les 300 mots précédents. Les flexions sont donc regroupées : `marche`, `marches` et `marchaient` peuvent renvoyer au même lemme. Le pourcentage est le nombre de mots ayant un antécédent divisé par le nombre total de mots analysés. Les mots-outils et les graphies de moins de deux caractères ne peuvent pas être signalés, mais le dénominateur reste l’ensemble des mots retenus. La lemmatisation contextuelle vient de spaCy, avec Morphalou comme repli.
 
-[^13]: Pour chaque paire de phrases consécutives, le calcul prend la différence absolue de longueur en caractères. La moyenne de ces différences est divisée par la longueur moyenne des phrases. Une valeur de 0 indique des phrases successives de même longueur. La division par la moyenne permet de comparer des textes composés de phrases globalement courtes ou longues. Cette mesure est traditionnellement nommée burstiness (par rafales, par à-coups).
+[^16]: Pour chaque paire de phrases consécutives, le calcul prend la différence absolue de longueur en caractères. La moyenne de ces différences est divisée par la longueur moyenne des phrases. Une valeur de 0 indique des phrases successives de même longueur. La division par la moyenne permet de comparer des textes composés de phrases globalement courtes ou longues. Cette mesure est traditionnellement nommée burstiness (par rafales, par à-coups).
 
-[^14]: Nombre de noms reconnu par [Morphalou](https://www.ortolang.fr/market/lexicons/morphalou/v3.1) divisé par le nombre de verbes reconnu par Morphalou. Une valeur de 2 signifie que le texte contient deux noms pour un verbe.
+[^17]: Nombre de noms reconnu par [Morphalou](https://www.ortolang.fr/market/lexicons/morphalou/v3.1) divisé par le nombre de verbes reconnu par Morphalou. Une valeur de 2 signifie que le texte contient deux noms pour un verbe.
 
 Un ratio élevé traduit un style nominal : le texte s'appuie sur des substantifs plutôt que sur des actions, souvent au prix d'une syntaxe plus statique — descriptions, énumérations, écriture administrative ou théorique, phrases qui exposent plutôt qu'elles ne racontent. À l'inverse, un ratio bas traduit un style verbal : le texte progresse par l'action, les procès, les enchaînements d'événements — un rythme plus narratif et dynamique, où les choses se passent plutôt qu'elles ne sont.
 
-[^15]: Mesures les répétitions sur une fenêtre de 20. Pour chaque mot, cherche le même lemme parmi les 300 mots précédents. Les flexions sont donc regroupées : `marche`, `marches` et `marchaient` peuvent renvoyer au même lemme. Le pourcentage est le nombre de mots ayant un antécédent divisé par le nombre total de mots analysés. Les mots-outils et les graphies de moins de deux caractères ne peuvent pas être signalés, mais le dénominateur reste l’ensemble des mots retenus. La lemmatisation contextuelle vient de spaCy, avec Morphalou comme repli.
+[^18]: Dans une fenêtre de 20, même calcul local que les redondances lexicales, mais deux mots sont aussi rapprochés lorsqu’ils appartiennent à une même famille morphologique dans [Démonette](https://demonette.fr/demonext/vues/front_page.php), par exemple `écrire`, `écrivain` et `écriture`. Pour chaque mot, une ou plusieurs correspondances dans les 300 mots précédents comptent comme une seule répétition.
 
-[^16]: Dans une fenêtre de 20, le programme parcourt les mots dans l’ordre. Pour chaque mot, il cherche une occurrence précédente située au plus à 300 mots de distance. Si une telle occurrence existe, une seule pression est retenue selon la correspondance la plus forte : 1 pour une graphie identique ; sinon 0,25 pour le même lemme ; sinon 0,25 pour la même famille morphologique. Les pressions ne sont donc pas cumulatives : un même lemme n’ajoute pas aussi une pression de famille. Les mots-outils et noms propres sont écartés. La pression totale est divisée par le nombre de mots puis plafonnée à 100 %. Une diversité stylistique élevée signifie donc une faible pression de ces répétitions locales.
+[^19]: Répartition des signes de ponctuation en dix familles : point, virgule, point-virgule, deux-points, interrogation, exclamation, tiret, parenthèses, guillemets et points de suspension. Le calcul utilise l’entropie de cette répartition, divisée par `log₂(10)` puis ramenée entre 0 et 100 %. Le dénominateur reste donc celui de la palette complète : un texte qui emploie trois familles équilibrées n’atteint pas 100 %, car il n’utilise pas tout l’arsenal disponible. Une faible entropie indique l'usage de peu de ponctuation différente, par exemple seulement des points et virgules, alors qu'une grande entropie implique un usage équilibré de nombreuses familles.
 
-[^17]: Dans une fenêtre de 20, même calcul local que les redondances lexicales, mais deux mots sont aussi rapprochés lorsqu’ils appartiennent à une même famille morphologique dans [Démonette](https://demonette.fr/demonext/vues/front_page.php), par exemple `écrire`, `écrivain` et `écriture`. Pour chaque mot, une ou plusieurs correspondances dans les 300 mots précédents comptent comme une seule répétition.
+[^20]: Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions n'ont pas de rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.
 
-[^18]: Pour chaque mot dans une fenêtre de 20, le programme cherche dans les 300 mots précédents une prononciation partageant une suite continue d’au moins trois phonèmes. Cette suite doit couvrir au moins 60 % de la prononciation la plus courte. Le pourcentage indique la part des mots pour lesquels un tel écho a été trouvé. Cette approximation phonétique ne remplace pas une lecture à voix haute.
+Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
 
-[^19]: Même calcul que les répétitions lexicales, mais en conservant les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée que la version filtrée.
+[^21]: Nombre de mots classés comme adjectifs par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
 
-[^20]: Un trigramme est une suite de trois lemmes consécutifs. Dans une fenêtre de 20, chaque mot est d’abord remplacé par son lemme contextuel : `marche`, `marches` et `marchent` employés comme verbes deviennent ainsi `marcher`, tandis que le nom dans `la marche` reste `marche`. spaCy désambiguïse la catégorie grâce à la phrase ; Morphalou sert de repli lorsque cette analyse contextuelle est indisponible. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
+[^22]: Pourcentage des phrases du document contenant une construction verbale active et aucune construction passive. Le passif est reconnu par une dépendance `aux:pass`, un sujet `nsubj:pass` ou la marque morphologique `Voice=Pass`. La présence de l’auxiliaire « être » ne suffit pas : dans « il était allé », « était » construit un temps composé actif. 100 % signifie que toutes les phrases sont verbales et actives. Cette mesure est calculée sur le document entier, sans fenêtre.
 
-[^21]: Même proportion de trigrammes de lemmes distincts répétés, calculée dans des fenêtres glissantes de 300 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité dans une fenêtre de 20, .
+[^23]: Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
 
-[^22]: Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
+[^24]: Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
+
+[^25]: Même calcul que les répétitions lexicales, mais en conservant les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée que la version filtrée.
+
+[^26]: Nombre de mots classés comme noms par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale. Les quatre lignes noms, verbes, adjectifs et adverbes ne totalisent pas nécessairement 100 %, car le dénominateur comprend aussi d’autres catégories.
+
+[^27]: Nombre de mots classés comme verbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+
+[^28]: Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
+
+Un taux élevé signifie que le texte introduit beaucoup de mots qu'il n'utilise ensuite plus jamais (vocabulaire riche et non répété, parfois signe d'un style très varié ou au contraire de rareté statistique) ; un taux bas signifie que le vocabulaire lexical est concentré sur peu de lemmes, réemployés souvent.
+
+[^29]: Pour chaque phrase, le premier mot est relevé après tokenisation. Le calcul examine des fenêtres glissantes de vingt phrases et mesure, dans chacune, le nombre de premiers mots différents divisé par vingt. Le rapport affiche la moyenne de ces fenêtres. Si le texte compte moins de vingt phrases, le calcul porte sur toutes ses phrases. 100 % signifie qu’aucun début ne se répète dans la fenêtre considérée.
+
+[^30]: Dans une fenêtre de 20, le programme parcourt les mots dans l’ordre. Pour chaque mot, il cherche une occurrence précédente située au plus à 300 mots de distance. Si une telle occurrence existe, une seule pression est retenue selon la correspondance la plus forte : 1 pour une graphie identique ; sinon 0,25 pour le même lemme ; sinon 0,25 pour la même famille morphologique. Les pressions ne sont donc pas cumulatives : un même lemme n’ajoute pas aussi une pression de famille. Les mots-outils et noms propres sont écartés. La pression totale est divisée par le nombre de mots puis plafonnée à 100 %. Une diversité stylistique élevée signifie donc une faible pression de ces répétitions locales.
+
+[^31]: Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/dictionnaires/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
 
 Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel grammatical (déterminants, pronoms, prépositions, conjonctions, interjections) — souvent des phrases courtes, un style oral ou fluide. Une valeur basse signifie que le texte est porté par les mots pleins (noms, verbes, adjectifs, adverbes) — style plus dense, informatif ou nominal.
 
-[^23]: Nombre de mots classés comme noms par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale. Les quatre lignes noms, verbes, adjectifs et adverbes ne totalisent pas nécessairement 100 %, car le dénominateur comprend aussi d’autres catégories.
+[^32]: Le texte UTF-8 est compressé avec gzip. La taille compressée est divisée par la taille originale et affichée en pourcentage. Une valeur basse signifie que les octets du texte sont plus prévisibles et se compressent mieux. Pour comparer les documents, le programme utilise des blocs non chevauchants ayant exactement {window}.
 
-[^24]: Nombre de mots classés comme verbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[^33]: Pour chaque mot dans une fenêtre de 20, le programme cherche dans les 300 mots précédents une prononciation partageant une suite continue d’au moins trois phonèmes. Cette suite doit couvrir au moins 60 % de la prononciation la plus courte. Le pourcentage indique la part des mots pour lesquels un tel écho a été trouvé. Cette approximation phonétique ne remplace pas une lecture à voix haute.
 
-[^25]: Nombre de mots classés comme adjectifs par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[^34]: Dans chaque fenêtre mobile de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes. Un ratio proche de 1 signifie que chaque lemme n'apparaît quasiment que sous une seule forme (peu de variation flexionnelle : toujours "marche", jamais "marchait" ou "marchions"). Un ratio élevé signifie qu'un même lemme revient sous de nombreuses formes différentes (le texte varie les temps, les nombres, les genres pour une même racine).
 
-[^26]: Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[^35]: Part des formes verbales identifiées comme participes présents (`VerbForm=Part`, `Tense=Pres`) parmi les mots analysés. Elles sont séparées des verbes conjugués.
 
-[^27]: Part des formes verbales identifiées comme participes présents (`VerbForm=Part`, `Tense=Pres`) parmi les mots analysés. Elles sont séparées des verbes conjugués.
+[^36]: Part des formes verbales identifiées comme participes passés (`VerbForm=Part`, `Tense=Past`) parmi les mots analysés. Un participe employé comme adjectif est compté dans les adjectifs, pas ici.
 
-[^28]: Part des formes verbales identifiées comme participes passés (`VerbForm=Part`, `Tense=Past`) parmi les mots analysés. Un participe employé comme adjectif est compté dans les adjectifs, pas ici.
+[^37]: Part des verbes finis à l’indicatif passé, sans auxiliaire, parmi les verbes finis. Elle mesure l’emploi d’une forme narrative classique, indépendamment de l’âge du texte.
 
-[^29]: Part des verbes finis à l’indicatif passé, sans auxiliaire, parmi les verbes finis. Elle mesure l’emploi d’une forme narrative classique, indépendamment de l’âge du texte.
+[^38]: Part des verbes finis au subjonctif imparfait ou plus-que-parfait parmi les verbes finis. Le subjonctif présent n’est pas compté.
 
-[^30]: Part des verbes finis au subjonctif imparfait ou plus-que-parfait parmi les verbes finis. Le subjonctif présent n’est pas compté.
+[^39]: Part des marqueurs négatifs détectés qui sont précédés d’un « ne » dans la même phrase. La mesure porte uniquement sur les négations repérées, et « ne...que » est exclu.
 
-[^31]: Part des marqueurs négatifs détectés qui sont précédés d’un « ne » dans la même phrase. La mesure porte uniquement sur les négations repérées, et « ne...que » est exclu.
+[^40]: Part des futurs employés qui sont construits avec « aller » au présent suivi d’un infinitif. Elle est calculée parmi les futurs détectés, pas sur l’ensemble du texte.
 
-[^32]: Part des futurs employés qui sont construits avec « aller » au présent suivi d’un infinitif. Elle est calculée parmi les futurs détectés, pas sur l’ensemble du texte.
+[^41]: Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
-[^33]: Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
+[^42]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
 
-[^34]: Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
+[^43]: Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
 
-[^35]: Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
+[^44]: Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
 
-[^36]: Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
+[^45]: Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
 
-[^37]: Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
+[^46]: Part des noms portant au moins deux modificateurs directs (voir modificateurs par nom).
 
-[^38]: Part des noms portant au moins deux modificateurs directs (voir modificateurs par nom).
+[^47]: Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un vocabulaire moins fréquent ; Lexique383 ne distingue pas le vocabulaire littéraire du vocabulaire technique.
 
-[^39]: Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un vocabulaire moins fréquent ; Lexique383 ne distingue pas le vocabulaire littéraire du vocabulaire technique.
+[^48]: Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
 
-[^40]: Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
+[^49]: Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
 
-[^41]: Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
+[^50]: Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
 
-[^42]: Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
+[^51]: Part des verbes finis qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
 
-[^43]: Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
+[^52]: Occurrences de connecteurs temporels ou séquentiels par phrases.
 
-[^44]: Occurrences de connecteurs temporels ou séquentiels par phrases.
-
-[^45]: Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.
+[^53]: Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.
 
 <!-- Note conservée pour référence historique : la mesure n’est plus calculée ni exposée. -->
 
-[^46]: Part des verbes finis narratifs au passé, hors dialogues.
+[^54]: Part des verbes finis narratifs au passé, hors dialogues.
 
-[^47]: Score composite : proche de 1, récit d’action ; proche de 0, peinture descriptive. Il combine les verbes d’action, connecteurs temporels, sujets personnels, dialogues et voix active, en retirant les phrases nominales et l’accumulation d’adjectifs. Le passé narratif reste une mesure informative séparée et n’entre pas dans ce score.
+[^55]: Score composite : proche de 1, récit d’action ; proche de 0, peinture descriptive. Il combine les verbes d’action, connecteurs temporels, sujets personnels, dialogues et voix active, en retirant les phrases nominales et l’accumulation d’adjectifs. Le passé narratif reste une mesure informative séparée et n’entre pas dans ce score.
 
-[^48]: Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expanded Emotion Lexicon). Le lexique ne tient pas compte du contexte ni de la négation : « peur » est compté de la même façon dans une phrase affirmative ou négative. Source : http://advanse.lirmm.fr/feel.php.
+[^56]: Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expanded Emotion Lexicon). Le lexique ne tient pas compte du contexte ni de la négation : « peur » est compté de la même façon dans une phrase affirmative ou négative. Source : http://advanse.lirmm.fr/feel.php.
 
-[^49]: Part des verbes finis appartenant à `assets/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
+[^57]: Part des verbes finis appartenant à `assets/dictionnaires/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
 
-[^50]: Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
+[^58]: Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
 
-[^51]: Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
+[^59]: Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
 
-[^52]: Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
+[^60]: Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
 
-[^53]: Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/logical-connectors.txt`.
+[^61]: Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
 
-[^54]: Part des noms communs dont la forme se termine par un suffixe fréquent de nominalisation abstraite (`-tion`, `-isme`, `-ité`, etc.). Il s’agit d’une approximation orthographique : elle peut classer à tort des noms concrets comme « voiture ».
+[^62]: Part des noms communs dont la forme se termine par un suffixe fréquent de nominalisation abstraite (`-tion`, `-isme`, `-ité`, etc.). Il s’agit d’une approximation orthographique : elle peut classer à tort des noms concrets comme « voiture ».
 
-[^55]: Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
+[^63]: Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
 
-[^56]: Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
-
-[^57]: Dans la fenêtre 20, écart-type du nombre de mots par phrase. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues. La diversité des structures intègre déjà une partie de cette information en accordant progressivement davantage de poids aux phrases contenant plusieurs propositions.
-
-[^58]: Le texte UTF-8 est compressé avec gzip. La taille compressée est divisée par la taille originale et affichée en pourcentage. Une valeur basse signifie que les octets du texte sont plus prévisibles et se compressent mieux. Pour comparer les documents, le programme utilise des blocs non chevauchants ayant exactement {window}.
-
-[^59]: spaCy compte les dépendances de relative (`acl:relcl`) et les autres dépendances subordonnées configurées (`acl`, `advcl`, `ccomp`, `csubj`, `xcomp`). Leur somme est divisée par le nombre de phrases. La valeur peut dépasser 100 % : une phrase peut contenir plusieurs subordonnées. Ce résultat dépend de l’analyse du modèle spaCy.
-
-[^60]: Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
-
-[^61]: Pourcentage des phrases du document contenant une construction verbale active et aucune construction passive. Le passif est reconnu par une dépendance `aux:pass`, un sujet `nsubj:pass` ou la marque morphologique `Voice=Pass`. La présence de l’auxiliaire « être » ne suffit pas : dans « il était allé », « était » construit un temps composé actif. 100 % signifie que toutes les phrases sont verbales et actives. Cette mesure est calculée sur le document entier, sans fenêtre.
-
-[^62]: Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
-
-[^63]: Dans chaque fenêtre mobile de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes. Un ratio proche de 1 signifie que chaque lemme n'apparaît quasiment que sous une seule forme (peu de variation flexionnelle : toujours "marche", jamais "marchait" ou "marchions"). Un ratio élevé signifie qu'un même lemme revient sous de nombreuses formes différentes (le texte varie les temps, les nombres, les genres pour une même racine).
-
-[^64]: Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
-
-Un taux élevé signifie que le texte introduit beaucoup de mots qu'il n'utilise ensuite plus jamais (vocabulaire riche et non répété, parfois signe d'un style très varié ou au contraire de rareté statistique) ; un taux bas signifie que le vocabulaire lexical est concentré sur peu de lemmes, réemployés souvent.
+[^64]: Score fondé sur la densité des connecteurs logiques et argumentatifs. Une valeur élevée indique davantage de commentaire, d’enchaînement logique ou d’argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite. Les noms, adjectifs et ratios de structure ne sont pas utilisés : une description ne doit pas être classée comme un discours argumentatif.
 
 [^65]: Nombre total de mots relevés dans le document analysé.
 

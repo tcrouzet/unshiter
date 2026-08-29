@@ -43,12 +43,14 @@ from .config import (
     EPUB_ANALYSIS_WINDOW_SIZE,
     STATS_COMPARISON_FILE,
     WEB_DATA_FILE,
+    BIGFIVE_AXES,
     STATS_FILENAME_SUFFIX,
     STRUCTURE_REPORT_SUFFIX,
     TEXT_ENCODING,
 )
 from .stats import TextStats, WORD_RE, _moving_trigram_repetition, _trigram_lemmas, _trigram_repetition, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
 from .syntax_depth import analyze_syntax
+from .metrics import cached_metric_values
 
 
 FULL_DOCUMENT_FIELDS = {
@@ -146,10 +148,9 @@ def sqlite_analyses(sources: list[Path]) -> tuple[list[tuple[Path, TextStats]], 
             row = connection.execute("SELECT id FROM books WHERE path = ?", (str(source.resolve()),)).fetchone()
             if not row:
                 raise RuntimeError(f"Source absente de SQLite : {source}")
-            analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (row[0],)).fetchone()
-            if not analysis:
+            raw = cached_metric_values(connection, row[0])
+            if not raw:
                 raise RuntimeError(f"Analyse absente de SQLite : {source.name}")
-            raw = json.loads(analysis[0])
             values = {reverse[key]: value for key, value in raw.items() if key in reverse}
             analyses.append((source, TextStats(**{field.name: values[field.name] for field in fields(TextStats) if field.name in values})))
     word_window = min(len(tokenize(read_source(source))) for source in sources) if sources else 0
@@ -323,7 +324,9 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
     corpus_values = {}
     try:
         with sqlite3.connect(EPUB_DATABASE) as db:
-            rows = db.execute("SELECT stats_json FROM analyses").fetchall()
+            rows = []
+            for (book_id,) in db.execute("SELECT id FROM books"):
+                rows.append((json.dumps(cached_metric_values(db, book_id)),))
         for field in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score", "discursivite_score"):
             identifier = METRIC_ID_BY_FIELD[field]
             values = []
@@ -496,12 +499,8 @@ def nearest_neighbor_markdown() -> list[str]:
     if not rows:
         with sqlite3.connect(EPUB_DATABASE) as connection:
             for book_id, title, author, path in connection.execute("SELECT id, title, author, path FROM books ORDER BY title"):
-                analysis = connection.execute("SELECT stats_json FROM analyses WHERE book_id = ? ORDER BY window_index LIMIT 1", (book_id,)).fetchone()
-                if not analysis:
-                    continue
-                try:
-                    values = json.loads(analysis[0])
-                except (TypeError, json.JSONDecodeError):
+                values = cached_metric_values(connection, book_id)
+                if not values:
                     continue
                 rows.append({"title": title or Path(path).stem, "author": author or "Auteur inconnu", "values": values})
     if len(rows) < 3:
@@ -918,15 +917,6 @@ def kiviat_chart(analyses: list[tuple[Path, object]], profile_data=None) -> str:
     return french_typography("\n".join(parts))
 
 
-BIGFIVE_AXES = (
-    ("Classique", "classicism_score"),
-    ("Maximaliste", "baroque_score"),
-    ("Narratif", "narrativity_score"),
-    ("Émotionnel", "emotionality_score"),
-    ("Discursif", "discursivite_score"),
-)
-
-
 def bigfive_profiles(analyses: list[tuple[Path, object]]):
     """Construit les cinq axes BigFive, agrégés par auteur et normalisés au corpus."""
     dimensions = []
@@ -1077,8 +1067,17 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     for rows in details_by_file:
         technical_by_file.append([row for row in rows if row[0] in TECHNICAL_LABELS and row[0] != "Fenêtres analysées"])
     details_by_file = [[row for row in rows if row[0] not in TECHNICAL_LABELS] for rows in details_by_file]
+    secondary_by_file = [important + details for important, details in zip(important_by_file, details_by_file)]
     important_dispersions = coefficient_dispersions(important_by_file, numeric_maps)
     detail_dispersions = coefficient_dispersions(details_by_file, numeric_maps)
+    secondary_dispersions = coefficient_dispersions(secondary_by_file, numeric_maps)
+    if secondary_by_file:
+        order = sorted(
+            range(len(secondary_by_file[0])),
+            key=lambda index: numeric_value(secondary_dispersions.get(secondary_by_file[0][index][0])) or -1,
+            reverse=True,
+        )
+        secondary_by_file = [[rows[index] for index in order] for rows in secondary_by_file]
     bigfive_fields = [
         ("Classique / Contemporain", "classicism_score"),
         ("Maximaliste / Minimaliste", "baroque_score"),
@@ -1089,16 +1088,14 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
     bigfive_by_file = [[(label, f"{getattr(stats, field) * 100:.1f} %") for label, field in bigfive_fields] for _, stats in analyses]
     bigfive_numeric = [{label: getattr(stats, field) * 100 for label, field in bigfive_fields} for _, stats in analyses]
     bigfive_dispersions = coefficient_dispersions(bigfive_by_file, bigfive_numeric)
-    numbered, note_titles = number_notes(bigfive_by_file[0] + important_by_file[0] + details_by_file[0] + technical_by_file[0], ["Dispersion"])
+    numbered, note_titles = number_notes(bigfive_by_file[0] + secondary_by_file[0] + technical_by_file[0], ["Dispersion"])
     bigfive_count = len(bigfive_by_file[0])
-    important_count = len(important_by_file[0])
     number_map = {
         re.sub(r"\[\^\d+\]$", "", label): label
         for label, _ in numbered
     }
     bigfive_by_file = [[(number_map[label], value) for label, value in rows] for rows in bigfive_by_file]
-    important_by_file = [[(number_map[label], value) for label, value in rows] for rows in important_by_file]
-    details_by_file = [[(number_map[label], value) for label, value in rows] for rows in details_by_file]
+    secondary_by_file = [[(number_map[label], value) for label, value in rows] for rows in secondary_by_file]
     technical_by_file = [[(number_map[label], value) for label, value in rows] for rows in technical_by_file]
     lines = [
         "# Comparaison statistique des sources", "",
@@ -1107,11 +1104,9 @@ def markdown_comparison(sources: list[Path], analyses: list[tuple[Path, object]]
         readme_text("BigFive"), "",
     ]
     lines += markdown_table(headers, bigfive_by_file, bigfive_dispersions)
-    lines += ["", "## Tableau 2 — Synthèse", ""]
-    lines += markdown_table(headers, important_by_file, important_dispersions)
-    lines += ["", "## Tableau 3 — Détails", ""]
-    lines += markdown_table(headers, details_by_file, detail_dispersions)
-    lines += ["", "## Tableau 4 — Données objectives", ""]
+    lines += ["", "## Tableau 2 — Mesures", ""]
+    lines += markdown_table(headers, secondary_by_file, secondary_dispersions)
+    lines += ["", "## Tableau 3 — Données", ""]
     lines += markdown_table(headers, technical_by_file)
     nearest = nearest_neighbor_markdown()
     if nearest:
