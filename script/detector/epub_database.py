@@ -15,21 +15,22 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, FIELD_BY_METRIC_ID, METRICS, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, DURATION_MARKERS_FILE
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRICS, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, DURATION_MARKERS_FILE
 from .metrics import cached_metric_values, windowed_metric_fields
 from .stats import Metrics, compute_stats, punctuation_diversity, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
 
 _COMPUTE_FUNCTION_HASH = hashlib.sha256(inspect.getsource(compute_stats).encode("utf-8")).hexdigest()
 
-def metric_function_hash(metric_id: str) -> str:
+def metric_function_hash(metric_name: str) -> str:
     """Empreinte stable du calcul associé à une mesure."""
-    return hashlib.sha256(f"{metric_id}:{_COMPUTE_FUNCTION_HASH}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{metric_name}:{_COMPUTE_FUNCTION_HASH}".encode("utf-8")).hexdigest()
 
 
 def purge_metric(connection: sqlite3.Connection, field: str) -> int:
     """Supprime du cache toutes les valeurs d'une mesure donnée."""
-    metric_id = METRIC_ID_BY_FIELD[field]
-    cursor = connection.execute("DELETE FROM metric_cache WHERE metric_id = ?", (metric_id,))
+    if field not in METRICS:
+        raise ValueError(f"Mesure inconnue : {field}")
+    cursor = connection.execute("DELETE FROM metric_cache WHERE metric_name = ?", (field,))
     return cursor.rowcount
 
 FULL_DOCUMENT_FIELDS = {
@@ -276,16 +277,22 @@ def init_database(connection: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS metric_cache (
             book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
             window_index INTEGER NOT NULL,
-            metric_id TEXT NOT NULL,
+            metric_name TEXT NOT NULL,
             value_json TEXT NOT NULL,
             content_sha256 TEXT NOT NULL,
             function_hash TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            PRIMARY KEY(book_id, window_index, metric_id)
+            PRIMARY KEY(book_id, window_index, metric_name)
         );
         CREATE INDEX IF NOT EXISTS metric_cache_book_idx ON metric_cache(book_id);
         """
     )
+    cache_columns = {row[1] for row in connection.execute("PRAGMA table_info(metric_cache)")}
+    if "metric_id" in cache_columns and "metric_name" not in cache_columns:
+        connection.execute("ALTER TABLE metric_cache RENAME COLUMN metric_id TO metric_name")
+    # Les anciens identifiants numériques ne sont plus interprétés : leur
+    # suppression provoque le recalcul partiel normal, sous le nom de méthode.
+    connection.execute("DELETE FROM metric_cache WHERE metric_name GLOB 'mesure_[0-9]*'")
     columns = {row[1] for row in connection.execute("PRAGMA table_info(books)")}
     if "analysis_version" not in columns:
         connection.execute("ALTER TABLE books ADD COLUMN analysis_version TEXT NOT NULL DEFAULT ''")
@@ -303,7 +310,7 @@ def init_database(connection: sqlite3.Connection) -> None:
             except (TypeError, json.JSONDecodeError):
                 continue
             connection.executemany(
-                "INSERT OR IGNORE INTO metric_cache(book_id,window_index,metric_id,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
                 [
                     (book_id, window_index, metric_id, json.dumps(value, ensure_ascii=False), digest, metric_function_hash(metric_id), datetime.now(timezone.utc).isoformat())
                     for metric_id, value in values.items()
@@ -339,7 +346,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         previous = connection.execute("SELECT author FROM books WHERE id = ?", (old[0],)).fetchone()
         if previous and previous[0]:
             metadata["author"] = previous[0]
-    required_metric_ids = set(METRIC_ID_BY_FIELD.values())
+    required_metric_ids = set(METRICS)
     missing_metric_ids = required_metric_ids.difference(previous_stats or {}) if old is not None and old[1] == digest else required_metric_ids
     full_recompute = old is None or old[1] != digest or old[2] != EPUB_ANALYSIS_VERSION
     changed = full_recompute or bool(missing_metric_ids)
@@ -371,27 +378,27 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
             windowed = windowed_metric_fields()
             window_metrics = Metrics(fragment, progress=progress)
             document_metrics = Metrics(body, progress=progress)
-            requested = set(METRIC_ID_BY_FIELD.values()) if full_recompute else missing_metric_ids
+            requested = set(METRICS) if full_recompute else missing_metric_ids
             total = len(requested)
             step = 0
             # METRICS est l'unique plan de génération. En mode partiel, les
             # méthodes associées aux valeurs présentes ne sont jamais appelées.
-            for field, metric_id in METRICS.items():
-                if metric_id not in requested:
+            for field in METRICS:
+                if field not in requested:
                     continue
                 step += 1
                 source = window_metrics if field in windowed else document_metrics
                 value = getattr(source, field)()
-                if value is None and metric_id in {"mesure_68", "mesure_69"}:
+                if value is None and field in {"negation_completeness_ratio", "periphrastic_future_ratio"}:
                     value = 0
                 if value is None:
-                    raise RuntimeError(f"Analyse incomplète pour {path.name}: {metric_id}")
+                    raise RuntimeError(f"Analyse incomplète pour {path.name}: {field}")
                 # Écriture immédiate : une mesure validée est persistée avant
                 # que la suivante soit demandée.
                 connection.execute(
-                    "INSERT OR REPLACE INTO metric_cache(book_id,window_index,metric_id,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
-                    (book_id, index, metric_id, json.dumps(value, ensure_ascii=False), digest,
-                     metric_function_hash(metric_id), datetime.now(timezone.utc).isoformat()),
+                    "INSERT OR REPLACE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
+                    (book_id, index, field, json.dumps(value, ensure_ascii=False), digest,
+                     metric_function_hash(field), datetime.now(timezone.utc).isoformat()),
                 )
                 if progress:
                     progress(step, total, field)
@@ -453,16 +460,16 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
             correction = overrides.get(epub_key) or overrides.get(path.name, {})
             current_digest = hashlib.sha256(path.read_bytes()).hexdigest()
             previous = connection.execute("SELECT sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
-            right_id = METRIC_ID_BY_FIELD.get("right_branching_depth")
+            right_id = "right_branching_depth"
             right_present = connection.execute(
-                "SELECT 1 FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0 AND metric_id=?",
+                "SELECT 1 FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0 AND metric_name=?",
                 (str(path), right_id),
             ).fetchone() if right_id else True
             metric_count = connection.execute(
                 "SELECT COUNT(*) FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0",
                 (str(path),),
             ).fetchone()[0]
-            metrics_present = metric_count >= len(METRIC_ID_BY_FIELD)
+            metrics_present = metric_count >= len(METRICS)
             if previous and previous[0] == current_digest and previous[1] == EPUB_ANALYSIS_VERSION and right_present and metrics_present:
                 print(f"[{index}/{total_paths}] Vérification : {path.name} — déjà à jour", flush=True)
             else:

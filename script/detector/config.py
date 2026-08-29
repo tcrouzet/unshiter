@@ -1,6 +1,7 @@
 """Configuration centrale des répertoires et fichiers du projet."""
 
 from pathlib import Path
+import re
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 README_FILE = PROJECT_ROOT / "README.md"
@@ -92,116 +93,37 @@ LEXICAL_WINDOW_SIZE = 300
 MIN_COMPARISON_LEXICAL_WORDS = 200
 COMPARISON_WINDOW_STEP_DIVISOR = 4
 
-# Identifiants publics des mesures. Les rapports, la base SQLite et le site
-# doivent référencer ces identifiants ; les noms Python ci-dessous ne servent
-# qu'à accéder aux champs de TextStats.
-METRICS = {
-    "punctuation_per_300_words": "mesure_1",
-    "punctuation_diversity": "mesure_2",
-    "structural_diversity": "mesure_3",
-    "structural_rhythm": "mesure_4",
-    "sentence_start_diversity": "mesure_5",
-    "burstiness": "mesure_6",
-    "noun_verb_ratio": "mesure_7",
-    "filtered_repetition_rate": "mesure_8",
-    "stylistic_repetition_rate": "mesure_9",
-    "family_repetition_rate": "mesure_10",
-    "phonetic_repetition_rate": "mesure_11",
-    "absolute_repetition_rate": "mesure_12",
-    "function_word_ratio": "mesure_13",
-    "trigram_repetition": "mesure_14",
-    "moving_trigram_repetition": "mesure_15",
-    "noun_ratio": "mesure_16",
-    "verb_ratio": "mesure_17",
-    "adjective_ratio": "mesure_18",
-    "adverb_ratio": "mesure_19",
-    "gzip_compression_ratio": "mesure_21",
-    "relative_clause_ratio": "mesure_22",
-    "nominal_sentence_ratio": "mesure_23",
-    "active_voice_ratio": "mesure_24",
-    "metaphorical_comme_ratio": "mesure_25",
-    "average_syntactic_depth": "mesure_26",
-    "form_lemma_ratio": "mesure_27",
-    "hapax_ratio": "mesure_28",
-    "word_count": "mesure_30",
-    "sentence_count": "mesure_31",
-    "paragraph_count": "mesure_32",
-    "avg_word_length": "mesure_33",
-    "avg_sentence_length": "mesure_34",
-    "avg_sentence_word_count": "mesure_35",
-    "median_sentence_length": "mesure_36",
-    "sentence_length_p10": "mesure_37",
-    "sentence_length_p90": "mesure_38",
-    "paragraph_length_std_dev": "mesure_39",
-    "document_char_count": "mesure_40",
-    "unique_word_count": "mesure_42",
-    "sentence_length_amplitude": "mesure_43",
-    "sentence_length_std_dev": "mesure_44",
-    "sentence_word_std_dev": "mesure_41",
-    "type_token_ratio": "mesure_45",
-    "moving_type_token_ratio": "mesure_46",
-    "global_lemma_richness": "mesure_47",
-    "lemma_richness": "mesure_48",
-    "morphalou_coverage": "mesure_49",
-    "lexical_word_count": "mesure_50",
-    "unique_lemma_count": "mesure_51",
-    "avg_paragraph_length": "mesure_52",
-    "structural_repetition_rate": "mesure_53",
-    "relative_clause_count": "mesure_54",
-    "subordinate_clause_count": "mesure_55",
-    "subordinate_clause_ratio": "mesure_56",
-    "nominal_sentence_count": "mesure_57",
-    "pos_common_noun_ratio": "mesure_58",
-    "pos_proper_noun_ratio": "mesure_59",
-    "pos_verb_ratio": "mesure_60",
-    "pos_adjective_ratio": "mesure_61",
-    "pos_adverb_ratio": "mesure_62",
-    "flesch": "mesure_63",
-    "present_participle_ratio": "mesure_64",
-    "past_participle_ratio": "mesure_65",
-    "simple_past_ratio": "mesure_66",
-    "literary_subjunctive_ratio": "mesure_67",
-    "negation_completeness_ratio": "mesure_68",
-    "periphrastic_future_ratio": "mesure_69",
-    "oral_familiarity_ratio": "mesure_70",
-    "classicism_score": "mesure_71",
-    "dialogue_ratio": "mesure_72",
-    "negation_ratio": "mesure_73",
-    "avg_modifiers_per_noun": "mesure_74",
-    "heavily_modified_noun_ratio": "mesure_75",
-    "lexical_rarity_score": "mesure_76",
-    "adjective_chain_ratio": "mesure_77",
-    "avg_adjective_chain_length": "mesure_78",
-    "baroque_score": "mesure_79",
-    "action_verb_ratio": "mesure_80",
-    "temporal_connector_ratio": "mesure_81",
-    "personal_subject_ratio": "mesure_82",
-    "narrative_past_ratio": "mesure_83",
-    "narrativity_score": "mesure_84",
-    "emotion_word_ratio": "mesure_85",
-    "affect_verb_ratio": "mesure_86",
-    "exclamation_ratio": "mesure_87",
-    "exclamative_construction_ratio": "mesure_88",
-    "emotionality_score": "mesure_89",
-    "logical_connector_ratio": "mesure_90",
-    "abstract_noun_ratio": "mesure_91",
-    "gnomic_present_ratio": "mesure_92",
-    "discursivite_score": "mesure_93",
-    "literary_tense_ratio": "mesure_94",
-    "proper_noun_density": "mesure_95",
-    "concrete_noun_ratio": "mesure_96",
-    "tense_shift_rate": "mesure_97",
-    "scene_summary_ratio": "mesure_98",
-    "incise_density": "mesure_99",
-    "coordination_accumulation_ratio": "mesure_100",
-    "right_branching_depth": "mesure_101",
-    "punctuation_variety_score": "mesure_102",
-    "modal_generalization_ratio": "mesure_103",
-}
+def _metrics_from_notes() -> tuple[str, ...]:
+    """Construit le registre depuis les titres de ``stats-notes.md``."""
+    heading = re.compile(r"^# .+? \(([a-z][a-z0-9_]*)\)\s*$")
+    metrics: list[str] = []
+    malformed: list[str] = []
+    for line_number, line in enumerate(STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.startswith("# "):
+            continue
+        match = heading.match(line)
+        if not match:
+            malformed.append(f"ligne {line_number}: {line}")
+            continue
+        field = match.group(1)
+        if field.startswith("note_"):
+            continue
+        if field in metrics:
+            raise ValueError(f"Fonction métrique dupliquée dans {STATS_NOTES_FILE}: {field}")
+        metrics.append(field)
+    if malformed:
+        raise ValueError(
+            f"Chaque note doit finir par '(nom_de_fonction)' dans {STATS_NOTES_FILE}:\n"
+            + "\n".join(malformed)
+        )
+    if not metrics:
+        raise ValueError(f"Aucune mesure définie dans {STATS_NOTES_FILE}")
+    return tuple(metrics)
 
-METRIC_FIELDS = tuple(METRICS)
-METRIC_ID_BY_FIELD = dict(METRICS)
-FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRICS.items() if identifier}
+
+# Source de vérité unique : titre, identifiant et fonction vivent dans les notes.
+METRICS = _metrics_from_notes()
+
 
 # Les cinq axes de synthèse sont définis ici, au même endroit que les autres
 # références de mesures, afin que les rapports n'en maintiennent pas une copie.

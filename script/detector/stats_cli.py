@@ -35,7 +35,6 @@ from .config import (
     SOURCE_DIR,
     EPUB_DIR,
     EPUB_DATABASE,
-    METRIC_ID_BY_FIELD,
     SITE_CONFIG_FILE,
     SOURCE_MARKDOWN_PATTERN,
     STATS_CACHE_MANIFEST,
@@ -141,7 +140,6 @@ def comparison_documents(sources: list[Path]) -> list[tuple[Path, str]]:
 
 def sqlite_analyses(sources: list[Path]) -> tuple[list[tuple[Path, TextStats]], int]:
     """Récupère les mesures déjà calculées dans SQLite, sans recalcul spaCy."""
-    reverse = {identifier: field for field, identifier in METRIC_ID_BY_FIELD.items()}
     analyses = []
     with sqlite3.connect(EPUB_DATABASE) as connection:
         for source in sources:
@@ -151,7 +149,7 @@ def sqlite_analyses(sources: list[Path]) -> tuple[list[tuple[Path, TextStats]], 
             raw = cached_metric_values(connection, row[0])
             if not raw:
                 raise RuntimeError(f"Analyse absente de SQLite : {source.name}")
-            values = {reverse[key]: value for key, value in raw.items() if key in reverse}
+            values = raw
             analyses.append((source, TextStats(**{field.name: values[field.name] for field in fields(TextStats) if field.name in values})))
     word_window = min(len(tokenize(read_source(source))) for source in sources) if sources else 0
     return analyses, word_window
@@ -291,7 +289,7 @@ def comparable_stats(text: str, full_stats, window: int, gzip_window: int):
     full_syntax = analyze_syntax(text)
     updates.update({
         "word_count": len(words),
-        "unique_word_count": len(set(words)),
+        "unique_word_count": getattr(base, "unique_lemma_count", 0) / len(words) if words else 0,
         "sentence_count": len(split_sentences(text)),
         "paragraph_count": len([part for part in re.split(r"\n\s*\n", text) if part.strip()]),
         "gzip_compression_ratio": gzip_window_ratio(text, gzip_window),
@@ -328,7 +326,7 @@ def comparable_analyses(sources: list[Path], analyses: list[tuple[Path, object]]
             for (book_id,) in db.execute("SELECT id FROM books"):
                 rows.append((json.dumps(cached_metric_values(db, book_id)),))
         for field in ("classicism_score", "baroque_score", "emotionality_score", "narrativity_score", "discursivite_score"):
-            identifier = METRIC_ID_BY_FIELD[field]
+            identifier = field
             values = []
             for (raw,) in rows:
                 data = json.loads(raw)
@@ -505,7 +503,7 @@ def nearest_neighbor_markdown() -> list[str]:
                 rows.append({"title": title or Path(path).stem, "author": author or "Auteur inconnu", "values": values})
     if len(rows) < 3:
         return []
-    ids = [METRIC_ID_BY_FIELD[field] for field in NEAREST_NEIGHBOR_FIELDS]
+    ids = list(NEAREST_NEIGHBOR_FIELDS)
     usable = [[float(book["values"][identifier]) if book["values"].get(identifier) is not None else None for identifier in ids] for book in rows]
     means, deviations = [], []
     for index in range(len(ids)):
@@ -563,57 +561,26 @@ def note_sections() -> dict[str, str]:
     return markdown_sections(STATS_NOTES_FILE)
 
 
-NOTE_ID_BY_LABEL = {
-    "Dispersion": 42, "Densité de ponctuations": 1, "Diversité de ponctuation": 2,
-    "Diversité des structures": 3, "Rythme des structures": 4,
-    "Diversité des débuts de phrase": 5, "Burstiness": 6, "Ratio noms/verbes": 7,
-    "Répétitions lexicales": 8, "Diversité stylistique": 9, "Répétitions familiales": 10,
-    "Répétitions sonores": 11, "Répétitions non filtrées": 12, "Mots-outils": 13,
-    "Répétition globale des trigrammes": 14, "Répétition locale des trigrammes": 15,
-    "Noms": 16, "Verbes": 17, "Adjectifs": 18, "Adverbes": 19,
-    "Participes présents": 64, "Participes passés": 65,
-    "Compression gzip": 21, "Relatives et subordonnées": 22, "Phrases nominales": 23,
-    "Voix active": 24, "Comparaisons métaphoriques": 25, "Profondeur syntaxique": 26,
-    "Formes par lemme": 27, "Mots employés une seule fois": 28,
-    "Diversité de longueurs de phrase (mots)": 41, "Mots": 30, "Phrases": 31,
-    "Négativité / Positivité": 73, "Modificateurs par nom": 74,
-    "Noms fortement modifiés": 75, "Rareté lexicale": 76,
-    "Chaînes adjectivales": 77, "Longueur des chaînes adjectivales": 78,
-    "Minimalisme / Baroque": 79, "Maximaliste / Minimaliste": 79,
-    "Mots émotionnels": 85, "Verbes de réaction affective": 86, "Exclamations": 87,
-    "Constructions exclamatives": 88, "Émotionnalité": 89,
-    "Connecteurs logiques": 90, "Noms abstraits": 91, "Présent gnomique": 92,
-    "Narrativité ↔ Descriptivité": 84, "Narratif / Descriptif": 84,
-    "Discursivité ↔ Immersion": 93, "Discursif / Immersif": 93,
-    "Classique / Contemporain": 71, "Émotionnel / Neutre": 89,
-    "Registre temporel de langue": 71, "Densité stylistique": 79,
-    "Mode du texte": 84, "Charge affective": 89, "Posture énonciative": 93,
-    "Paragraphes": 32, "Longueur moyenne des mots (caractères)": 33,
-    "Longueur moyenne des phrases (caractères)": 34,
-    "Longueur médiane des phrases (caractères)": 36,
-    "Longueur P10 des phrases (caractères)": 37,
-    "Longueur P90 des phrases (caractères)": 38,
-    "Écart-type des paragraphes (mots)": 39,
-}
+NOTE_FIELD_BY_LABEL = {'Dispersion': 'note_dispersion', 'Densité de ponctuations': 'punctuation_per_300_words', 'Diversité de ponctuation': 'punctuation_diversity', 'Diversité des structures': 'structural_diversity', 'Rythme des structures': 'structural_rhythm', 'Diversité des débuts de phrase': 'sentence_start_diversity', 'Burstiness': 'burstiness', 'Ratio noms/verbes': 'noun_verb_ratio', 'Répétitions lexicales': 'filtered_repetition_rate', 'Diversité stylistique': 'stylistic_repetition_rate', 'Répétitions familiales': 'family_repetition_rate', 'Répétitions sonores': 'phonetic_repetition_rate', 'Répétitions non filtrées': 'absolute_repetition_rate', 'Mots-outils': 'function_word_ratio', 'Répétition globale des trigrammes': 'trigram_repetition', 'Répétition locale des trigrammes': 'moving_trigram_repetition', 'Noms': 'noun_ratio', 'Verbes': 'verb_ratio', 'Adjectifs': 'adjective_ratio', 'Adverbes': 'adverb_ratio', 'Participes présents': 'present_participle_ratio', 'Participes passés': 'past_participle_ratio', 'Compression gzip': 'gzip_compression_ratio', 'Relatives et subordonnées': 'relative_clause_ratio', 'Phrases nominales': 'nominal_sentence_ratio', 'Voix active': 'active_voice_ratio', 'Comparaisons métaphoriques': 'metaphorical_comme_ratio', 'Profondeur syntaxique': 'average_syntactic_depth', 'Formes par lemme': 'form_lemma_ratio', 'Mots employés une seule fois': 'hapax_ratio', 'Diversité de longueurs de phrase (mots)': 'sentence_word_std_dev', 'Mots': 'word_count', 'Phrases': 'sentence_count', 'Négativité / Positivité': 'negation_ratio', 'Modificateurs par nom': 'avg_modifiers_per_noun', 'Noms fortement modifiés': 'heavily_modified_noun_ratio', 'Rareté lexicale': 'lexical_rarity_score', 'Chaînes adjectivales': 'adjective_chain_ratio', 'Longueur des chaînes adjectivales': 'avg_adjective_chain_length', 'Minimalisme / Baroque': 'baroque_score', 'Maximaliste / Minimaliste': 'baroque_score', 'Mots émotionnels': 'emotion_word_ratio', 'Verbes de réaction affective': 'affect_verb_ratio', 'Exclamations': 'exclamation_ratio', 'Constructions exclamatives': 'exclamative_construction_ratio', 'Émotionnalité': 'emotionality_score', 'Connecteurs logiques': 'logical_connector_ratio', 'Noms abstraits': 'abstract_noun_ratio', 'Présent gnomique': 'gnomic_present_ratio', 'Narrativité ↔ Descriptivité': 'narrativity_score', 'Narratif / Descriptif': 'narrativity_score', 'Discursivité ↔ Immersion': 'discursivite_score', 'Discursif / Immersif': 'discursivite_score', 'Classique / Contemporain': 'classicism_score', 'Émotionnel / Neutre': 'emotionality_score', 'Registre temporel de langue': 'classicism_score', 'Densité stylistique': 'baroque_score', 'Mode du texte': 'narrativity_score', 'Charge affective': 'emotionality_score', 'Posture énonciative': 'discursivite_score', 'Paragraphes': 'paragraph_count', 'Longueur moyenne des mots (caractères)': 'avg_word_length', 'Longueur moyenne des phrases (caractères)': 'avg_sentence_length', 'Longueur médiane des phrases (caractères)': 'median_sentence_length', 'Longueur P10 des phrases (caractères)': 'sentence_length_p10', 'Longueur P90 des phrases (caractères)': 'sentence_length_p90', 'Écart-type des paragraphes (mots)': 'paragraph_length_std_dev'}
 
 
 def _note_heading_matches(heading: str, label: str) -> bool:
     """Compare un libellé de tableau avec l'un des titres de la note."""
     if label == "Dispersion":
         return heading.startswith("Dispersion")
-    clean_heading = re.sub(r"\s+#\d+(?:\s+#tab1_\d+)?\s*$", "", heading)
+    clean_heading = re.sub(r"\s+\([a-z][a-z0-9_]*\)\s*$", "", heading)
     clean_heading = clean_heading.replace("**", "")
     alternatives = [part.strip() for part in clean_heading.split("/")]
     return label.strip() in alternatives
 
 
 def note_section_for(label: str) -> str | None:
-    note_id = NOTE_ID_BY_LABEL.get(label)
+    note_field = NOTE_FIELD_BY_LABEL.get(label)
     for heading, content in note_sections().items():
-        heading_id = re.search(r"#(\d+)(?:\s|$)", heading)
-        if note_id is not None and heading_id and int(heading_id.group(1)) == note_id:
+        heading_field = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading)
+        if note_field is not None and heading_field and heading_field.group(1) == note_field:
             return content
-        if note_id is None and _note_heading_matches(heading, label):
+        if note_field is None and _note_heading_matches(heading, label):
             return content
     return None
 

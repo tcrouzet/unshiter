@@ -7,8 +7,8 @@ import gzip
 import math
 import re
 
-from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
-    FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
+from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE,
+    FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
     STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING, METRICS)
 from .demonette import family_map, phonetic_map
@@ -275,7 +275,7 @@ def oral_familiarity_ratio(text: str, word_count: int | None = None) -> float:
 @dataclass
 class TextStats:
     word_count: int = 0
-    unique_word_count: int = 0
+    unique_word_count: float = 0
     sentence_count: int = 0
     paragraph_count: int = 0
     avg_word_length: float = 0
@@ -379,14 +379,12 @@ class TextStats:
     def to_dict(self): return asdict(self)
 
     def to_metric_dict(self):
-        """Sérialisation publique : les clés sont exclusivement mesure_N."""
-        values = asdict(self)
-        return {METRIC_ID_BY_FIELD.get(field, field): value for field, value in values.items()}
+        """Sérialisation avec les noms des méthodes métriques."""
+        return asdict(self)
 
     @classmethod
     def from_metric_dict(cls, values):
-        """Reconstruit TextStats depuis une sérialisation indexée par les notes."""
-        return cls(**{FIELD_BY_METRIC_ID.get(key, key): value for key, value in values.items()})
+        return cls(**values)
 
 
 def tokenize(text: str) -> list[str]:
@@ -1094,7 +1092,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
                     + DISCURSIVITE_WEIGHTS["gnomic_present_ratio"] * gnomic_ratio)
     report(8, "assemblage des résultats")
     result = TextStats(
-        word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
+        word_count=len(words), unique_word_count=r(unique_lemma_count / len(words)), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
         avg_sentence_length=r(mean), avg_sentence_word_count=r(word_mean), median_sentence_length=r(_percentile(lengths, .5)),
         sentence_length_p10=r(_percentile(lengths, .1)), sentence_length_p90=r(_percentile(lengths, .9)),

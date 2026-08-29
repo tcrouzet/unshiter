@@ -36,25 +36,19 @@ const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
 const BURROWS_FIELDS = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))]
   .filter(key => !TECHNICAL_KEYS.has(key) && !COMPOSITE_FIELDS.has(key));
-// L’écart-type brut reste disponible dans les données, mais la mesure #6
-// affichée et indexée est bien la diversité locale (burstiness).
+// L’écart-type brut reste disponible dans les données, mais l’axe affiché
+// est bien la diversité locale (burstiness).
 const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
 let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
 const flippedAxes = new Set();
-// L'interface ne stocke jamais de noms de champs statistiques : elle utilise
-// uniquement les identifiants publics des notes (mesure_1, mesure_2, ...).
-function publicMetricId(key) { return data?.metric_note_ids?.[key] || key; }
-function metricKey(ref) {
-  if (!data?.metric_note_ids || !String(ref).startsWith("mesure_")) return ref;
-  return Object.entries(data.metric_note_ids).find(([, id]) => id === ref)?.[0] || ref;
-}
+function publicMetricId(key) { return key; }
+function metricKey(ref) { return ref; }
 function noteEntry(key) {
-  const publicId = data?.metric_note_ids?.[key];
-  const id = publicId == null ? null : data?.note_ids?.[publicId];
-  const title = id == null ? `Mesure ${publicId || "non référencée"}` : (data?.note_titles?.[String(id)] || `Mesure ${id}`);
+  const id = key;
+  const title = data?.note_titles?.[key] || `Mesure ${key}`;
   const aliases = title.replace(/\*\*/g, "").split("/").map(alias => alias.trim());
   const bold = title.match(/\*\*([^*]+)\*\*/)?.[1]?.trim();
   return { id, title, aliases, preferred: bold || aliases[0] };
@@ -62,7 +56,7 @@ function noteEntry(key) {
 function metricLabel(key) { const entry = noteEntry(key); if (!flippedAxes.has(key)) return entry.preferred; const alternate = entry.aliases.find(alias => alias !== entry.preferred); return alternate || entry.preferred; }
 function metricNote(key) {
   const entry = noteEntry(key);
-  return entry.id == null ? "Note non référencée." : (data?.notes?.[String(entry.id)] || "Note non référencée.");
+  return data?.notes?.[entry.id] || "Note non référencée.";
 }
 function renderNote(id) {
   const title = data.note_titles?.[String(id)] || "Note";
@@ -160,7 +154,7 @@ function scale(key, n) {
   if (!Number.isFinite(minimum) || maximum === minimum) return 50;
   let relative = Math.max(0, Math.min(1, (n - minimum) / (maximum - minimum)));
   const entry = noteEntry(key);
-  const preferredIsSecond = ["mesure_1", "mesure_41"].includes(publicMetricId(key))
+  const preferredIsSecond = ["punctuation_per_300_words", "sentence_word_std_dev"].includes(key)
     ? false
     : entry.aliases.indexOf(entry.preferred) === 1;
   if (preferredIsSecond !== flippedAxes.has(key)) relative = 1 - relative;
@@ -756,7 +750,7 @@ function dispersion(values) {
   return standardDeviation / Math.abs(mean) * 100;
 }
 function table(books, definitions) {
-  const header = `<th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="42" title="Afficher la note Dispersion">?</button></th>`;
+  const header = `<th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>`;
   const rows = definitions.map(([key, label]) => {
     const displayed = books.map(b => { const n = value(b, key); return DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n; });
     const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
@@ -876,7 +870,11 @@ function controls() {
   const validSavedBookIds = savedBookIds.filter(id => currentBookIds.has(id));
   const savedBooks = new Set(validSavedBookIds.length ? validSavedBookIds : []);
   if (savedBookIds.length && !validSavedBookIds.length) localStorage.removeItem("unshiter-books");
-  const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey));
+  const rawSavedMetrics = JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey);
+  const availableMetricKeys = new Set(MENU_METRICS.map(([key]) => key));
+  const validSavedMetrics = rawSavedMetrics.filter(key => availableMetricKeys.has(key));
+  const savedMetrics = new Set(validSavedMetrics);
+  if (rawSavedMetrics.length && !validSavedMetrics.length) localStorage.removeItem("unshiter-metrics");
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
   const authorsPanel = document.getElementById("authors-panel");
   if (authorsPanel) {
@@ -952,7 +950,7 @@ function controls() {
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { if (event.target.closest(".open-app-help")) { event.preventDefault(); showApplicationHelp(); } });
-  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(Number(button.dataset.noteId)); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
+  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
@@ -973,14 +971,17 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829153425420545000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829160531648739000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
   // Les inversions d'axes font partie de la configuration persistante, au
   // même titre que les œuvres et les mesures cochées.
-  const savedFlips = JSON.parse(localStorage.getItem("unshiter-flipped") || "[]");
-  savedFlips.map(metricKey).forEach(key => flippedAxes.add(key));
+  const savedFlips = JSON.parse(localStorage.getItem("unshiter-flipped") || "[]").map(metricKey);
+  const availableMetricKeys = new Set(MENU_METRICS.map(([key]) => key));
+  const validSavedFlips = savedFlips.filter(key => availableMetricKeys.has(key));
+  validSavedFlips.forEach(key => flippedAxes.add(key));
+  if (savedFlips.length !== validSavedFlips.length) localStorage.setItem("unshiter-flipped", JSON.stringify(validSavedFlips));
   // L’ordre et la sélection par défaut viennent exclusivement des marqueurs
   // #tab1_N des notes, jamais d’une liste parallèle dans le JavaScript.
   if (Array.isArray(data.default_radar) && data.default_radar.length) {
