@@ -34,7 +34,10 @@ const DETAILS = [
 // auteurs, alors que les tableaux utilisant DETAILS restaient alimentés.
 const ALL_METRICS = [...RADAR, ...SUMMARY, ...DETAILS.map(([key, label]) => [key, label])]
   .filter((item, index, all) => all.findIndex(other => other[0] === item[0]) === index);
-const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
+// Seuls les quatre comptages matériels restent dans le tableau 3. Toutes les
+// autres données descriptives sont des mesures comparables : elles disposent
+// d'un σ et peuvent participer aux graphiques et calculs stylistiques.
+const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count"]);
 // La distance stylistique utilise toutes les mesures individuelles, mais
 // exclut les cinq scores BigFive (composites) et les données objectives.
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
@@ -42,7 +45,7 @@ const BURROWS_FIELDS = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))
   .filter(key => !TECHNICAL_KEYS.has(key) && !COMPOSITE_FIELDS.has(key));
 // L’écart-type brut reste disponible dans les données, mais l’axe affiché
 // est bien la diversité locale (burstiness).
-const REMOVED_KEYS = new Set(["avg_sentence_word_count"]);
+const REMOVED_KEYS = new Set();
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
@@ -601,8 +604,10 @@ function drawEvolution(selectedBooks) {
       return isEvolutionHighlighted(entity);
     };
     const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
-    lineChart.$years = authorMode ? [] : plotBooks.map(book => book.publication_date.slice(0, 4));
-    lineChart.$pointLabels = authorMode ? plotBooks.map(book => format(value(book, key), key)) : [];
+    lineChart.$years = plotBooks.map(book => String(book.publication_date || "").slice(0, 4));
+    lineChart.$pointLabels = evolutionOrder === "values"
+      ? plotBooks.map(book => format(value(book, key), key))
+      : [];
     lineChart.$pointEntities = plotBooks;
     lineChart.$csvRows = [
       [authorMode ? "Auteur" : "Œuvre", "Auteur", "Date", "Valeur brute", "Valeur graphique (0–100)"],
@@ -859,7 +864,7 @@ function exportPromptAndData() {
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
   // que soit la sélection courante à gauche.
   const orderedFields = [...new Set(tableOrder.flat().concat(Object.keys(metrics)))].filter(field => metrics[field]);
-  const nonNormalizable = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"]);
+  const nonNormalizable = TECHNICAL_KEYS;
   // Export brut du corpus sélectionné : une seule valeur moyenne par mesure.
   // Les noms d’œuvres et d’auteurs restent dans l’interface, pas dans ce fichier.
   for (const field of orderedFields) {
@@ -1031,7 +1036,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829213544127439000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829214812586038000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
