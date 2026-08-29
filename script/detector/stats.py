@@ -7,7 +7,7 @@ import gzip
 import math
 import re
 
-from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE,
+from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, EMOTIONAL_INTERJECTIONS_FILE, SOMATIC_NOUNS_FILE,
     FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, LEXICAL_WINDOW_SIZE, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
     STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING, METRICS)
@@ -94,6 +94,33 @@ class Metrics:
     @cached_property
     def dialogue_ranges(self):
         return dialogue_char_ranges(self.text)
+
+    def interjection_density(self):
+        return interjection_density(self.text, len(self.words))
+
+    def intensifier_adjective_ratio(self):
+        return intensifier_adjective_ratio(self.doc)
+
+    def somatic_reaction_noun_ratio(self):
+        return somatic_reaction_noun_ratio(self.contextual_tokens)
+
+    def ellipsis_ratio(self):
+        return ellipsis_ratio(self.text, len(self.sentences))
+
+    def question_mark_narration_ratio(self):
+        return question_mark_narration_ratio(self.text, self.dialogue_ranges)
+
+    def emotionality_score(self):
+        return (
+            EMOTIONALITY_WEIGHTS["exclamation_ratio"]
+            * exclamation_ratio(self.text, len(self.sentences))
+            + EMOTIONALITY_WEIGHTS["ellipsis_ratio"]
+            * ellipsis_ratio(self.text, len(self.sentences))
+            + EMOTIONALITY_WEIGHTS["question_mark_narration_ratio"]
+            * question_mark_narration_ratio(self.text, self.dialogue_ranges)
+            + EMOTIONALITY_WEIGHTS["intensifier_adjective_ratio"]
+            * intensifier_adjective_ratio(self.doc)
+        )
 
     def right_branching_depth(self):
         """Calcule uniquement cette mesure, par lots de phrases.
@@ -203,6 +230,51 @@ def affect_verb_ratio(contextual_tokens) -> float:
     return sum(token[1].casefold() in affect for token in verbs) / len(verbs) if verbs else 0.0
 
 
+def interjection_density(text: str, word_count: int) -> float:
+    """Occurrences d'interjections émotionnelles par mot."""
+    if not word_count:
+        return 0.0
+    normalized = " ".join(tokenize(text.casefold().replace("’", "'")))
+    markers = sorted(set(_load_simple_markers(EMOTIONAL_INTERJECTIONS_FILE)), key=len, reverse=True)
+    count = 0
+    for marker in markers:
+        pattern = rf"(?<!\w){re.escape(marker)}(?!\w)"
+        normalized, matches = re.subn(pattern, " ", normalized)
+        count += matches
+    return count / word_count
+
+
+def somatic_reaction_noun_ratio(contextual_tokens) -> float:
+    """Part des noms communs qui désignent une manifestation somatique."""
+    nouns = [token for token in (contextual_tokens or []) if token[2] == "nom"]
+    markers = set(_load_simple_markers(SOMATIC_NOUNS_FILE))
+    return sum(token[1].casefold() in markers for token in nouns) / len(nouns) if nouns else 0.0
+
+
+INTENSIFIER_LEMMAS = {
+    "si", "tellement", "tant", "très", "extrêmement", "terriblement",
+    "affreusement", "profondément", "particulièrement", "incroyablement",
+    "infiniment", "absolument", "fort", "vraiment",
+}
+
+
+def intensifier_adjective_ratio(doc) -> float:
+    """Part des adjectifs modifiés par un adverbe d'intensité."""
+    if doc is None:
+        return 0.0
+    adjectives = [token for token in doc if token.pos_ == "ADJ"]
+    intensified = 0
+    for adjective in adjectives:
+        preceding = doc[adjective.i - 1] if adjective.i > 0 else None
+        immediate = preceding is not None and preceding.lemma_.casefold() in INTENSIFIER_LEMMAS
+        dependent = any(
+            child.dep_ == "advmod" and child.lemma_.casefold() in INTENSIFIER_LEMMAS
+            for child in adjective.children
+        )
+        intensified += immediate or dependent
+    return intensified / len(adjectives) if adjectives else 0.0
+
+
 def punctuation_pattern_counts(text: str) -> dict[str, int]:
     return {"point_final": len(re.findall(r"\.", text)), "virgule": len(re.findall(r",", text)),
             "semicolon": len(re.findall(r";", text)), "colon": len(re.findall(r":", text)),
@@ -211,6 +283,20 @@ def punctuation_pattern_counts(text: str) -> dict[str, int]:
 
 def exclamation_ratio(text: str, sentence_count: int) -> float:
     return punctuation_pattern_counts(text)["exclamation"] / sentence_count if sentence_count else 0.0
+
+
+def ellipsis_ratio(text: str, sentence_count: int) -> float:
+    return punctuation_pattern_counts(text)["suspension"] / sentence_count if sentence_count else 0.0
+
+
+def question_mark_narration_ratio(text: str, dialogue_ranges: list[tuple[int, int]]) -> float:
+    """Questions hors dialogue rapportées aux phrases narratives."""
+    narrative_chars = list(text)
+    for start, end in dialogue_ranges:
+        narrative_chars[start:end] = [" "] * (end - start)
+    narrative_text = "".join(narrative_chars)
+    narrative_sentences = split_sentences(narrative_text)
+    return narrative_text.count("?") / len(narrative_sentences) if narrative_sentences else 0.0
 
 
 def punctuation_variety_score(text: str, sentence_count: int) -> float:
@@ -364,6 +450,11 @@ class TextStats:
     personal_subject_ratio: float = 0
     emotion_word_ratio: float = 0
     affect_verb_ratio: float = 0
+    interjection_density: float = 0
+    intensifier_adjective_ratio: float = 0
+    somatic_reaction_noun_ratio: float = 0
+    ellipsis_ratio: float = 0
+    question_mark_narration_ratio: float = 0
     exclamation_ratio: float = 0
     exclamative_construction_ratio: float = 0
     emotionality_score: float = 0
@@ -1069,10 +1160,19 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
     contextual_for_affect = context.contextual_tokens
     emotion_ratio = emotion_word_ratio(words)
     affect_ratio = affect_verb_ratio(contextual_for_affect)
+    interjection_ratio = interjection_density(text, len(words))
+    intensifier_ratio = intensifier_adjective_ratio(context.doc)
+    somatic_ratio = somatic_reaction_noun_ratio(contextual_for_affect)
+    suspension_ratio = ellipsis_ratio(text, len(sentences))
+    narrative_question_ratio = question_mark_narration_ratio(text, dialogue_ranges)
     exclaim_ratio = exclamation_ratio(text, len(sentences))
     exclamative_ratio = syntax.get("exclamative_construction_ratio", 0) if syntax else 0
-    emotionality = (EMOTIONALITY_WEIGHTS["affect_verb_ratio"] * affect_ratio
-                    + EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio)
+    emotionality = (
+        EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio
+        + EMOTIONALITY_WEIGHTS["ellipsis_ratio"] * suspension_ratio
+        + EMOTIONALITY_WEIGHTS["question_mark_narration_ratio"] * narrative_question_ratio
+        + EMOTIONALITY_WEIGHTS["intensifier_adjective_ratio"] * intensifier_ratio
+    )
     logical_ratio = logical_connector_ratio(text, len(sentences))
     abstract_ratio = abstract_noun_ratio(contextual_for_affect)
     gnomic_ratio = syntax.get("gnomic_present_ratio", 0) if syntax else 0
@@ -1163,7 +1263,10 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         avg_adjective_chain_length=r(avg_adjective_chain), baroque_score=r(baroque),
         action_verb_ratio=r(action_ratio), temporal_connector_ratio=r(temporal_ratio),
         personal_subject_ratio=r(personal_ratio),
-        emotion_word_ratio=r(emotion_ratio), affect_verb_ratio=r(affect_ratio), exclamation_ratio=r(exclaim_ratio),
+        emotion_word_ratio=r(emotion_ratio), affect_verb_ratio=r(affect_ratio),
+        interjection_density=r(interjection_ratio), intensifier_adjective_ratio=r(intensifier_ratio),
+        somatic_reaction_noun_ratio=r(somatic_ratio), ellipsis_ratio=r(suspension_ratio),
+        question_mark_narration_ratio=r(narrative_question_ratio), exclamation_ratio=r(exclaim_ratio),
         exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),
         logical_connector_ratio=r(logical_ratio), abstract_noun_ratio=r(abstract_ratio),
         narrative_past_ratio=r(past_ratio), narrativity_score=r(narrativity), gnomic_present_ratio=r(gnomic_ratio), discursivite_score=r(discursivite),

@@ -7,6 +7,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from detector.config import OUTPUT_DIR, SOURCE_DIR
 from detector.syntax_depth import analyze_syntax, dialogue_char_ranges
+from detector.stats import (ellipsis_ratio, interjection_density,
+                            question_mark_narration_ratio,
+                            somatic_reaction_noun_ratio)
 from detector.stats_cli import (
     comparison_sources,
     comparison_documents,
@@ -25,6 +28,20 @@ from detector.stats_cli import (
 
 
 class DetectorTests(unittest.TestCase):
+    def test_exploratory_emotional_punctuation_metrics(self):
+        text = "Pourquoi partir ?\n\n— Tu pars ?\n\nIl reste..."
+        ranges = dialogue_char_ranges(text)
+        self.assertEqual(ellipsis_ratio(text, 3), 1 / 3)
+        self.assertEqual(question_mark_narration_ratio(text, ranges), 1 / 2)
+
+    def test_interjections_do_not_double_count_multiword_markers(self):
+        self.assertEqual(interjection_density("Ah, mon Dieu !", 3), 2 / 3)
+
+    def test_somatic_nouns_use_lemmas_and_common_noun_denominator(self):
+        tokens = [("larmes", "larme", "nom"), ("visage", "visage", "nom"),
+                  ("pleure", "pleurer", "verbe")]
+        self.assertEqual(somatic_reaction_noun_ratio(tokens), 1 / 2)
+
     def test_dialogue_is_excluded_from_classicism_narrative_counters(self):
         narrative = analyze_syntax("Il chanta.")
         mixed = analyze_syntax("Il chanta.\n\n— Il chanta.")

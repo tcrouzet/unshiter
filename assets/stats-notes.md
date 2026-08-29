@@ -226,7 +226,7 @@ Part des futurs employés qui sont construits avec « aller » au présent suivi
 Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
 # **Classique** / Contemporain (classicism_score)
-Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, de l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, un style verbal et actif, peu de dialogues, une bonne incompressibilité. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus "classique".
+Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, la diversité syntaxique, un style verbal et une voix active. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus « classique ».
 
 # **Modificateurs par nom** (avg_modifiers_per_noun)
 Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
@@ -244,7 +244,7 @@ Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
 Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
 
 # **Maximaliste** / Minimaliste (baroque_score)
-Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
+Score composite : proche de 0, minimalisme ; proche de 1, maximalisme. Il combine l'enrichissement des groupes nominaux, les comparaisons, les chaînes adjectivales, la longueur des phrases, la profondeur d'expansion en fin de phrase, la densité d'incises, l'accumulation de coordinations et la densité de ponctuations savantes.
 
 # **Verbes d’action** (action_verb_ratio)
 Part des verbes finis qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
@@ -260,7 +260,7 @@ Part des sujets grammaticaux identifiables comme personnels. `on` et les noms co
 Part des verbes finis narratifs au passé, hors dialogues.
 
 # **Narratif** / Descriptif (narrativity_score)
-Score composite : proche de 1, récit d’action ; proche de 0, peinture descriptive. Il combine les verbes d’action, connecteurs temporels, sujets personnels, dialogues et voix active, en retirant les phrases nominales et l’accumulation d’adjectifs. Le passé narratif reste une mesure informative séparée et n’entre pas dans ce score.
+Score composite : proche de 1, récit d'action ; proche de 0, peinture descriptive. Il combine les verbes d'action, les connecteurs temporels, les dialogues, la voix active, le taux de rupture temporelle entre paragraphes et la densité de noms propres, en retirant les phrases nominales et l'accumulation d'adjectifs. Le passé narratif et le taux de marqueurs de sommaire restent des mesures informatives séparées et n'entrent pas dans ce score.
 
 # **Dialogue** (dialogue_ratio)
 Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
@@ -274,6 +274,21 @@ Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expande
 # Verbes de réaction affective (affect_verb_ratio)
 Part des verbes finis appartenant à `assets/dictionnaires/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
 
+# Densité d'interjections émotionnelles (interjection_density)
+Occurrences des interjections définies dans `assets/dictionnaires/emotional-interjections.txt`, divisées par le nombre total de mots. Les expressions les plus longues sont reconnues en premier afin qu'une occurrence de « mon Dieu » ne compte pas aussi « Dieu » séparément.
+
+# Intensificateurs devant adjectif (intensifier_adjective_ratio)
+Part des adjectifs immédiatement précédés ou syntaxiquement modifiés (`advmod`) par un adverbe d'intensité tel que « si », « tellement », « extrêmement » ou « terriblement ».
+
+# Noms de manifestation somatique (somatic_reaction_noun_ratio)
+Part des noms communs dont le lemme figure dans `assets/dictionnaires/somatic-nouns.txt` (larmes, sueur, frisson, sanglot, soupir, tremblement, palpitation, etc.).
+
+# Densité de points de suspension (ellipsis_ratio)
+Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.
+
+# Points d'interrogation hors dialogue (question_mark_narration_ratio)
+Nombre de points d'interrogation situés hors des plages de dialogue, rapporté au nombre de phrases narratives. Cette mesure vise les questions portées par la voix narrative plutôt que les échanges conversationnels.
+
 # Exclamations (exclamation_ratio)
 Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
 
@@ -281,7 +296,7 @@ Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure re
 Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
 
 # **Émotionnel** / Neutre (emotionality_score)
-Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
+Score agrégé des exclamations, points de suspension, questions portées par la narration et adjectifs modifiés par un intensificateur. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte. Les noms somatiques et interjections émotionnelles restent disponibles comme mesures exploratoires mais n’entrent pas dans ce score.
 # Connecteurs logiques (logical_connector_ratio)
 Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
 
@@ -307,7 +322,7 @@ Part des noms communs qui ne portent pas un suffixe de nominalisation abstraite.
 Proportion de transitions entre paragraphes consécutifs où le temps verbal dominant change. Les paragraphes sans verbe ne sont pas pris en compte ; une valeur élevée indique davantage d’alternance entre régimes temporels.
 
 # Taux de marqueurs de sommaire (scene_summary_ratio)
-Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient un d'une liste fixe (« souvent », « chaque jour », « pendant des années », « avait l'habitude de »… définit dans `assets/dictionnaires/duration-markers.txt`) tout en étant nettement plus courte que la phrase la plus longue du corpus. Signale un sommaire narratif selon Genette : le récit qui condense une longue durée en peu de mots — par opposition à la scène, qui déploie un moment précis en détail.
+Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient un mot ou une expression d'une liste fixe (« souvent », « chaque jour », « pendant des années », « avait l'habitude de »… définie dans `assets/dictionnaires/duration-markers.txt`) tout en étant nettement plus courte que la phrase la plus longue du corpus. Signale un sommaire narratif selon Genette : le récit qui condense une longue durée en peu de mots — par opposition à la scène, qui déploie un moment précis en détail.
 
 # Densité d'incises (incise_density)
 Proportion de phrases contenant au moins une proposition ou un groupe encadré par des virgules, des parenthèses ou des tirets cadratin ou demi-cadratin, inséré dans le fil syntaxique principal sans en être le sujet ou l'objet direct. La détection s'appuie sur les dépendances spaCy (`appos`, `acl:relcl`, `advcl` ou `parataxis`) lorsqu'une virgule précède le groupe. Une valeur élevée indique une phrase plus interrompue et enrichie ; une valeur faible, une phrase plus nue.

@@ -1,0 +1,15 @@
+# Interjections qui manifestent directement une réaction émotionnelle.
+# Une entrée par ligne ; les expressions longues sont reconnues avant les courtes.
+interjection: ah
+interjection: oh
+interjection: hélas
+interjection: ciel
+interjection: mon dieu
+interjection: bon dieu
+interjection: grand dieu
+interjection: zut
+interjection: malheur
+interjection: miséricorde
+interjection: bravo
+interjection: hourra
+interjection: ouf

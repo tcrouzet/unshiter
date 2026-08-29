@@ -13,7 +13,11 @@ const SUMMARY = [
 ];
 const DETAILS = [
   ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true], ["literary_tense_ratio", "Temps littéraires", true],
-  ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
+  ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true],
+  ["interjection_density", "Densité d’interjections émotionnelles", true], ["intensifier_adjective_ratio", "Intensificateurs devant adjectif", true],
+  ["somatic_reaction_noun_ratio", "Noms de manifestation somatique", true], ["ellipsis_ratio", "Densité de points de suspension", true],
+  ["question_mark_narration_ratio", "Points d’interrogation hors dialogue", true],
+  ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
   ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
   ["proper_noun_density", "Densité de noms propres", true],
   ["concrete_noun_ratio", "Noms concrets", true],
@@ -738,6 +742,13 @@ const RAW_DISPLAY_METRICS = new Set([
   "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
   "avg_adjective_chain_length",
 ]);
+const PERCENT_DECIMALS = new Map([
+  ["interjection_density", 2],
+  ["somatic_reaction_noun_ratio", 2],
+  ["intensifier_adjective_ratio", 1],
+  ["ellipsis_ratio", 1],
+  ["question_mark_narration_ratio", 1],
+]);
 function dispersion(values, key) {
   const numbers = values.filter(Number.isFinite);
   if (numbers.length < 2) return null;
@@ -761,7 +772,7 @@ function table(books, definitions) {
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
+function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(PERCENT_DECIMALS.get(key) ?? 0)} %`; }
 function downloadSvg() {
   if (!chart) return;
   const w = 1000, h = 760, cx = 500, cy = 350, radius = 260, count = chart.data.labels.length;
@@ -791,7 +802,7 @@ function exportPromptAndData() {
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
     ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
-    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
+    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "affect_verb_ratio", "interjection_density", "intensifier_adjective_ratio", "somatic_reaction_noun_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
     ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
   ];
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
@@ -969,7 +980,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829172546376105000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829185309066615000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
