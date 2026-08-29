@@ -510,7 +510,6 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "past_participles": past_participles,
         "simple_past": simple_past,
         "literary_subjunctive": literary_subjunctive,
-        "literary_tense_ratio": (simple_past + literary_subjunctive) / finite_verbs if finite_verbs else 0,
         "negation_total": negation_total,
         "negation_with_ne": negation_with_ne,
         "negation_completeness_ratio": negation_with_ne / negation_total if negation_total else None,

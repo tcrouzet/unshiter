@@ -67,8 +67,8 @@ Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre tota
 # **Compressibilité gzip** / Incompressibilité gzip (gzip_compression_ratio)
 Le texte UTF-8 est compressé avec gzip. La taille compressée est divisée par la taille originale et affichée en pourcentage. Une valeur basse signifie que les octets du texte sont plus prévisibles et se compressent mieux. Pour comparer les documents, le programme utilise des blocs non chevauchants ayant exactement {window}.
 
-# **Densité de relatives et subordonnées** / Sparcité de relatives et subordonnées (relative_clause_ratio)
-spaCy compte les dépendances de relative (`acl:relcl`) et les autres dépendances subordonnées configurées (`acl`, `advcl`, `ccomp`, `csubj`, `xcomp`). Leur somme est divisée par le nombre de phrases. La valeur peut dépasser 100 % : une phrase peut contenir plusieurs subordonnées. Ce résultat dépend de l’analyse du modèle spaCy.
+# **Densité de relatives** / Sparcité de relatives (relative_clause_ratio)
+Nombre de dépendances de proposition relative (`acl:relcl`) reconnues par spaCy, divisé par le nombre de phrases. Une phrase peut contenir plusieurs relatives, la valeur peut donc dépasser 100 %. Les autres subordonnées sont mesurées séparément par `subordinate_clause_ratio`.
 
 # Densité de phrases nominales / Sparcité de phrases nominales (nominal_sentence_ratio)
 Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
@@ -192,15 +192,6 @@ Part des noms communs dans la distribution grammaticale calculée par spaCy.
 # Noms propres spaCy (pos_proper_noun_ratio)
 Part des noms propres dans la distribution grammaticale calculée par spaCy.
 
-# Verbes spaCy (pos_verb_ratio)
-Part des verbes dans la distribution grammaticale calculée par spaCy.
-
-# Adjectifs spaCy (pos_adjective_ratio)
-Part des adjectifs dans la distribution grammaticale calculée par spaCy.
-
-# Adverbes spaCy (pos_adverb_ratio)
-Part des adverbes dans la distribution grammaticale calculée par spaCy.
-
 # Lisibilité de Flesch (flesch)
 Indice de lisibilité adapté au français à partir de la longueur des phrases et du nombre de syllabes par mot.
 
@@ -226,7 +217,7 @@ Part des futurs employés qui sont construits avec « aller » au présent suivi
 Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
 # **Classique** / Contemporain (classicism_score)
-Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, la diversité syntaxique, un style verbal, une voix active et l'emploi des points-virgules et deux-points. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus « classique ».
+Score qui agrège l’usage des subjonctifs imparfaits ou plus-que-parfaits, l’absence de futur périphrastique, l’absence de familiarité orale en dehors des dialogues, la diversité syntaxique, un style verbal, une voix active et l’emploi des points-virgules et deux-points. Le passé simple reste une mesure indépendante et n’entre pas dans ce score. Ce score est calibré sur le corpus, avec 100 % attribué à l’œuvre la plus « classique ».
 
 # **Modificateurs par nom** (avg_modifiers_per_noun)
 Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
@@ -308,9 +299,6 @@ Part des verbes finis au présent de l’indicatif dont le sujet est générique
 
 # **Discursif** / Immersif (discursivite_score)
 Score fondé sur la densité des connecteurs logiques et argumentatifs, la part de noms abstraits et le présent gnomique. Une valeur élevée indique davantage de commentaire, de généralisation ou d'argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite.
-
-# Temps littéraires (literary_tense_ratio)
-Part des verbes finis narratifs au passé simple ou au subjonctif imparfait ou plus-que-parfait, hors dialogues. Cette mesure informative est utilisée comme composante du registre classique.
 
 # Densité de noms propres (proper_noun_density)
 Part des tokens non ponctuels et non espacés étiquetés `PROPN` par spaCy. Elle indique la place des personnes, lieux, marques et autres noms propres dans le texte.

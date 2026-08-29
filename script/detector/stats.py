@@ -137,7 +137,7 @@ class Metrics:
             narrative_text = "".join(chars)
         if syntax:
             verb_ratio_value = syntax["pos_distribution"]["verbs"]
-            literary_ratio = syntax.get("literary_tense_ratio", 0)
+            literary_ratio = syntax.get("literary_subjunctive", 0) / syntax["finite_verbs"] if syntax.get("finite_verbs") else 0
             future_ratio = syntax.get("periphrastic_future_ratio") or 0
             active_ratio = syntax.get("active_voice_ratio") or 0
             dialogue_ratio_value = syntax.get("dialogue_ratio", 0)
@@ -146,7 +146,7 @@ class Metrics:
             literary_ratio = future_ratio = active_ratio = dialogue_ratio_value = 0
         structures = sentence_structure_signatures(split_structure_units(self.text))
         return (
-            CLASSICISM_WEIGHTS["literary_tense_ratio"] * literary_ratio
+            CLASSICISM_WEIGHTS["literary_subjunctive_ratio"] * literary_ratio
             + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * future_ratio
             + CLASSICISM_WEIGHTS["oral_familiarity_ratio"] * min(oral_familiarity_ratio(narrative_text) / 10, 1)
             + CLASSICISM_WEIGHTS["structural_diversity"] * structural_diversity(structures)
@@ -450,9 +450,6 @@ class TextStats:
     metaphorical_comme_ratio: float | None = None
     pos_common_noun_ratio: float | None = None
     pos_proper_noun_ratio: float | None = None
-    pos_verb_ratio: float | None = None
-    pos_adjective_ratio: float | None = None
-    pos_adverb_ratio: float | None = None
     proper_noun_density: float = 0
     concrete_noun_ratio: float = 0
     tense_shift_rate: float = 0
@@ -466,7 +463,6 @@ class TextStats:
     past_participle_ratio: float | None = None
     simple_past_ratio: float = 0
     literary_subjunctive_ratio: float = 0
-    literary_tense_ratio: float = 0
     negation_completeness_ratio: float | None = None
     periphrastic_future_ratio: float | None = None
     oral_familiarity_ratio: float = 0
@@ -1170,10 +1166,10 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
     # ici pour fournir un score local stable ; le rapport comparatif applique
     # ensuite sa normalisation par percentiles pour les comparaisons.
     active_ratio = syntax["active_voice_ratio"] if syntax and syntax["active_voice_ratio"] is not None else 0
-    literary_ratio = simple_past_ratio + literary_subjunctive_ratio
+    literary_ratio = literary_subjunctive_ratio
     report(6, "calcul du classicisme")
     classicism = (
-        CLASSICISM_WEIGHTS["literary_tense_ratio"] * literary_ratio
+        CLASSICISM_WEIGHTS["literary_subjunctive_ratio"] * literary_ratio
         + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * (periphrastic_future_ratio or 0)
         + CLASSICISM_WEIGHTS["oral_familiarity_ratio"] * min(oral_ratio / 10, 1)
         + CLASSICISM_WEIGHTS["structural_diversity"] * structural_diversity(structures)
@@ -1220,7 +1216,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         + NARRATIVITY_WEIGHTS["tense_shift_rate"] * (syntax.get("tense_shift_rate", 0) if syntax else 0)
         + NARRATIVITY_WEIGHTS["proper_noun_density"] * (syntax.get("proper_noun_density", 0) if syntax else 0)
         + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)
-        + NARRATIVITY_WEIGHTS["pos_adjective_ratio"] * (syntax.get("pos_distribution", {}).get("adjectives", 0) if syntax else 0))
+        + NARRATIVITY_WEIGHTS["adjective_ratio"] * adjective_ratio)
     # La discursivité repose uniquement sur les marqueurs logiques : les
     # noms, adjectifs et sujets génériques peuvent relever de la description.
     # logical_ratio est calculé sur toutes les phrases du document (le « pour
@@ -1272,9 +1268,6 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         metaphorical_comme_ratio=r(syntax["metaphorical_comme_ratio"]) if syntax and syntax["metaphorical_comme_ratio"] is not None else None,
         pos_common_noun_ratio=r(syntax["pos_distribution"]["common_nouns"]) if syntax else None,
         pos_proper_noun_ratio=r(syntax["pos_distribution"]["proper_nouns"]) if syntax else None,
-        pos_verb_ratio=r(syntax["pos_distribution"]["verbs"]) if syntax else None,
-        pos_adjective_ratio=r(syntax["pos_distribution"]["adjectives"]) if syntax else None,
-        pos_adverb_ratio=r(syntax["pos_distribution"]["adverbs"]) if syntax else None,
         proper_noun_density=r(syntax.get("proper_noun_density", 0)) if syntax else 0,
         concrete_noun_ratio=r(syntax.get("concrete_noun_ratio", 0)) if syntax else 0,
         tense_shift_rate=r(syntax.get("tense_shift_rate", 0)) if syntax else 0,
@@ -1287,7 +1280,6 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
         past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
         simple_past_ratio=r(simple_past_ratio), literary_subjunctive_ratio=r(literary_subjunctive_ratio),
-        literary_tense_ratio=r(literary_ratio),
         negation_completeness_ratio=r(negation_completeness) if negation_completeness is not None else None,
         periphrastic_future_ratio=r(periphrastic_future_ratio) if periphrastic_future_ratio is not None else None,
         oral_familiarity_ratio=r(oral_ratio), classicism_score=r(classicism),

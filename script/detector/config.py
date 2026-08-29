@@ -143,11 +143,11 @@ BIGFIVE_AXES = (
 # Pour chaque axe, l'export compare d'abord chaque composante au maximum du
 # corpus (valeur / maximum), puis calcule la somme « poids × composante
 # normalisée ». Ainsi CLASSICISM_WEIGHTS correspond à :
-# 0.30·literary_tense_ratio − 0.10·periphrastic_future_ratio
+# 0.30·literary_subjunctive_ratio − 0.10·periphrastic_future_ratio
 # − 0.20·oral_familiarity_ratio + 0.20·structural_diversity
 # + 0.15·verb_ratio + 0.15·active_voice_ratio − 0.10·dialogue_ratio.
 CLASSICISM_WEIGHTS = {
-    "literary_tense_ratio": 0.30,
+    "literary_subjunctive_ratio": 0.30,
     "periphrastic_future_ratio": -0.10,
     "oral_familiarity_ratio": -0.20,
     "structural_diversity": 0.20,
@@ -175,7 +175,7 @@ NARRATIVITY_WEIGHTS = {
     "tense_shift_rate": 0.20,
     "proper_noun_density": 0.10,
     "nominal_sentence_ratio": -0.08,
-    "pos_adjective_ratio": -0.12,
+    "adjective_ratio": -0.12,
 }
 
 EMOTIONALITY_WEIGHTS = {

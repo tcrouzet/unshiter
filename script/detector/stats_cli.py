@@ -412,7 +412,7 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Diversité de longueurs de phrase (mots)", f"{stats.sentence_word_std_dev:.1f}"),
         ("Rythme des structures[^14]", f"{stats.structural_rhythm * 100:.0f} %"),
         ("Compression gzip[^5]", f"{stats.gzip_compression_ratio * 100:.0f} %"),
-        ("Relatives et subordonnées[^6]", f"{(stats.relative_clause_ratio + stats.subordinate_clause_ratio) * 100:.0f} %" if stats.relative_clause_ratio is not None and stats.subordinate_clause_ratio is not None else "indisponible"),
+        ("Relatives[^6]", f"{stats.relative_clause_ratio * 100:.0f} %" if stats.relative_clause_ratio is not None else "indisponible"),
         ("Densité de ponctuations", f"{stats.punctuation_per_300_words:.1f} %"),
         ("Diversité de ponctuation", f"{stats.punctuation_diversity * 100:.0f} %"),
         ("Phrases nominales[^15]", f"{stats.nominal_sentence_ratio * 100:.0f} %" if stats.nominal_sentence_ratio is not None else "indisponible"),
@@ -561,7 +561,6 @@ def note_sections() -> dict[str, str]:
     return markdown_sections(STATS_NOTES_FILE)
 
 
-NOTE_FIELD_BY_LABEL = {'Dispersion': 'note_dispersion', 'Densité de ponctuations': 'punctuation_per_300_words', 'Diversité de ponctuation': 'punctuation_diversity', 'Diversité des structures': 'structural_diversity', 'Rythme des structures': 'structural_rhythm', 'Diversité des débuts de phrase': 'sentence_start_diversity', 'Burstiness': 'burstiness', 'Ratio noms/verbes': 'noun_verb_ratio', 'Répétitions lexicales': 'filtered_repetition_rate', 'Diversité stylistique': 'stylistic_repetition_rate', 'Répétitions familiales': 'family_repetition_rate', 'Répétitions sonores': 'phonetic_repetition_rate', 'Répétitions non filtrées': 'absolute_repetition_rate', 'Mots-outils': 'function_word_ratio', 'Répétition globale des trigrammes': 'trigram_repetition', 'Répétition locale des trigrammes': 'moving_trigram_repetition', 'Noms': 'noun_ratio', 'Verbes': 'verb_ratio', 'Adjectifs': 'adjective_ratio', 'Adverbes': 'adverb_ratio', 'Participes présents': 'present_participle_ratio', 'Participes passés': 'past_participle_ratio', 'Compression gzip': 'gzip_compression_ratio', 'Relatives et subordonnées': 'relative_clause_ratio', 'Phrases nominales': 'nominal_sentence_ratio', 'Voix active': 'active_voice_ratio', 'Comparaisons métaphoriques': 'metaphorical_comme_ratio', 'Profondeur syntaxique': 'average_syntactic_depth', 'Formes par lemme': 'form_lemma_ratio', 'Mots employés une seule fois': 'hapax_ratio', 'Diversité de longueurs de phrase (mots)': 'sentence_word_std_dev', 'Mots': 'word_count', 'Phrases': 'sentence_count', 'Négativité / Positivité': 'negation_ratio', 'Modificateurs par nom': 'avg_modifiers_per_noun', 'Noms fortement modifiés': 'heavily_modified_noun_ratio', 'Rareté lexicale': 'lexical_rarity_score', 'Chaînes adjectivales': 'adjective_chain_ratio', 'Longueur des chaînes adjectivales': 'avg_adjective_chain_length', 'Minimalisme / Baroque': 'baroque_score', 'Maximaliste / Minimaliste': 'baroque_score', 'Mots émotionnels': 'emotion_word_ratio', 'Verbes de réaction affective': 'affect_verb_ratio', 'Exclamations': 'exclamation_ratio', 'Constructions exclamatives': 'exclamative_construction_ratio', 'Émotionnalité': 'emotionality_score', 'Connecteurs logiques': 'logical_connector_ratio', 'Noms abstraits': 'abstract_noun_ratio', 'Présent gnomique': 'gnomic_present_ratio', 'Narrativité ↔ Descriptivité': 'narrativity_score', 'Narratif / Descriptif': 'narrativity_score', 'Discursivité ↔ Immersion': 'discursivite_score', 'Discursif / Immersif': 'discursivite_score', 'Classique / Contemporain': 'classicism_score', 'Émotionnel / Neutre': 'emotionality_score', 'Registre temporel de langue': 'classicism_score', 'Densité stylistique': 'baroque_score', 'Mode du texte': 'narrativity_score', 'Charge affective': 'emotionality_score', 'Posture énonciative': 'discursivite_score', 'Paragraphes': 'paragraph_count', 'Longueur moyenne des mots (caractères)': 'avg_word_length', 'Longueur moyenne des phrases (caractères)': 'avg_sentence_length', 'Longueur médiane des phrases (caractères)': 'median_sentence_length', 'Longueur P10 des phrases (caractères)': 'sentence_length_p10', 'Longueur P90 des phrases (caractères)': 'sentence_length_p90', 'Écart-type des paragraphes (mots)': 'paragraph_length_std_dev'}
 
 
 def _note_heading_matches(heading: str, label: str) -> bool:
@@ -575,12 +574,8 @@ def _note_heading_matches(heading: str, label: str) -> bool:
 
 
 def note_section_for(label: str) -> str | None:
-    note_field = NOTE_FIELD_BY_LABEL.get(label)
     for heading, content in note_sections().items():
-        heading_field = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading)
-        if note_field is not None and heading_field and heading_field.group(1) == note_field:
-            return content
-        if note_field is None and _note_heading_matches(heading, label):
+        if _note_heading_matches(heading, label):
             return content
     return None
 
@@ -619,7 +614,7 @@ def statistic_numeric_values(stats, comparison: dict | None = None) -> dict[str,
         "Diversité de longueurs de phrase (mots)": stats.sentence_word_std_dev,
         "Rythme des structures": percent(stats.structural_rhythm),
         "Compression gzip": percent(stats.gzip_compression_ratio),
-        "Relatives et subordonnées": percent((stats.relative_clause_ratio or 0) + (stats.subordinate_clause_ratio or 0)),
+        "Relatives": percent(stats.relative_clause_ratio),
         "Densité de ponctuations": stats.punctuation_per_300_words,
         "Diversité de ponctuation": percent(stats.punctuation_diversity),
         "Phrases nominales": percent(stats.nominal_sentence_ratio or 0),
@@ -685,9 +680,9 @@ def grammatical_distribution_table(title: str, stats) -> list[str]:
     values = [
         ("Noms communs", stats.pos_common_noun_ratio),
         ("Noms propres", stats.pos_proper_noun_ratio),
-        ("Verbes", stats.pos_verb_ratio),
-        ("Adjectifs", stats.pos_adjective_ratio),
-        ("Adverbes", stats.pos_adverb_ratio),
+        ("Verbes", stats.verb_ratio),
+        ("Adjectifs", stats.adjective_ratio),
+        ("Adverbes", stats.adverb_ratio),
     ]
     lines = [f"### {title}", "", "| Catégorie | Part |", "|---|---:|"]
     if any(value is None for _, value in values):
@@ -702,9 +697,9 @@ def grammatical_distribution_chart(analyses: list[tuple[Path, object]]) -> str:
     categories = [
         ("Noms communs", "pos_common_noun_ratio", "#3d70a3"),
         ("Noms propres", "pos_proper_noun_ratio", "#75a843"),
-        ("Adverbes", "pos_adverb_ratio", "#efb349"),
-        ("Verbes", "pos_verb_ratio", "#ca4038"),
-        ("Adjectifs", "pos_adjective_ratio", "#835692"),
+        ("Adverbes", "adverb_ratio", "#efb349"),
+        ("Verbes", "verb_ratio", "#ca4038"),
+        ("Adjectifs", "adjective_ratio", "#835692"),
     ]
     columns = min(3, max(1, len(analyses)))
     rows = math.ceil(len(analyses) / columns)
@@ -818,7 +813,7 @@ def detail_kiviat_profiles(analyses: list[tuple[Path, object]], minimum_dispersi
             "Répétition locale des trigrammes",
             "Adjectifs",
             "Adverbes",
-            "Relatives et subordonnées",
+            "Relatives",
             "Comparaisons métaphoriques",
         }
         dimensions.append((label, values, mean, std_dev, inverse, label.endswith("%")))

@@ -317,6 +317,13 @@ def init_database(connection: sqlite3.Connection) -> None:
                 ],
             )
         connection.execute("ALTER TABLE analyses DROP COLUMN stats_json")
+    # Le registre dérivé des notes est la source de vérité : une mesure
+    # retirée des notes ne doit pas survivre comme colonne fantôme du cache.
+    placeholders = ",".join("?" for _ in METRICS)
+    connection.execute(
+        f"DELETE FROM metric_cache WHERE metric_name NOT IN ({placeholders})",
+        tuple(METRICS),
+    )
 
 
 def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None, progress=None) -> tuple[bool, int]:

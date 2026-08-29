@@ -139,11 +139,6 @@ def export_json() -> int:
                     if missing:
                         raise ValueError(f"Mesures radar absentes pour {book['title']}: {', '.join(missing)}")
                     stats_data.setdefault("document_char_count", book["size"])
-                    # Migration sans réanalyse : ce champ composite est
-                    # exactement la somme des deux compteurs déjà stockés.
-                    literary_id = "literary_tense_ratio"
-                    if literary_id not in stats_data:
-                        stats_data[literary_id] = sum(float(stats_data.get(field, 0) or 0) for field in ("simple_past_ratio", "literary_subjunctive_ratio"))
                     analyses.append({
                         "window": row["window_index"], "start": row["char_start"], "end": row["char_end"],
                         "chars": row["char_count"], "stats": stats_data,
