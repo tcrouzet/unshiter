@@ -47,6 +47,7 @@ const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.h
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
 let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
+let evolutionOrder = "values", evolutionHighlight = "";
 const flippedAxes = new Set();
 function publicMetricId(key) { return key; }
 function metricKey(ref) { return ref; }
@@ -554,22 +555,49 @@ function drawEvolution(selectedBooks) {
   const books = [...(authorMode ? authorEvolutionEntities(selectedBooks) : selectedBooks)].filter(book => authorMode || (book.publication_date && !Number.isNaN(Date.parse(book.publication_date)))).sort((a, b) => authorMode ? String(a.author).localeCompare(String(b.author), "fr") : Date.parse(a.publication_date) - Date.parse(b.publication_date));
   const definitions = checkedMetrics().map(key => [key, metricLabel(key)]).filter(Boolean);
   const container = document.getElementById("evolution-charts");
-  container.innerHTML = "";
+  const entityKey = entity => entity ? (authorMode ? `author:${entity.author}` : `work:${entity.id}`) : "";
+  const entityLabel = entity => authorMode ? entity.author : `${entity.title} — ${entity.author}`;
+  const escapeOption = text => String(text ?? "").replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
+  const authors = [...new Set(books.map(entity => entity.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
+  const validHighlight = evolutionHighlight.startsWith("author:")
+    ? authors.includes(evolutionHighlight.slice(7))
+    : books.some(entity => entityKey(entity) === evolutionHighlight);
+  if (!validHighlight) evolutionHighlight = "";
+  const authorOptions = authors.map(author => `<option value="${escapeOption(`author:${author}`)}"${evolutionHighlight === `author:${author}` ? " selected" : ""}>${escapeOption(author)}</option>`).join("");
+  const workOptions = authorMode ? "" : [...books]
+    .sort((a, b) => entityLabel(a).localeCompare(entityLabel(b), "fr"))
+    .map(entity => `<option value="${escapeOption(entityKey(entity))}"${entityKey(entity) === evolutionHighlight ? " selected" : ""}>${escapeOption(entityLabel(entity))}</option>`)
+    .join("");
+  const highlightOptions = `<optgroup label="Auteurs">${authorOptions}</optgroup>${workOptions ? `<optgroup label="Œuvres">${workOptions}</optgroup>` : ""}`;
+  container.innerHTML = `<div class="evolution-controls"><span class="evolution-order" role="group" aria-label="Ordre des graphiques"><button type="button" data-order="dates" class="${evolutionOrder === "dates" ? "active" : ""}" aria-pressed="${evolutionOrder === "dates"}">Dates</button><span aria-hidden="true">|</span><button type="button" data-order="values" class="${evolutionOrder === "values" ? "active" : ""}" aria-pressed="${evolutionOrder === "values"}">Valeurs</button></span><label>Étiquette rouge <select class="evolution-highlight"><option value="">Aucune</option>${highlightOptions}</select></label></div>`;
+  container.querySelectorAll(".evolution-order button").forEach(button => button.addEventListener("click", () => {
+    evolutionOrder = button.dataset.order;
+    drawEvolution(selectedBooks);
+  }));
+  container.querySelector(".evolution-highlight").addEventListener("change", event => {
+    evolutionHighlight = event.target.value;
+    drawEvolution(selectedBooks);
+  });
   definitions.forEach(([key, label], i) => {
-    const plotBooks = authorMode
-      // L'ordre suit le score effectivement affiché sur l'axe. Ainsi une
-      // mesure inversée (par ex. la sparsité des adverbes) est naturellement
-      // présentée dans le sens de son affichage, et non dans celui de sa
-      // valeur brute.
-      ? [...books].sort((a, b) => (scale(key, value(a, key)) ?? Infinity) - (scale(key, value(b, key)) ?? Infinity))
-      : books;
+    // Le tri par valeur suit le score effectivement affiché : les axes
+    // inversés sont donc ordonnés dans le sens visible, pas par valeur brute.
+    const plotBooks = evolutionOrder === "dates"
+      ? [...books].sort((a, b) => Date.parse(a.publication_date) - Date.parse(b.publication_date))
+      : [...books].sort((a, b) => (scale(key, value(a, key)) ?? Infinity) - (scale(key, value(b, key)) ?? Infinity));
     const id = `evolution-${i}`;
     const evolutionTitle = `${label}${!authorMode && singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
     const noteId = data.metric_note_ids?.[key] ? data.note_ids?.[data.metric_note_ids[key]] : null;
     const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
     container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, tension: .25, pointRadius: 3, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, font: context => ({ weight: isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
+    const isHighlighted = index => {
+      const entity = plotBooks[index];
+      if (!entity) return false;
+      return evolutionHighlight.startsWith("author:")
+        ? entity.author === evolutionHighlight.slice(7)
+        : entityKey(entity) === evolutionHighlight;
+    };
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#c62828" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#c62828" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#c62828" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
     lineChart.$years = authorMode ? [] : plotBooks.map(book => book.publication_date.slice(0, 4));
     lineChart.$pointLabels = authorMode ? plotBooks.map(book => format(value(book, key), key)) : [];
     lineChart.$pointEntities = plotBooks;
@@ -980,7 +1008,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829185806956973000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829193703540307000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
