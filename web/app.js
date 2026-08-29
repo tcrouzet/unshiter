@@ -595,7 +595,7 @@ function drawEvolution(selectedBooks) {
     const evolutionTitle = `${label}${!authorMode && singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
     const noteId = data.metric_note_ids?.[key] ? data.note_ids?.[data.metric_note_ids[key]] : null;
     const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
-    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option></select></div>`);
+    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
     const isHighlighted = index => {
       const entity = plotBooks[index];
@@ -606,6 +606,10 @@ function drawEvolution(selectedBooks) {
     lineChart.$years = authorMode ? [] : plotBooks.map(book => book.publication_date.slice(0, 4));
     lineChart.$pointLabels = authorMode ? plotBooks.map(book => format(value(book, key), key)) : [];
     lineChart.$pointEntities = plotBooks;
+    lineChart.$csvRows = [
+      [authorMode ? "Auteur" : "Œuvre", "Auteur", "Date", "Valeur brute", "Valeur graphique (0–100)"],
+      ...plotBooks.map(book => [authorMode ? book.author : book.title, book.author || "", book.publication_date || "", value(book, key), scale(key, value(book, key))]),
+    ];
     evolutionCharts.push(lineChart);
   });
 }
@@ -694,6 +698,22 @@ function radarLegendSvg(width, y) {
 }
 function downloadCanvas(canvas, name, format = "png") {
   if (!canvas) return;
+  if (format === "csv") {
+    const instance = typeof Chart !== "undefined" ? Chart.getChart(canvas) : null;
+    if (!instance) return;
+    let rows = instance.$csvRows;
+    if (!rows) {
+      const labels = instance.data.labels || [];
+      const datasets = instance.data.datasets || [];
+      const scatter = datasets.some(dataset => (dataset.data || []).some(point => point && typeof point === "object"));
+      rows = scatter
+        ? [["Série", "Étiquette", "X", "Y"], ...datasets.flatMap(dataset => (dataset.data || []).map(point => [dataset.label || "", point.label || "", point.x, point.y]))]
+        : [[name === "radar" ? "Axe" : "Étiquette", ...datasets.map(dataset => dataset.label || "Valeur")], ...labels.map((label, index) => [label, ...datasets.map(dataset => dataset.data?.[index] ?? "")])];
+    }
+    const csv = rows.map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+    const href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = href; link.download = `${name}.csv`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
+  }
   const png = canvas.toDataURL("image/png");
   if (format === "svg") {
     if (name === "radar") {
@@ -878,7 +898,7 @@ function controls() {
     if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="43" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
-  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="44" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="45" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="44" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="45" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1013,7 +1033,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829204037788962000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829205224609817000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
