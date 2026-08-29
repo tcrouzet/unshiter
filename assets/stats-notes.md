@@ -1,5 +1,5 @@
 # Dispersion (note_dispersion)
-Indique à quel point les valeurs diffèrent dans le corpus. Le calcul commence par écarter les valeurs aberrantes selon la règle de Tukey : toute valeur située à plus de 1,5 fois l’intervalle interquartile sous le premier quartile ou au-dessus du troisième quartile est ignorée. Elle reste affichée dans le tableau, mais ne gonfle pas σ. L’écart-type des valeurs restantes est ensuite divisé par leur moyenne et affiché en pourcentage. Un σ faible signale une mesure non significative.
+Indique à quel point les valeurs diffèrent dans le corpus. Chaque valeur est d’abord divisée par le maximum observé pour cette mesure dans le corpus complet, puis ramenée sur une échelle de 0 à 100. σ est l’écart-type de ces valeurs normalisées : `std([v / max_corpus × 100])`. Il est donc indépendant de l’unité native et ne pénalise pas les marqueurs rares. Une mesure est considérée comme significativement dispersée lorsque σ est supérieur ou égal à 5 sur cette échelle normalisée.
 
 # **Densité de ponctuations** / Sparsité de ponctuations (punctuation_per_300_words)
 Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.

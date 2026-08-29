@@ -1060,8 +1060,10 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         ORNATENESS_WEIGHTS["heavily_modified_noun_ratio"] * heavily_modified
         + ORNATENESS_WEIGHTS["metaphorical_comme_ratio"] * (syntax.get("metaphorical_comme_ratio", 0) if syntax else 0)
         + ORNATENESS_WEIGHTS["adjective_chain_ratio"] * adjective_chain_ratio
-        + ORNATENESS_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
         + ORNATENESS_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
+        + ORNATENESS_WEIGHTS["right_branching_depth"] * min((syntax.get("right_branching_depth", 0) if syntax else 0) / 10, 1)
+        + ORNATENESS_WEIGHTS["incise_density"] * (syntax.get("incise_density", 0) if syntax else 0)
+        + ORNATENESS_WEIGHTS["coordination_accumulation_ratio"] * (syntax.get("coordination_accumulation_ratio", 0) if syntax else 0)
     )
     report(7, "analyse des marqueurs affectifs")
     contextual_for_affect = context.contextual_tokens
@@ -1080,6 +1082,8 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         + NARRATIVITY_WEIGHTS["temporal_connector_ratio"] * min(temporal_ratio / 20, 1)
         + NARRATIVITY_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
         + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
+        + NARRATIVITY_WEIGHTS["tense_shift_rate"] * (syntax.get("tense_shift_rate", 0) if syntax else 0)
+        + NARRATIVITY_WEIGHTS["proper_noun_density"] * (syntax.get("proper_noun_density", 0) if syntax else 0)
         + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)
         + NARRATIVITY_WEIGHTS["pos_adjective_ratio"] * (syntax.get("pos_distribution", {}).get("adjectives", 0) if syntax else 0))
     # La discursivité repose uniquement sur les marqueurs logiques : les

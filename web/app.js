@@ -699,7 +699,7 @@ function renderTables(books) {
   // par dispersion décroissante sur la sélection affichée.
   const secondaryDefinitions = [...summaryDefinitions, ...details].sort((a, b) => {
     const values = definition => tableBooks.map(book => value(book, definition[0])).filter(Number.isFinite);
-    return (dispersion(values(b)) ?? -1) - (dispersion(values(a)) ?? -1);
+    return (dispersion(values(b), b[0]) ?? -1) - (dispersion(values(a), a[0]) ?? -1);
   });
   // Le tableau de détails doit toujours exister, même si une configuration
   // de mesures est incomplète : les mesures non techniques restent affichées.
@@ -729,38 +729,39 @@ function downloadRenderedTable(container, name, format) {
   }
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
-function dispersion(values) {
+const INTEGER_DISPLAY_METRICS = new Set(["word_count", "sentence_count", "paragraph_count", "document_char_count"]);
+const RAW_DISPLAY_METRICS = new Set([
+  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
+  "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length",
+  "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10",
+  "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev",
+  "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
+  "avg_adjective_chain_length",
+]);
+function dispersion(values, key) {
   const numbers = values.filter(Number.isFinite);
   if (numbers.length < 2) return null;
-  let kept = numbers;
-  if (numbers.length >= 4) {
-    const ordered = [...numbers].sort((a, b) => a - b);
-    const quantile = fraction => {
-      const position = (ordered.length - 1) * fraction;
-      const lower = Math.floor(position), upper = Math.ceil(position);
-      return lower === upper ? ordered[lower] : ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower);
-    };
-    const q1 = quantile(.25), q3 = quantile(.75), iqr = q3 - q1;
-    const filtered = numbers.filter(n => n >= q1 - 1.5 * iqr && n <= q3 + 1.5 * iqr);
-    if (filtered.length >= 3) kept = filtered;
-  }
-  const mean = kept.reduce((sum, n) => sum + n, 0) / kept.length;
-  if (!mean) return null;
-  const standardDeviation = Math.sqrt(kept.reduce((sum, n) => sum + (n - mean) ** 2, 0) / kept.length);
-  return standardDeviation / Math.abs(mean) * 100;
+  const maximum = Math.max(...(corpusValues.get(key) || []).filter(Number.isFinite));
+  if (!Number.isFinite(maximum) || maximum <= 0) return null;
+  const normalized = numbers.map(value => value / maximum * 100);
+  const mean = normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
+  return Math.sqrt(normalized.reduce((sum, value) => sum + (value - mean) ** 2, 0) / normalized.length);
 }
+const DISPERSION_SIGNIFICANCE_POINTS = 5;
 function table(books, definitions) {
   const header = `<th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>`;
   const rows = definitions.map(([key, label]) => {
-    const displayed = books.map(b => { const n = value(b, key); return DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n; });
-    const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(displayed);
+    const rawValues = books.map(book => value(book, key));
+    const displayed = rawValues.map(n => DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n);
+    const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(rawValues, key);
     const noteId = noteEntry(key).id;
     const note = noteId == null ? "" : ` <button class="table-note-help metric-help" type="button" data-note-id="${noteId}" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
-    return `<tr><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${isAI(books[i]) ? "ai-value" : ""}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toFixed(1)} %`}</td></tr>`;
+    const significant = sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS;
+    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${isAI(books[i]) ? "ai-value" : ""}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td></tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function format(n, key) { if (n == null) return "—"; if (["word_count", "sentence_count", "paragraph_count", "document_char_count"].includes(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (["punctuation_per_300_words", "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun", "avg_adjective_chain_length"].includes(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
+function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(0)} %`; }
 function downloadSvg() {
   if (!chart) return;
   const w = 1000, h = 760, cx = 500, cy = 350, radius = 260, count = chart.data.labels.length;
@@ -809,12 +810,9 @@ function exportPromptAndData() {
       const rank = 1 + corpusValues.filter(value => value < rawValue).length;
       info["rank-in-corpus"] = `${rank}/${corpusValues.length}`;
     }
-    const mean = corpusValues.length ? corpusValues.reduce((sum, value) => sum + value, 0) / corpusValues.length : 0;
-    const variance = corpusValues.length ? corpusValues.reduce((sum, value) => sum + (value - mean) ** 2, 0) / corpusValues.length : 0;
-    const coefficient = mean ? Math.sqrt(variance) / Math.abs(mean) : 0;
-    // Transformation bornée : 0 = valeurs identiques ; la dispersion tend
-    // vers 100 % quand les écarts deviennent très grands.
-    info.dispersion = round2(coefficient / (1 + coefficient));
+    const sigmaPoints = dispersion(corpusValues, field) ?? 0;
+    info.dispersion = round2(sigmaPoints);
+    info.dispersion_significant = sigmaPoints >= DISPERSION_SIGNIFICANCE_POINTS;
     if (!nonNormalizable.has(field)) {
       info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
       info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
@@ -971,8 +969,19 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829160531648739000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829172546376105000").then(r => r.json()).then(json => {
   data = json;
+  const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
+    value: analysis.stats?.logical_connector_ratio,
+    book: book.title,
+  }))).filter(item => Number.isFinite(item.value));
+  const logicalConnectorMaximum = logicalConnectorValues.reduce(
+    (maximum, item) => !maximum || item.value > maximum.value ? item : maximum,
+    null,
+  );
+  if (logicalConnectorMaximum) console.info(
+    `[dispersion] logical_connector_ratio max brut avant affichage : ${logicalConnectorMaximum.value} % — ${logicalConnectorMaximum.book}`,
+  );
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;
   // Les inversions d'axes font partie de la configuration persistante, au

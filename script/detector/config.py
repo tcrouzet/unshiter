@@ -155,20 +155,24 @@ CLASSICISM_WEIGHTS = {
 }
 
 ORNATENESS_WEIGHTS = {
-    "heavily_modified_noun_ratio": 0.30,
-    "metaphorical_comme_ratio": 0.25,
-    "adjective_chain_ratio": 0.25,
-    "average_syntactic_depth": 0.10,
+    "heavily_modified_noun_ratio": 0.20,
+    "metaphorical_comme_ratio": 0.15,
+    "adjective_chain_ratio": 0.15,
     "avg_sentence_length": 0.10,
+    "right_branching_depth": 0.20,
+    "incise_density": 0.10,
+    "coordination_accumulation_ratio": 0.10,
 }
 
 NARRATIVITY_WEIGHTS = {
-    "action_verb_ratio": 0.30,
-    "temporal_connector_ratio": 0.20,
-    "dialogue_ratio": 0.20,
-    "active_voice_ratio": 0.15,
-    "nominal_sentence_ratio": -0.10,
-    "pos_adjective_ratio": -0.15,
+    "action_verb_ratio": 0.25,
+    "temporal_connector_ratio": 0.15,
+    "dialogue_ratio": 0.15,
+    "active_voice_ratio": 0.10,
+    "tense_shift_rate": 0.20,
+    "proper_noun_density": 0.10,
+    "nominal_sentence_ratio": -0.08,
+    "pos_adjective_ratio": -0.12,
 }
 
 EMOTIONALITY_WEIGHTS = {
@@ -177,9 +181,9 @@ EMOTIONALITY_WEIGHTS = {
 }
 
 DISCURSIVITE_WEIGHTS = {
-    "logical_connector_ratio": 0.50,
+    "logical_connector_ratio": 0.55,
     "abstract_noun_ratio": 0.20,
-    "gnomic_present_ratio": 0.30,
+    "gnomic_present_ratio": 0.25,
 }
 
 DEFAULT_UNIT = "paragraph"

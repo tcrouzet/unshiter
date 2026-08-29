@@ -1,0 +1,50 @@
+# Interjections à charge émotionnelle, utilisées par interjection_density
+# (mesure candidate, axe Émotionnalité).
+#
+# Distinct d'assets/familiarity-markers.txt (qui vise le registre oral en
+# général, "ben", "euh"...) : ici uniquement des interjections qui portent
+# une charge émotionnelle explicite (douleur, désespoir, effroi, joie,
+# supplication), pas de simples marqueurs de conversation.
+#
+# Format accepté : "interjection: mot" — seule la partie après le dernier
+# ":" est utilisée, en minuscules.
+
+# --- Douleur, surprise brutale ---
+interjection: aïe
+interjection: ouille
+interjection: ouch
+
+# --- Désespoir, plainte ---
+interjection: hélas
+interjection: malheur
+interjection: misère
+
+# --- Effroi, invocation ---
+interjection: ciel
+interjection: mon dieu
+interjection: bon dieu
+interjection: seigneur
+interjection: juste ciel
+interjection: grands dieux
+
+# --- Colère, dépit (registre littéraire/archaïque) ---
+interjection: diable
+interjection: diantre
+interjection: morbleu
+interjection: parbleu
+interjection: sapristi
+interjection: fichtre
+interjection: peste
+
+# --- Soulagement, joie ---
+interjection: ouf
+interjection: hourra
+interjection: bravo
+
+# --- Supplication ---
+interjection: pitié
+interjection: grâce
+
+# --- Horreur ---
+interjection: horreur
+interjection: quelle horreur
