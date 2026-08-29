@@ -7,7 +7,7 @@ import math
 import re
 
 from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
-    FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
+    FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
     STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING)
 from .demonette import family_map, phonetic_map
@@ -18,7 +18,7 @@ from .emotion_lexicon import emotion_map
 
 
 def _load_function_words() -> tuple[set[str], set[str], set[str], set[str]]:
-    """Charge les mots et catégories modifiables depuis assets/function-words.txt."""
+    """Charge les mots et catégories depuis assets/dictionnaires/function-words.txt."""
     words, categories, lemmas, kept_words = set(), set(), set(), set()
     for raw_line in FUNCTION_WORDS_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
         line = raw_line.strip().lower()
@@ -94,6 +94,15 @@ def logical_connector_ratio(text: str, sentence_count: int) -> float:
     normalized = text.casefold().replace("’", "'")
     markers = _load_simple_markers(LOGICAL_CONNECTORS_FILE)
     return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+
+
+def scene_summary_ratio(sentences: list[str], duration_markers: set[str] | None = None, max_sentence_length: int | None = None) -> float:
+    markers = duration_markers if duration_markers is not None else set(_load_simple_markers(DURATION_MARKERS_FILE))
+    if not sentences:
+        return 0.0
+    maximum = max_sentence_length or max(map(len, sentences), default=0)
+    scores = [float(any(marker in sentence.casefold() for marker in markers)) * (1 - len(sentence) / maximum) if maximum else 0.0 for sentence in sentences]
+    return sum(scores) / len(scores)
 
 
 def abstract_noun_ratio(contextual_tokens) -> float:
@@ -238,6 +247,13 @@ class TextStats:
     pos_verb_ratio: float | None = None
     pos_adjective_ratio: float | None = None
     pos_adverb_ratio: float | None = None
+    proper_noun_density: float = 0
+    concrete_noun_ratio: float = 0
+    tense_shift_rate: float = 0
+    scene_summary_ratio: float = 0
+    incise_density: float = 0
+    coordination_accumulation_ratio: float = 0
+    right_branching_depth: float = 0
     present_participle_ratio: float | None = None
     past_participle_ratio: float | None = None
     simple_past_ratio: float = 0
@@ -1000,6 +1016,13 @@ def compute_stats(text: str) -> TextStats:
         pos_verb_ratio=r(syntax["pos_distribution"]["verbs"]) if syntax else None,
         pos_adjective_ratio=r(syntax["pos_distribution"]["adjectives"]) if syntax else None,
         pos_adverb_ratio=r(syntax["pos_distribution"]["adverbs"]) if syntax else None,
+        proper_noun_density=r(syntax.get("proper_noun_density", 0)) if syntax else 0,
+        concrete_noun_ratio=r(syntax.get("concrete_noun_ratio", 0)) if syntax else 0,
+        tense_shift_rate=r(syntax.get("tense_shift_rate", 0)) if syntax else 0,
+        scene_summary_ratio=r(scene_summary_ratio(sentences, max_sentence_length=max(map(len, sentences), default=0))),
+        incise_density=r(syntax.get("incise_density", 0)) if syntax else 0,
+        coordination_accumulation_ratio=r(syntax.get("coordination_accumulation_ratio", 0)) if syntax else 0,
+        right_branching_depth=r(syntax.get("right_branching_depth", 0)) if syntax else 0,
         present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
         past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
         simple_past_ratio=r(simple_past_ratio), literary_subjunctive_ratio=r(literary_subjunctive_ratio),

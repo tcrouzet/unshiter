@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, FIELD_BY_METRIC_ID, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, windowed_metric_fields
+from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, FIELD_BY_METRIC_ID, METRIC_ID_BY_FIELD, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, DURATION_MARKERS_FILE, windowed_metric_fields
 from .stats import TextStats, compute_stats, punctuation_diversity, logical_connector_ratio, temporal_connector_ratio
 
 FULL_DOCUMENT_FIELDS = {
@@ -22,10 +22,10 @@ FULL_DOCUMENT_FIELDS = {
     "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
     "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
     "dialogue_ratio",
-    "logical_connector_ratio", "temporal_connector_ratio",
+    "logical_connector_ratio", "temporal_connector_ratio", "scene_summary_ratio",
 }
 
-def full_document_fields(text: str) -> dict[str, float]:
+def full_document_fields(text: str, max_sentence_length: int | None = None) -> dict[str, float]:
     words = re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", text, flags=re.UNICODE)
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n+", text) if part.strip()]
@@ -33,6 +33,7 @@ def full_document_fields(text: str) -> dict[str, float]:
     sentence_lengths = [len(re.findall(r"[\wÀ-ÿ]+", s, flags=re.UNICODE)) for s in sentences]
     sentence_chars = [len(s) for s in sentences]
     paragraph_lengths = [len(re.findall(r"[\wÀ-ÿ]+", p, flags=re.UNICODE)) for p in paragraphs]
+    markers = {line.strip().casefold() for line in DURATION_MARKERS_FILE.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")} if DURATION_MARKERS_FILE.exists() else set()
     mean_chars = sum(sentence_chars) / len(sentence_chars) if sentence_chars else 0
     mean_words = sum(sentence_lengths) / len(sentence_lengths) if sentence_lengths else 0
     sorted_chars = sorted(sentence_chars)
@@ -40,6 +41,13 @@ def full_document_fields(text: str) -> dict[str, float]:
     para_mean = sum(paragraph_lengths) / len(paragraph_lengths) if paragraph_lengths else 0
     para_std = math.sqrt(sum((n - para_mean) ** 2 for n in paragraph_lengths) / len(paragraph_lengths)) if paragraph_lengths else 0
     dialogue_words = sum(len(re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", paragraph)) for paragraph in paragraphs if paragraph.lstrip().startswith(("—", "–", "«")))
+    maximum_sentence_length = max_sentence_length or max(sentence_chars, default=0)
+    scene_scores = [
+        float(any(marker in sentence.casefold() for marker in markers))
+        * (1 - len(sentence) / maximum_sentence_length)
+        if maximum_sentence_length else 0.0
+        for sentence in sentences
+    ]
     return {"document_char_count": len(text), "word_count": word_count, "sentence_count": len(sentences), "paragraph_count": len(paragraphs),
             "avg_word_length": sum(map(len, words)) / word_count if word_count else 0,
             "avg_sentence_length": mean_chars, "avg_sentence_word_count": mean_words,
@@ -49,7 +57,8 @@ def full_document_fields(text: str) -> dict[str, float]:
             "punctuation_diversity": punctuation_diversity(text),
             "dialogue_ratio": dialogue_words / word_count if word_count else 0,
             "logical_connector_ratio": logical_connector_ratio(text, len(sentences)),
-            "temporal_connector_ratio": temporal_connector_ratio(text, len(sentences))}
+            "temporal_connector_ratio": temporal_connector_ratio(text, len(sentences)),
+            "scene_summary_ratio": sum(scene_scores) / len(scene_scores) if scene_scores else 0.0}
 
 
 SENTENCE_END = re.compile(r"[.!?…]+[\"»”’'\)\]]*(?=\s|$)")
@@ -255,7 +264,7 @@ def init_database(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE books ADD COLUMN analysis_version TEXT NOT NULL DEFAULT ''")
 
 
-def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "") -> tuple[bool, int]:
+def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None) -> tuple[bool, int]:
     raw = path.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     text = raw.decode(TEXT_ENCODING, errors="replace")
@@ -304,7 +313,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         windows = character_windows(body)[:1]
         for index, (start, end, fragment) in enumerate(windows):
             stats: TextStats = compute_stats(fragment)
-            full_fields = full_document_fields(body)
+            full_fields = full_document_fields(body, corpus_max_sentence_length)
             # Seules les notes portant {windows} restent limitées à la fenêtre.
             # Toutes les autres mesures viennent du document complet.
             windowed = windowed_metric_fields()
@@ -388,6 +397,13 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
             else:
                 connection.execute("DELETE FROM books")
             connection.commit()
+        # Le dénominateur de la mesure de sommaire est le maximum de longueur
+        # de phrase observé dans tout le corpus, identique pour chaque livre.
+        corpus_max_sentence_length = 0
+        for path in paths:
+            body = clean_analysis_body(markdown_body(path.read_text(encoding=TEXT_ENCODING, errors="replace")))
+            corpus_sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", body) if part.strip()]
+            corpus_max_sentence_length = max(corpus_max_sentence_length, *(len(sentence) for sentence in corpus_sentences)) if corpus_sentences else corpus_max_sentence_length
         changed = windows = 0
         for path in paths:
             raw_author = metadata_by_path[path].get("author", "")
@@ -400,7 +416,7 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
             else:
                 reason = "nouveau" if previous is None else ("contenu modifié" if previous[0] != current_digest else "version d’analyse modifiée")
                 print(f"Calcul en cours : {path.name} — {reason}", flush=True)
-            book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""))
+            book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""), corpus_max_sentence_length)
             connection.commit()
             print(f"{'Calculé' if book_changed else 'Déjà à jour'} : {path.name}", flush=True)
             changed += int(book_changed)

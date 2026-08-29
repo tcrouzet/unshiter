@@ -1,0 +1,32 @@
+# Suffixes utilisés par abstract_noun_ratio (axe Discursivité) et par
+# concrete_noun_ratio (nouvelle mesure candidate, axe Narrativité).
+#
+# Un nom commun est considéré comme abstrait si son lemme se termine par un de
+# ces suffixes, SAUF s'il figure dans assets/concrete-noun-exceptions.txt.
+# Cette liste est extraite telle quelle du code existant (fonction
+# abstract_noun_ratio dans script/detector/stats.py) : elle ne doit pas être
+# modifiée sans mettre aussi à jour le code, ou alors le fichier devient la
+# source de vérité et le code doit le charger dynamiquement.
+#
+# Format accepté : "suffixe: valeur" — seule la partie après le dernier ":"
+# est utilisée, en minuscules.
+
+# --- Suffixes nominalisant une action ou un procès ---
+suffixe: tion
+suffixe: sion
+
+# --- Suffixe nominalisant une doctrine, un courant, une pratique ---
+suffixe: isme
+
+# --- Suffixe nominalisant une qualité ---
+suffixe: ité
+
+# --- Suffixe nominalisant un trait de caractère ou une qualité ---
+suffixe: esse
+
+# --- Suffixes nominalisant un état, un procès ou une relation ---
+suffixe: ance
+suffixe: ence
+
+# --- Suffixe nominalisant un résultat, une action ou un état (très polysémique) ---
+suffixe: ure

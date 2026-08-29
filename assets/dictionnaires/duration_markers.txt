@@ -1,0 +1,84 @@
+# Marqueurs de durée répétée ou habituelle, utilisés par scene_summary_ratio
+# (mesure candidate, axe Narrativité) pour repérer le sommaire narratif
+# (Genette) : une phrase qui condense une longue durée ou une répétition
+# d'événements plutôt que de détailler un moment précis (la scène).
+#
+# Format accepté : "marqueur: expression" — seule la partie après le dernier
+# ":" est utilisée, en minuscules. La détection se fait par recherche de
+# sous-chaîne dans la phrase en minuscules (pas de tokenisation).
+
+# --- Adverbes et locutions de fréquence habituelle ---
+marqueur: souvent
+marqueur: toujours
+marqueur: jamais
+marqueur: parfois
+marqueur: fréquemment
+marqueur: régulièrement
+marqueur: habituellement
+marqueur: d'habitude
+marqueur: généralement
+marqueur: constamment
+marqueur: sans cesse
+marqueur: encore et encore
+marqueur: de temps en temps
+marqueur: de temps à autre
+marqueur: la plupart du temps
+marqueur: le plus souvent
+
+# --- Répétition rythmée dans le temps ---
+marqueur: chaque jour
+marqueur: chaque matin
+marqueur: chaque soir
+marqueur: chaque nuit
+marqueur: chaque semaine
+marqueur: chaque mois
+marqueur: chaque année
+marqueur: chaque fois
+marqueur: tous les jours
+marqueur: tous les matins
+marqueur: tous les soirs
+marqueur: toutes les semaines
+marqueur: tous les mois
+marqueur: tous les ans
+marqueur: année après année
+marqueur: jour après jour
+marqueur: semaine après semaine
+marqueur: au fil des jours
+marqueur: au fil des ans
+marqueur: au fil des années
+marqueur: au fil du temps
+
+# --- Durées longues condensées ---
+marqueur: pendant des années
+marqueur: pendant des mois
+marqueur: pendant des semaines
+marqueur: pendant des jours
+marqueur: pendant des heures
+marqueur: durant des années
+marqueur: durant des mois
+marqueur: des années durant
+marqueur: des mois durant
+marqueur: pendant longtemps
+marqueur: pendant toute
+marqueur: tout au long de
+marqueur: durant toute
+marqueur: au cours des années
+marqueur: au cours des mois
+marqueur: les années passèrent
+marqueur: les mois passèrent
+marqueur: les jours passèrent
+marqueur: le temps passa
+marqueur: les années s'écoulèrent
+marqueur: le temps s'écoula
+
+# --- Verbes d'itération / habitude ---
+marqueur: avait l'habitude de
+marqueur: avait pour habitude de
+marqueur: prit l'habitude de
+marqueur: continuait à
+marqueur: continuait de
+marqueur: ne cessait de
+marqueur: ne cessait pas de
+marqueur: passait son temps à
+marqueur: passa des années à
+marqueur: passa sa vie à

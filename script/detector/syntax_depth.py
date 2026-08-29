@@ -1,11 +1,13 @@
 """Profondeur des arbres de dépendances français analysés avec spaCy."""
 
 from functools import lru_cache
+from collections import Counter
 import re
 
 from .config import (
     COMPARISON_MARKERS_FILE,
     NEGATION_COMPLETE_MARKERS_FILE,
+    ABSTRACT_NOUN_SUFFIXES_FILE, CONCRETE_NOUN_EXCEPTIONS_FILE,
     STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE,
     SPACY_FRENCH_MODEL,
     SPACY_RELATIVE_DEPENDENCIES,
@@ -47,6 +49,49 @@ def _is_exclamative_sentence(sentence) -> bool:
     return bool(tokens and sentence.text.strip().endswith("!") and tokens[0].lower_ in EXCLAMATIVE_OPENERS)
 
 
+def incise_density(doc) -> float:
+    """Part des phrases contenant une incise repérée dans l'arbre syntaxique."""
+    sentences = list(doc.sents)
+    if not sentences:
+        return 0.0
+    count = 0
+    for sentence in sentences:
+        for token in sentence:
+            if token.dep_ not in {"appos", "acl:relcl", "advcl", "parataxis"} or token.i <= sentence.start:
+                continue
+            before = doc[token.i - 1] if token.i > 0 else None
+            if before is not None and before.text == ",":
+                count += 1
+                break
+    return count / len(sentences)
+
+
+def coordination_accumulation_ratio(doc) -> float:
+    """Part des phrases comportant plus de deux coordinations syntaxiques."""
+    sentences = list(doc.sents)
+    if not sentences:
+        return 0.0
+    return sum(sum(token.dep_ == "cc" for token in sentence) > 2 for sentence in sentences) / len(sentences)
+
+
+def _max_depth_from_last_token(sentence) -> int:
+    last = sentence[-1]
+    depth = 0
+    node = last
+    while node.head != node and node.head.i >= sentence.start:
+        depth += 1
+        node = node.head
+    return depth
+
+
+def right_branching_depth(doc) -> float:
+    """Profondeur moyenne de la chaîne de dépendances du dernier mot."""
+    sentences = list(doc.sents)
+    if not sentences:
+        return 0.0
+    return sum(_max_depth_from_last_token(sentence) for sentence in sentences) / len(sentences)
+
+
 def _noun_modifier_counts(doc) -> list[int]:
     return [sum(child.dep_ in NOMINAL_MODIFIER_DEPS for child in token.children)
             for token in doc if token.pos_ in {"NOUN", "PROPN"}]
@@ -62,11 +107,58 @@ def _coordinated_modifier_chains(doc) -> list[int]:
     return chains
 
 
+def proper_noun_density(doc) -> float:
+    """Part des tokens lexicaux étiquetés PROPN par spaCy."""
+    tokens = [token for token in doc if not token.is_space and not token.is_punct]
+    return sum(token.pos_ == "PROPN" for token in tokens) / len(tokens) if tokens else 0.0
+
+
 def _load_word_list(path):
     try:
         return {(line.split(":", 1)[-1]).strip().casefold() for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")}
     except OSError:
         return set()
+
+
+ABSTRACT_SUFFIXES = tuple(_load_word_list(ABSTRACT_NOUN_SUFFIXES_FILE))
+CONCRETE_EXCEPTIONS = _load_word_list(CONCRETE_NOUN_EXCEPTIONS_FILE)
+
+
+def _is_abstract_noun(lemma: str) -> bool:
+    return lemma.casefold() not in CONCRETE_EXCEPTIONS and lemma.casefold().endswith(ABSTRACT_SUFFIXES)
+
+
+def concrete_noun_ratio(doc) -> float:
+    nouns = [token for token in doc if token.pos_ == "NOUN"]
+    return sum(not _is_abstract_noun(token.lemma_) for token in nouns) / len(nouns) if nouns else 0.0
+
+
+def tense_shift_rate(paragraphs: list[str], nlp) -> float:
+    """Part des changements de temps dominant entre paragraphes successifs."""
+    dominant = []
+    for paragraph in paragraphs:
+        tenses = [token.morph.get("Tense")[0] for token in nlp(paragraph)
+                  if token.pos_ == "VERB" and token.morph.get("Tense")]
+        if tenses:
+            dominant.append(Counter(tenses).most_common(1)[0][0])
+    if len(dominant) < 2:
+        return 0.0
+    return sum(a != b for a, b in zip(dominant, dominant[1:])) / (len(dominant) - 1)
+
+
+def _tense_shift_rate_doc(text: str, doc) -> float:
+    """Même mesure à partir du Doc déjà analysé, sans second appel spaCy."""
+    ranges, offset = [], 0
+    for paragraph in re.split(r"\n\s*\n+", text):
+        if paragraph.strip(): ranges.append((offset, offset + len(paragraph)))
+        offset += len(paragraph) + 1
+    dominant = []
+    for start, end in ranges:
+        tenses = [token.morph.get("Tense")[0] for token in doc
+                  if start <= token.idx < end and token.pos_ == "VERB" and token.morph.get("Tense")]
+        if tenses: dominant.append(Counter(tenses).most_common(1)[0][0])
+    return sum(a != b for a, b in zip(dominant, dominant[1:])) / (len(dominant) - 1) if len(dominant) > 1 else 0.0
+
 
 DIALOGUE_OPENING_MARKERS = ("—", "–", "«")  # cadratin, demi-cadratin ou guillemet
 WORD_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?", re.UNICODE)
@@ -293,6 +385,7 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
     if len(text) > nlp.max_length:
         nlp.max_length = len(text) + 1
     doc = nlp(text)
+    paragraphs = [part for part in re.split(r"\n\s*\n+", text) if part.strip()]
     sentences = list(doc.sents)
     dialogue_ranges = dialogue_char_ranges(text)
     narrative_sentences = [sentence for sentence in sentences if not _sentence_in_dialogue(sentence, dialogue_ranges)]
@@ -373,6 +466,9 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         "active_voice_ratio": active_sentences / len(sentences) if sentences else None,
         "metaphorical_comme_ratio": comparison_sentences / len(sentences) if sentences else None,
         "pos_distribution": pos_distribution,
+        "proper_noun_density": proper_noun_density(doc),
+        "concrete_noun_ratio": concrete_noun_ratio(doc),
+        "tense_shift_rate": _tense_shift_rate_doc(text, doc),
         "finite_verbs": finite_verbs,
         "present_participles": present_participles,
         "past_participles": past_participles,
@@ -397,6 +493,9 @@ def analyze_syntax(text: str) -> dict[str, object] | None:
         "narrative_past_ratio": narrative_past_ratio,
         "gnomic_present_ratio": gnomic_present_ratio,
         "exclamative_construction_ratio": sum(_is_exclamative_sentence(s) for s in sentences) / len(sentences) if sentences else 0,
+        "incise_density": incise_density(doc),
+        "coordination_accumulation_ratio": coordination_accumulation_ratio(doc),
+        "right_branching_depth": right_branching_depth(doc),
     }
 
 

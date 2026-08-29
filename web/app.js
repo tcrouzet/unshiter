@@ -15,6 +15,10 @@ const DETAILS = [
   ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true], ["literary_tense_ratio", "Temps littéraires", true],
   ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
   ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
+  ["proper_noun_density", "Densité de noms propres", true],
+  ["concrete_noun_ratio", "Noms concrets", true],
+  ["tense_shift_rate", "Ruptures temporelles", true],
+  ["scene_summary_ratio", "Sommaire narratif", true], ["incise_density", "Densité d’incises", true], ["coordination_accumulation_ratio", "Accumulation coordonnée", true], ["right_branching_depth", "Profondeur d’expansion finale", true],
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
   ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
   ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true],
@@ -22,7 +26,11 @@ const DETAILS = [
   ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
 ];
 const BURROWS_FIELDS = ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate", "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score", "dialogue_ratio", "gzip_compression_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth", "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev", "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "narrative_past_ratio", "narrativity_score", "discursivite_score"];
-const ALL_METRICS = [...RADAR, ...DETAILS.map(([key, label]) => [key, label])];
+// Ensemble unique des champs pouvant être agrégés pour un profil d’auteur.
+// SUMMARY était auparavant absent : le tableau 2 devenait donc vide en mode
+// auteurs, alors que les tableaux utilisant DETAILS restaient alimentés.
+const ALL_METRICS = [...RADAR, ...SUMMARY, ...DETAILS.map(([key, label]) => [key, label])]
+  .filter((item, index, all) => all.findIndex(other => other[0] === item[0]) === index);
 const TECHNICAL_KEYS = new Set(["word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "document_char_count"]);
 // L’écart-type brut reste disponible dans les données, mais la mesure #6
 // affichée et indexée est bien la diversité locale (burstiness).
@@ -203,7 +211,7 @@ function authorDatasets(keys, books) {
 }
 function authorAverages(books) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
-  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([author, authorBooks]) => { const stats = {}; for (const [key] of ALL_METRICS) { const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite); if (values.length) stats[key] = values.reduce((sum, n) => sum + n, 0) / values.length; } return { author, analyses: [{ stats }] }; });
+  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([author, authorBooks]) => { const stats = {}; for (const [key] of ALL_METRICS) { const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite); if (values.length) stats[publicMetricId(key)] = values.reduce((sum, n) => sum + n, 0) / values.length; } return { author, analyses: [{ stats }] }; });
 }
 function authorSurfaceProfiles(books, keys) {
   const groups = books.reduce((result, book) => { (result[book.author || "Auteur inconnu"] ||= []).push(book); return result; }, {});
@@ -568,7 +576,7 @@ function authorEvolutionEntities(books) {
     const stats = {};
     for (const [key] of ALL_METRICS) {
       const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite);
-      if (values.length) stats[key] = values.reduce((sum, n) => sum + n, 0) / values.length;
+      if (values.length) stats[publicMetricId(key)] = values.reduce((sum, n) => sum + n, 0) / values.length;
     }
     return { author, title: author, publication_date: dated[0]?.publication_date || "", analyses: [{ stats }] };
   });
@@ -579,7 +587,13 @@ function authorMedians(books) {
     const stats = {};
     for (const [key] of ALL_METRICS) {
       const values = authorBooks.map(book => value(book, key)).filter(Number.isFinite).sort((a, b) => a - b);
-      if (values.length) stats[key] = values[Math.floor((values.length - 1) / 2)];
+      if (values.length) {
+        const median = values[Math.floor((values.length - 1) / 2)];
+        // Les profils d’auteur sont des entités synthétiques : sérialiser
+        // directement avec l’identifiant public évite toute ambiguïté entre
+        // le nom Python du champ et la clé stockée dans les analyses.
+        stats[publicMetricId(key)] = median;
+      }
     }
     return { author, title: author, analyses: [{ stats }] };
   });
@@ -666,11 +680,17 @@ function downloadCanvas(canvas, name, format = "png") {
   const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
 }
 function renderTables(books) {
-  const tableBooks = authorProfile || authorLimits ? authorMedians(books) : books;
-  const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key) && !SUMMARY.some(([field]) => field === key));
+  // Les tableaux restent consultables pendant une transition de sélection
+  // (les cases peuvent déclencher un dessin intermédiaire avec une liste
+  // vide). La sélection finale est utilisée dès qu'elle est disponible.
+  const tableSource = books.length ? books : (data?.books || []);
+  const tableBooks = authorProfile || authorLimits ? authorMedians(tableSource) : tableSource;
+  const canonicalLabel = ([key, fallback, ...rest]) => [key, data?.metric_labels?.[key] || fallback, ...rest];
+  const summaryDefinitions = SUMMARY.map(canonicalLabel);
+  const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key) && !SUMMARY.some(([field]) => field === key)).map(canonicalLabel);
   // Le tableau de détails doit toujours exister, même si une configuration
   // de mesures est incomplète : les mesures non techniques restent affichées.
-  const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key));
+  const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key)).map(canonicalLabel);
   const technicalCharacterIndex = technical.findIndex(([key]) => key === "document_char_count");
   const technicalWordsIndex = technical.findIndex(([key]) => key === "word_count");
   if (technicalCharacterIndex >= 0 && technicalWordsIndex >= 0) technical.splice(technicalWordsIndex, 0, technical.splice(technicalCharacterIndex, 1)[0]);
@@ -678,7 +698,7 @@ function renderTables(books) {
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
   const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive</h2>${exportMenu("table-bigfive")}<div id="table-bigfive">${table(tableBooks, RADAR)}</div></div><div class="table-wrap"><h2>Tableau 2 · Synthèse</h2>${exportMenu("table-summary")}<div id="table-summary">${table(tableBooks, SUMMARY)}</div></div><div class="table-wrap" id="details-table-wrap"><h2>Tableau 3 · détails</h2>${exportMenu("table-details")}<div id="table-details">${table(tableBooks, details)}</div></div><div class="table-wrap"><h2>Tableau 4 · données objectives</h2>${exportMenu("table-technical")}<div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive</h2>${exportMenu("table-bigfive")}<div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap"><h2>Tableau 2 · Synthèse</h2>${exportMenu("table-summary")}<div id="table-summary">${table(tableBooks, summaryDefinitions)}</div></div><div class="table-wrap" id="details-table-wrap"><h2>Tableau 3 · détails</h2>${exportMenu("table-details")}<div id="table-details">${table(tableBooks, details)}</div></div><div class="table-wrap"><h2>Tableau 4 · données objectives</h2>${exportMenu("table-technical")}<div id="table-technical">${table(tableBooks, technical)}</div></div>`;
 }
 function downloadRenderedTable(container, name, format) {
   const table = container?.querySelector("table"); if (!table) return;
@@ -934,7 +954,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829083812042640000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829111207087527000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

@@ -1,7 +1,7 @@
 name: "Unshiter"
 author: "Thierry Crouzet"
 author_url: "https://tcrouzet.com"
-description: "Exploration statistique de textes littéraires et comparaison des corpus de divers auteurs."
+description: "Exploration statistique de textes littéraires | [Explicattions sur *tcrouzet.com*](https://tcrouzet.com/tag/textstat/) | [Contact](https://tcrouzet.com/page/mail/)"
 copyright: "(cc) [Thierry Crouzet](https://tcrouzet.com) - (date) - {livres} œuvres - [Projet sur GitHub](https://github.com/tcrouzet/unshiter)"
 default:
   - ravel-jean-echenoz.epub

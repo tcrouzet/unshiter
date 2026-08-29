@@ -1,0 +1,185 @@
+# Noms concrets qui se terminent par erreur par un des suffixes listés dans
+# assets/abstract-noun-suffixes.txt, utilisés par concrete_noun_ratio (axe
+# Narrativité) pour ne pas les compter comme abstraits.
+#
+# Construit à partir de Lexique383.tsv (tous les noms communs se terminant
+# par tion/sion/isme/ité/esse/ance/ence/ure, triés par freqlivres décroissant,
+# ~3782 candidats), puis relu à la main. Critère retenu : objet physique,
+# personne, lieu, substance ou partie du corps — pas un concept, une
+# qualité, un sentiment, une doctrine ou un procès.
+#
+# Format accepté : "exception: lemme" — seule la partie après le dernier ":"
+# est utilisée, en minuscules.
+
+# --- Unités de temps ---
+exception: heure
+exception: demi-heure
+
+# --- Objets, véhicules, mobilier ---
+exception: voiture
+exception: ambulance
+exception: embarcation
+exception: balance
+exception: manucure
+exception: crédence
+
+# --- Corps, apparence, vêtements ---
+exception: figure
+exception: chevelure
+exception: adresse
+exception: ceinture
+exception: fesse
+exception: encolure
+exception: carrure
+exception: stature
+exception: musculature
+exception: ossature
+exception: denture
+exception: commissure
+exception: jointure
+exception: pointure
+exception: cambrure
+exception: courbure
+exception: courbature
+exception: fracture
+exception: morsure
+exception: brûlure
+exception: fêlure
+exception: fissure
+exception: cassure
+exception: enflure
+exception: écorchure
+exception: éraflure
+exception: meurtrissure
+exception: zébrure
+exception: rayure
+exception: boursouflure
+exception: chaussure
+exception: coiffure
+exception: fermeture
+exception: doublure
+exception: parure
+exception: tresse
+exception: bure
+exception: vêture
+exception: pelure
+exception: épluchure
+exception: sécrétion
+
+# --- Personnes, êtres ---
+exception: maîtresse
+exception: princesse
+exception: comtesse
+exception: duchesse
+exception: vicomtesse
+exception: hôtesse
+exception: déesse
+exception: doctoresse
+exception: poétesse
+exception: tigresse
+exception: diablesse
+exception: ogresse
+exception: prêtresse
+exception: pauvresse
+exception: bougresse
+exception: chasseresse
+exception: chéfesse
+exception: abbesse
+exception: invité
+exception: retraité
+exception: excité
+exception: agité
+exception: professeure
+exception: auteure
+exception: majeure
+exception: mineure
+exception: supérieure
+exception: meilleure
+exception: centaure
+
+# --- Lieux, bâtiments ---
+exception: cité
+exception: demeure
+exception: forteresse
+exception: préfecture
+exception: sous-préfecture
+exception: station
+exception: masure
+exception: encoignure
+exception: devanture
+exception: embrasure
+
+# --- Substances, matières ---
+exception: fourrure
+exception: sciure
+exception: teinture
+exception: confiture
+exception: chapelure
+exception: moisissure
+exception: saumure
+exception: mercure
+exception: carbure
+exception: bromure
+exception: cyanure
+exception: chlorure
+exception: fluorure
+exception: iodure
+exception: séléniure
+exception: halogénure
+exception: hydrocarbure
+exception: oxychlorure
+exception: polychlorure
+exception: trichlorure
+exception: ferrocyanure
+exception: levure
+exception: semence
+exception: pâture
+exception: friture
+exception: mixture
+exception: potion
+exception: lotion
+exception: compresse
+
+# --- Outils, structures, éléments physiques ---
+exception: serrure
+exception: armure
+exception: armature
+exception: clôture
+exception: toiture
+exception: couverture
+exception: ouverture
+exception: fermeture
+exception: garniture
+exception: tenture
+exception: reliure
+exception: moulure
+exception: nervure
+exception: voussure
+exception: potence
+exception: lance
+exception: gravure
+exception: sculpture
+exception: peinture
+exception: écriture
+exception: miniature
+exception: brochure
+exception: dorure
+exception: soudure
+exception: rainure
+exception: pliure
+exception: découpure
+exception: guipure
+exception: bordure
+exception: ramure
+exception: facture
+exception: coupure
+exception: ordure
+exception: dentelure
+
+# --- Animaux (noms en -saure) ---
+exception: dinosaure
+exception: brontosaure
+exception: plésiosaure
+exception: mégalosaure
+exception: stégosaure
+exception: brachiosaure

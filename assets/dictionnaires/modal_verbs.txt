@@ -1,0 +1,14 @@
+# Verbes modaux déontiques/génériques, utilisés par modal_generalization_ratio
+# (mesure candidate, axe Discursivité) pour repérer un discours qui énonce
+# des règles ou des vérités générales plutôt que des événements situés.
+#
+# Détection par lemme (token.lemma_), pas par forme fléchie : spaCy
+# lemmatise déjà "doit", "devrait", "devait", "dut"... en "devoir". Inutile
+# de lister les formes conjuguées, une entrée par verbe suffit.
+#
+# Format accepté : "lemme: verbe" — seule la partie après le dernier ":" est
+# utilisée, en minuscules.
+
+lemme: devoir
+lemme: pouvoir
+lemme: falloir

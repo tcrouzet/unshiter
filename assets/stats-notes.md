@@ -56,7 +56,7 @@ Même calcul que les répétitions lexicales, mais en conservant les mots-outils
 
 # Densité grammaticale / **Densité lexicale** #13
 
-Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
+Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/dictionnaires/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
 
 Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel grammatical (déterminants, pronoms, prépositions, conjonctions, interjections) — souvent des phrases courtes, un style oral ou fluide. Une valeur basse signifie que le texte est porté par les mots pleins (noms, verbes, adjectifs, adverbes) — style plus dense, informatif ou nominal.
 
@@ -102,7 +102,7 @@ Pourcentage des phrases du document contenant une construction verbale active et
 
 # Densité de métaphores / Sparcité de métaphores #25
 
-Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
+Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/dictionnaires/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
 
 # **Complexité syntaxique** / Minimalisme syntaxique #26 #tab1_5
 
@@ -212,7 +212,7 @@ Part des futurs employés qui sont construits avec « aller » au présent suivi
 
 # **Familiarité orale** / Registre soutenu #70
 
-Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
+Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
 # **Classique** / Contemporain #71
 
@@ -243,7 +243,7 @@ Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
 Score composite : proche de 0, minimalisme ; proche de 1, maximaliste. Il combine l’enrichissement des groupes nominaux, la rareté lexicale, les comparaisons, les chaînes adjectivales, la profondeur syntaxique et la longueur des phrases.
 
 # **Verbes d’action** #80
-Part des verbes finis qui ne figurent pas dans `assets/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
+Part des verbes finis qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
 
 # **Connecteurs temporels** #81
 Occurrences de connecteurs temporels ou séquentiels par phrases.
@@ -272,7 +272,7 @@ Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expande
 
 # Verbes de réaction affective #86
 
-Part des verbes finis appartenant à `assets/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
+Part des verbes finis appartenant à `assets/dictionnaires/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
 
 # Exclamations #87
 
@@ -287,7 +287,7 @@ Part des phrases terminées par un point d’exclamation et commençant par « q
 Score agrégé de vocabulaire émotionnel, verbes de réaction, exclamations et constructions exclamatives. Il décrit une densité d’expression affective explicite, pas la qualité ni la valence positive ou négative du texte.
 # Connecteurs logiques #90
 
-Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/logical-connectors.txt`.
+Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
 
 # Noms abstraits #91
 
@@ -304,3 +304,31 @@ Score fondé sur la densité des connecteurs logiques et argumentatifs. Une vale
 # Temps littéraires #94
 
 Part des verbes finis narratifs au passé simple ou au subjonctif imparfait ou plus-que-parfait, hors dialogues. Cette mesure informative est utilisée comme composante du registre classique.
+
+# Densité de noms propres #95
+
+Part des tokens non ponctuels et non espacés étiquetés `PROPN` par spaCy. Elle indique la place des personnes, lieux, marques et autres noms propres dans le texte.
+
+# Noms concrets #96
+
+Part des noms communs qui ne portent pas un suffixe de nominalisation abstraite. Les exceptions lexicales de `assets/dictionnaires/concrete-noun-exceptions.txt` sont retirées du calcul ; la liste est issue de Lexique383 et peut être enrichie manuellement.
+
+# Taux de rupture temporelle #97
+
+Proportion de transitions entre paragraphes consécutifs où le temps verbal dominant change. Les paragraphes sans verbe ne sont pas pris en compte ; une valeur élevée indique davantage d’alternance entre régimes temporels.
+
+# Taux de marqueurs de sommaire #98
+
+Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient un d'une liste fixe (« souvent », « chaque jour », « pendant des années », « avait l'habitude de »… définit dans `assets/dictionnaires/duration-markers.txt`) tout en étant nettement plus courte que la phrase la plus longue du corpus. Signale un sommaire narratif selon Genette : le récit qui condense une longue durée en peu de mots — par opposition à la scène, qui déploie un moment précis en détail.
+
+# Densité d'incises #99
+
+Proportion de phrases contenant au moins une proposition ou un groupe encadré par des virgules, des parenthèses ou des tirets cadratin ou demi-cadratin, inséré dans le fil syntaxique principal sans en être le sujet ou l'objet direct. La détection s'appuie sur les dépendances spaCy (`appos`, `acl:relcl`, `advcl` ou `parataxis`) lorsqu'une virgule précède le groupe. Une valeur élevée indique une phrase plus interrompue et enrichie ; une valeur faible, une phrase plus nue.
+
+# Taux d'accumulation coordonnée #100
+
+Proportion de phrases comportant plus de deux coordinations syntaxiques (`dep_ == "cc"`), par exemple des enchaînements avec « et » ou « puis ». Seules les coordinations identifiées par spaCy sont comptées, pas les virgules seules. Une valeur élevée capte une écriture par énumération ou accumulation ; une valeur faible correspond à des phrases qui tranchent davantage.
+
+# Profondeur d'finale #101
+
+Profondeur syntaxique moyenne du sous-arbre dont la tête est le dernier mot de chaque phrase. La mesure suit les liens de dépendance de ce dernier mot vers la racine, en restant dans la phrase. Une valeur élevée indique que la phrase continue à se ramifier vers sa fin ; elle complète la profondeur syntaxique moyenne, qui porte sur toute la phrase.

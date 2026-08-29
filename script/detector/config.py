@@ -12,6 +12,7 @@ OUTPUT_DIR = PROJECT_ROOT / "_output"
 WEB_DIR = PROJECT_ROOT / "web"
 WEB_DATA_FILE = WEB_DIR / "data.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
+DICTIONARIES_DIR = ASSETS_DIR / "dictionnaires"
 SITE_CONFIG_FILE = ASSETS_DIR / "site.yml"
 README_TEXTS_FILE = ASSETS_DIR / "readme-texts.md"
 CHART_PALETTE_FILE = ASSETS_DIR / "chart-palette.yml"
@@ -19,7 +20,7 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v53-weighted-axes"
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v61-right-branching"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -32,22 +33,25 @@ SOURCE_MARKDOWN_PATTERN = "*.md"
 MARKDOWN_EXTENSION = ".md"
 JSON_EXTENSION = ".json"
 STATS_COMPARISON_FILE = OUTPUT_DIR / "stats_comparison.md"
-MORPHALOU_DIR = ASSETS_DIR / "morphalou"
+MORPHALOU_DIR = DICTIONARIES_DIR / "morphalou"
 MORPHALOU_ARCHIVE = MORPHALOU_DIR / "Morphalou3.1_formatCSV_toutEnUn.zip"
 MORPHALOU_CSV_MEMBER = "Morphalou3.1_formatCSV_toutEnUn/Morphalou3.1_CSV.csv"
 MORPHALOU_INDEX = MORPHALOU_DIR / "morphalou.sqlite3"
-FUNCTION_WORDS_FILE = ASSETS_DIR / "function-words.txt"
-COMPARISON_MARKERS_FILE = ASSETS_DIR / "comparison-markers.txt"
-FAMILIARITY_MARKERS_FILE = ASSETS_DIR / "familiarity-markers.txt"
-NEGATION_COMPLETE_MARKERS_FILE = ASSETS_DIR / "negation-complete-markers.txt"
-LEXIQUE_DIR = ASSETS_DIR / "lexique"
+FUNCTION_WORDS_FILE = DICTIONARIES_DIR / "function-words.txt"
+COMPARISON_MARKERS_FILE = DICTIONARIES_DIR / "comparison-markers.txt"
+FAMILIARITY_MARKERS_FILE = DICTIONARIES_DIR / "familiarity-markers.txt"
+NEGATION_COMPLETE_MARKERS_FILE = DICTIONARIES_DIR / "negation-complete-markers.txt"
+ABSTRACT_NOUN_SUFFIXES_FILE = DICTIONARIES_DIR / "abstract-noun-suffixes.txt"
+CONCRETE_NOUN_EXCEPTIONS_FILE = DICTIONARIES_DIR / "concrete-noun-exceptions.txt"
+DURATION_MARKERS_FILE = DICTIONARIES_DIR / "duration-markers.txt"
+LEXIQUE_DIR = DICTIONARIES_DIR / "lexique"
 LEXIQUE_ARCHIVE = LEXIQUE_DIR / "Lexique383.tsv"
 LEXIQUE_INDEX = LEXIQUE_DIR / "lexique.sqlite3"
-STATIVE_VERBS_FILE = ASSETS_DIR / "stative-verbs.txt"
-TEMPORAL_CONNECTORS_FILE = ASSETS_DIR / "temporal-connectors.txt"
-LOGICAL_CONNECTORS_FILE = ASSETS_DIR / "logical-connectors.txt"
-AFFECT_VERBS_FILE = ASSETS_DIR / "affect-verbs.txt"
-FEEL_DIR = ASSETS_DIR / "feel"
+STATIVE_VERBS_FILE = DICTIONARIES_DIR / "stative-verbs.txt"
+TEMPORAL_CONNECTORS_FILE = DICTIONARIES_DIR / "temporal-connectors.txt"
+LOGICAL_CONNECTORS_FILE = DICTIONARIES_DIR / "logical-connectors.txt"
+AFFECT_VERBS_FILE = DICTIONARIES_DIR / "affect-verbs.txt"
+FEEL_DIR = DICTIONARIES_DIR / "feel"
 FEEL_ARCHIVE = FEEL_DIR / "FEEL.csv"
 FEEL_INDEX = FEEL_DIR / "feel.sqlite3"
 STATS_NOTES_FILE = ASSETS_DIR / "stats-notes.md"
@@ -70,7 +74,7 @@ README_STATS_START = "<!-- STATS:START -->"
 README_STATS_END = "<!-- STATS:END -->"
 MORPHALOU_BATCH_SIZE = 10_000
 MORPHALOU_SCHEMA_VERSION = "2"
-DEMONETTE_DIR = ASSETS_DIR / "demonette"
+DEMONETTE_DIR = DICTIONARIES_DIR / "demonette"
 DEMONETTE_LEXEMES = DEMONETTE_DIR / "lexemes.csv"
 DEMONETTE_INDEX = DEMONETTE_DIR / "demonette.sqlite3"
 DEMONETTE_SCHEMA_VERSION = "2"
@@ -183,11 +187,28 @@ METRICS = {
     "gnomic_present_ratio": "mesure_92",
     "discursivite_score": "mesure_93",
     "literary_tense_ratio": "mesure_94",
+    "proper_noun_density": "mesure_95",
+    "concrete_noun_ratio": "mesure_96",
+    "tense_shift_rate": "mesure_97",
+    "scene_summary_ratio": "mesure_98",
+    "incise_density": "mesure_99",
+    "coordination_accumulation_ratio": "mesure_100",
+    "right_branching_depth": "mesure_101",
 }
 
 METRIC_FIELDS = tuple(METRICS)
 METRIC_ID_BY_FIELD = dict(METRICS)
 FIELD_BY_METRIC_ID = {identifier: field for field, identifier in METRICS.items() if identifier}
+
+
+def windowed_metric_fields() -> set[str]:
+    """Champs calculés sur la fenêtre signalée par {windows} dans les notes."""
+    return {
+        "filtered_repetition_rate", "absolute_repetition_rate",
+        "family_repetition_rate", "phonetic_repetition_rate",
+        "stylistic_repetition_rate", "trigram_repetition",
+        "moving_trigram_repetition", "sentence_word_std_dev",
+    }
 
 
 # Poids des scores composites. Les valeurs sont regroupées ici pour rendre
