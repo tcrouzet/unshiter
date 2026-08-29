@@ -6,7 +6,7 @@ import gzip
 import math
 import re
 
-from .config import (BAROQUE_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
+from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, AFFECT_VERBS_FILE, FIELD_BY_METRIC_ID,
     FUNCTION_WORDS_FILE, LEXICAL_WINDOW_SIZE, METRIC_ID_BY_FIELD, PHONETIC_MIN_RATIO,
     PHONETIC_MIN_SEQUENCE, REPETITION_PROXIMITY_WORDS, STYLISTIC_EXACT_WEIGHT,
     STYLISTIC_FAMILY_WEIGHT, STYLISTIC_LEMMA_WEIGHT, TEXT_ENCODING)
@@ -242,6 +242,7 @@ class TextStats:
     past_participle_ratio: float | None = None
     simple_past_ratio: float = 0
     literary_subjunctive_ratio: float = 0
+    literary_tense_ratio: float = 0
     negation_completeness_ratio: float | None = None
     periphrastic_future_ratio: float | None = None
     oral_familiarity_ratio: float = 0
@@ -918,27 +919,23 @@ def compute_stats(text: str) -> TextStats:
         + CLASSICISM_WEIGHTS["oral_familiarity_ratio"] * min(oral_ratio / 10, 1)
         + CLASSICISM_WEIGHTS["structural_diversity"] * structural_diversity(structures)
         + CLASSICISM_WEIGHTS["verb_ratio"] * verb_ratio
-        + CLASSICISM_WEIGHTS["gzip_incompressibility"] * (1 - gzip_ratio)
         + CLASSICISM_WEIGHTS["active_voice_ratio"] * active_ratio
         + CLASSICISM_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
     )
     baroque = (
-        BAROQUE_WEIGHTS["heavily_modified_noun_ratio"] * heavily_modified
-        + BAROQUE_WEIGHTS["lexical_rarity_score"] * min(max(lexical_rarity / 3, 0), 1)
-        + BAROQUE_WEIGHTS["metaphorical_comme_ratio"] * (syntax.get("metaphorical_comme_ratio", 0) if syntax else 0)
-        + BAROQUE_WEIGHTS["adjective_chain_ratio"] * adjective_chain_ratio
-        + BAROQUE_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
-        + BAROQUE_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
+        ORNATENESS_WEIGHTS["heavily_modified_noun_ratio"] * heavily_modified
+        + ORNATENESS_WEIGHTS["metaphorical_comme_ratio"] * (syntax.get("metaphorical_comme_ratio", 0) if syntax else 0)
+        + ORNATENESS_WEIGHTS["adjective_chain_ratio"] * adjective_chain_ratio
+        + ORNATENESS_WEIGHTS["average_syntactic_depth"] * min((syntax.get("average_depth", 0) if syntax else 0) / 10, 1)
+        + ORNATENESS_WEIGHTS["avg_sentence_length"] * min(mean / 200, 1)
     )
     contextual_for_affect = analyze_contextual_tokens(text)
     emotion_ratio = emotion_word_ratio(words)
     affect_ratio = affect_verb_ratio(contextual_for_affect)
     exclaim_ratio = exclamation_ratio(text, len(sentences))
     exclamative_ratio = syntax.get("exclamative_construction_ratio", 0) if syntax else 0
-    emotionality = (EMOTIONALITY_WEIGHTS["emotion_word_ratio"] * emotion_ratio
-                    + EMOTIONALITY_WEIGHTS["affect_verb_ratio"] * affect_ratio
-                    + EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio
-                    + EMOTIONALITY_WEIGHTS["exclamative_construction_ratio"] * exclamative_ratio)
+    emotionality = (EMOTIONALITY_WEIGHTS["affect_verb_ratio"] * affect_ratio
+                    + EMOTIONALITY_WEIGHTS["exclamation_ratio"] * exclaim_ratio)
     logical_ratio = logical_connector_ratio(text, len(sentences))
     abstract_ratio = abstract_noun_ratio(contextual_for_affect)
     gnomic_ratio = syntax.get("gnomic_present_ratio", 0) if syntax else 0
@@ -946,7 +943,6 @@ def compute_stats(text: str) -> TextStats:
     past_ratio = syntax.get("narrative_past_ratio", 0) if syntax else 0
     narrativity = (NARRATIVITY_WEIGHTS["action_verb_ratio"] * action_ratio
         + NARRATIVITY_WEIGHTS["temporal_connector_ratio"] * min(temporal_ratio / 20, 1)
-        + NARRATIVITY_WEIGHTS["personal_subject_ratio"] * personal_ratio
         + NARRATIVITY_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
         + NARRATIVITY_WEIGHTS["active_voice_ratio"] * active_ratio
         + NARRATIVITY_WEIGHTS["nominal_sentence_ratio"] * (syntax.get("nominal_sentence_ratio", 0) if syntax else 0)
@@ -956,7 +952,9 @@ def compute_stats(text: str) -> TextStats:
     # logical_ratio est calculé sur toutes les phrases du document (le « pour
     # 100 » sert uniquement à l'affichage). On le convertit en proportion pour
     # le score composite, sans fenêtre ni dénominateur arbitraire.
-    discursivite = DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 100, 1)
+    discursivite = (DISCURSIVITE_WEIGHTS["logical_connector_ratio"] * min(logical_ratio / 100, 1)
+                    + DISCURSIVITE_WEIGHTS["abstract_noun_ratio"] * abstract_ratio
+                    + DISCURSIVITE_WEIGHTS["gnomic_present_ratio"] * gnomic_ratio)
     return TextStats(
         word_count=len(words), unique_word_count=len(frequencies), sentence_count=len(lengths),
         paragraph_count=len(paragraphs), avg_word_length=r(sum(map(len, words)) / len(words)),
@@ -1005,6 +1003,7 @@ def compute_stats(text: str) -> TextStats:
         present_participle_ratio=r(present_participle_ratio) if present_participle_ratio is not None else None,
         past_participle_ratio=r(past_participle_ratio) if past_participle_ratio is not None else None,
         simple_past_ratio=r(simple_past_ratio), literary_subjunctive_ratio=r(literary_subjunctive_ratio),
+        literary_tense_ratio=r(literary_ratio),
         negation_completeness_ratio=r(negation_completeness) if negation_completeness is not None else None,
         periphrastic_future_ratio=r(periphrastic_future_ratio) if periphrastic_future_ratio is not None else None,
         oral_familiarity_ratio=r(oral_ratio), classicism_score=r(classicism),

@@ -86,11 +86,11 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 
 | Mesure | IA — Claude style Duras | IA — Claude style Fourth Wing | Les particules élémentaires | L’Amant | L’expérience humaine | Ravel | Vies minuscules | Dispersion (σ)[^1] |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | 7.2 % |
-| Maximaliste / Minimaliste[^42] | 12.4 % | 22.0 % | 17.2 % | 15.5 % | 14.3 % | 23.7 % | 24.2 % | 24.0 % |
-| Narratif / Descriptif[^47] | 27.3 % | 37.6 % | 34.1 % | 31.4 % | 37.2 % | 42.7 % | 44.6 % | 15.5 % |
-| Émotionnel / Neutre[^52] | 8.3 % | 7.8 % | 8.3 % | 7.2 % | 8.2 % | 7.6 % | 8.1 % | 4.8 % |
-| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | 47.9 % |
+| Classique / Contemporain[^34] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | 9.7 % |
+| Maximaliste / Minimaliste[^42] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | 31.6 % |
+| Narratif / Descriptif[^47] | 25.3 % | 35.6 % | 32.2 % | 29.4 % | 35.2 % | 40.7 % | 42.6 % | 16.3 % |
+| Émotionnel / Neutre[^52] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | 42.6 % |
+| Discursif / Immersif[^56] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | 39.9 % |
 
 ### Tableau 2 — Synthèse
 
@@ -128,7 +128,7 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 | Négations complètes[^31] | 96.0 % | 100.0 % | 100.0 % | 93.5 % | 100.0 % | 100.0 % | 100.0 % | — |
 | Futur périphrastique[^32] | 0.0 % | 20.0 % | 0.0 % | 33.3 % | 0.0 % | 27.3 % | 0.0 % | — |
 | Familiarité orale[^33] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.1 % | 0.1 % | 0.0 % | — |
-| Classique / Contemporain[^34] | 23.9 % | 23.4 % | 28.3 % | 25.4 % | 25.2 % | 27.9 % | 33.6 % | — |
+| Classique / Contemporain[^34] | 19.0 % | 18.4 % | 24.0 % | 20.6 % | 20.4 % | 23.1 % | 29.5 % | — |
 | Dialogue[^35] | 34.7 % | 30.1 % | 13.5 % | 0.0 % | 4.7 % | 0.0 % | 0.3 % | — |
 | Négativité / Positivité[^36] | 27.2 % | 46.1 % | 9.9 % | 25.1 % | 15.7 % | 28.6 % | 16.5 % | — |
 | Modificateurs par nom[^37] | 0.49 | 0.60 | 0.58 | 0.53 | 0.55 | 0.58 | 0.62 | — |
@@ -136,21 +136,21 @@ Les cinq scores sont normalisés par rapport au maximum observé dans le corpus 
 | Rareté lexicale[^39] | 0.50 | 0.52 | 0.54 | 0.51 | 0.51 | 0.55 | 0.52 | — |
 | Chaînes adjectivales[^40] | 0.0 % | 1.3 % | 0.9 % | 0.8 % | 0.4 % | 4.8 % | 5.1 % | — |
 | Longueur des chaînes adjectivales[^41] | 0.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | 2.00 | — |
-| Maximaliste / Minimaliste[^42] | 12.4 % | 22.0 % | 17.2 % | 15.5 % | 14.3 % | 23.7 % | 24.2 % | — |
+| Maximaliste / Minimaliste[^42] | 9.3 % | 20.0 % | 13.5 % | 12.5 % | 10.8 % | 21.4 % | 22.0 % | — |
 | Verbes d’action[^43] | 50.7 % | 46.2 % | 51.9 % | 30.7 % | 70.6 % | 51.9 % | 60.6 % | — |
 | Connecteurs temporels[^44] | 10.2 % | 21.3 % | 16.3 % | 14.3 % | 12.6 % | 32.8 % | 28.1 % | — |
 | Sujets personnels[^45] | 99.4 % | 100.0 % | 99.0 % | 99.0 % | 99.3 % | 100.0 % | 98.3 % | — |
 | Passé narratif[^46] | 0.3 % | 0.3 % | 13.5 % | 0.2 % | 0.8 % | 0.3 % | 22.1 % | — |
-| Narratif / Descriptif[^47] | 27.3 % | 37.6 % | 34.1 % | 31.4 % | 37.2 % | 42.7 % | 44.6 % | — |
+| Narratif / Descriptif[^47] | 25.3 % | 35.6 % | 32.2 % | 29.4 % | 35.2 % | 40.7 % | 42.6 % | — |
 | Mots émotionnels[^48] | 52.4 % | 50.5 % | 52.0 % | 47.4 % | 52.6 % | 49.3 % | 51.4 % | — |
 | Verbes de réaction affective[^49] | 1.1 % | 0.6 % | 1.2 % | 0.1 % | 0.4 % | 0.5 % | 0.8 % | — |
 | Exclamations[^50] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.4 % | 0.0 % | 0.0 % | — |
 | Constructions exclamatives[^51] | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | 0.0 % | — |
-| Émotionnel / Neutre[^52] | 8.3 % | 7.8 % | 8.3 % | 7.2 % | 8.2 % | 7.6 % | 8.1 % | — |
+| Émotionnel / Neutre[^52] | 0.6 % | 0.3 % | 0.6 % | 0.1 % | 0.4 % | 0.3 % | 0.4 % | — |
 | Connecteurs logiques[^53] | 25.2 % | 49.0 % | 44.2 % | 37.4 % | 29.3 % | 66.6 % | 108.6 % | — |
 | Noms abstraits[^54] | 5.5 % | 5.4 % | 10.7 % | 6.1 % | 5.9 % | 5.4 % | 6.7 % | — |
 | Présent gnomique[^55] | 19.1 % | 13.6 % | 5.3 % | 3.7 % | 23.0 % | 18.1 % | 10.3 % | — |
-| Discursif / Immersif[^56] | 23.1 % | 69.5 % | 49.1 % | 32.5 % | 32.5 % | 82.1 % | 98.8 % | — |
+| Discursif / Immersif[^56] | 18.4 % | 39.9 % | 28.3 % | 18.6 % | 24.3 % | 47.6 % | 53.8 % | — |
 | Diversité de longueurs de phrase (mots)[^57] | 6.2 | 24.1 | 12.5 | 14.0 | 9.3 | 14.8 | 41.1 | 41.1 % |
 | Compression gzip[^58] | 41 % | 40 % | 43 % | 39 % | 44 % | 44 % | 43 % | 3.9 % |
 | Relatives et subordonnées[^59] | 82 % | 262 % | 98 % | 131 % | 95 % | 272 % | 202 % | 46.3 % |
@@ -182,16 +182,16 @@ Distance de Burrows : moyenne des écarts absolus entre z-scores sur 51 mesures
 
 | Texte IA | Voisin humain | Δ |
 |---|---|---:|
-| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.72 |
-|  | Nouvelles horroristiques — Philippe Caza | 0.75 |
-|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.86 |
-|  | L'Été 80 — Marguerite Duras | 0.87 |
-|  | La Carte et le Territoire — Michel Houellebecq | 0.87 |
+| Claude style Duras — IA | Motel Valparaiso — Philippe Castelneau | 0.74 |
+|  | Nouvelles horroristiques — Philippe Caza | 0.76 |
+|  | La Carte et le Territoire — Michel Houellebecq | 0.85 |
+|  | L'Été 80 — Marguerite Duras | 0.86 |
+|  | Fourth wing - Tome 1 — Rebecca Yarros | 0.87 |
 | Claude style Fourth Wing — IA | La Carte et le Territoire — Michel Houellebecq | 0.82 |
 |  | Sortie d'usine — François Bon | 0.87 |
 |  | Le temps retrouvé — Marcel Proust | 0.92 |
-|  | L'Été 80 — Marguerite Duras | 0.94 |
-|  | Autobiographie des objets — François Bon | 0.95 |
+|  | L'Été 80 — Marguerite Duras | 0.93 |
+|  | Autobiographie des objets — François Bon | 0.94 |
 
 ### Profil comparatif
 

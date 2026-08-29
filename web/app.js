@@ -12,7 +12,7 @@ const SUMMARY = [
   ["burstiness", "Burstiness"], ["noun_verb_ratio", "Ratio noms/verbes"], ["filtered_repetition_rate", "Répétitions lexicales"],
 ];
 const DETAILS = [
-  ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
+  ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true], ["literary_tense_ratio", "Temps littéraires", true],
   ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true], ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
   ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
@@ -153,6 +153,9 @@ function scale(key, n) {
 }
 function draw() {
   const books = selected(), keys = checkedMetrics(), labels = keys.map(metricLabel);
+  // Les tableaux sont indépendants des graphiques : ils doivent rester
+  // visibles même si Chart.js ou un graphique facultatif échoue à se charger.
+  renderTables(books);
   const title = radarTitle(books);
   currentRadarTitle = title;
   chart?.destroy();
@@ -176,7 +179,6 @@ function draw() {
   drawMDS(books);
   drawNeighborhood(books);
   drawEvolution(books);
-  renderTables(books);
   // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
   // ce qui permet de télécharger deux fois de suite le même format.
   document.querySelectorAll(".chart-download").forEach(select => { select.selectedIndex = -1; });
@@ -354,7 +356,7 @@ function downloadNeighborhoodTable(format = "png") {
   else { const image = new Image(); image.onload = () => { const canvas = document.createElement("canvas"); canvas.width = width * 2; canvas.height = height * 2; const ctx = canvas.getContext("2d"); ctx.scale(2, 2); ctx.drawImage(image, 0, 0); link.href = canvas.toDataURL("image/png"); link.download = "voisinage-stylistique.png"; link.click(); URL.revokeObjectURL(image.src); }; image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; return; }
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
-Chart.register({ id: "mdsLabelsAndLinks", afterDatasetsDraw(instance) {
+if (typeof Chart !== "undefined") Chart.register({ id: "mdsLabelsAndLinks", afterDatasetsDraw(instance) {
   if (instance.canvas?.id !== "mds") return;
   const ctx = instance.ctx;
   ctx.save();
@@ -398,7 +400,7 @@ Chart.register({ id: "mdsLabelsAndLinks", afterDatasetsDraw(instance) {
   });
   ctx.restore();
 } });
-Chart.register({ id: "distanceReference", afterDraw(instance) {
+if (typeof Chart !== "undefined") Chart.register({ id: "distanceReference", afterDraw(instance) {
   const references = instance.options.plugins?.distanceReference?.values || [];
   if (!references.length) return;
   const scale = instance.scales.x, ctx = instance.ctx;
@@ -582,7 +584,7 @@ function authorMedians(books) {
     return { author, title: author, analyses: [{ stats }] };
   });
 }
-Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const labels = instance.$pointLabels?.length ? instance.$pointLabels : (instance.$years || []); const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (labels[i]) { ctx.font = `${isAI(instance.$pointEntities?.[i]) ? "700" : "400"} 11px system-ui`; ctx.fillText(labels[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); } }); ctx.restore(); } });
+if (typeof Chart !== "undefined") Chart.register({ id: "publicationYears", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0); const labels = instance.$pointLabels?.length ? instance.$pointLabels : (instance.$years || []); const ctx = instance.ctx; const limit = instance.chartArea.top + instance.chartArea.height * .75; ctx.save(); ctx.fillStyle = "#6f6962"; ctx.textAlign = "center"; meta.data.forEach((point, i) => { if (labels[i]) { ctx.font = `${isAI(instance.$pointEntities?.[i]) ? "700" : "400"} 11px system-ui`; ctx.fillText(labels[i], point.x, point.y < limit ? point.y + 15 : point.y - 9); } }); ctx.restore(); } });
 function chartExportTitle(canvas, name) {
   const frame = canvas?.closest(".chart-frame");
   if (frame?.dataset.exportTitle) return frame.dataset.exportTitle;
@@ -666,6 +668,8 @@ function downloadCanvas(canvas, name, format = "png") {
 function renderTables(books) {
   const tableBooks = authorProfile || authorLimits ? authorMedians(books) : books;
   const details = DETAILS.filter(([key]) => !REMOVED_KEYS.has(key) && !TECHNICAL_KEYS.has(key) && !SUMMARY.some(([field]) => field === key));
+  // Le tableau de détails doit toujours exister, même si une configuration
+  // de mesures est incomplète : les mesures non techniques restent affichées.
   const technical = DETAILS.filter(([key]) => TECHNICAL_KEYS.has(key));
   const technicalCharacterIndex = technical.findIndex(([key]) => key === "document_char_count");
   const technicalWordsIndex = technical.findIndex(([key]) => key === "word_count");
@@ -673,7 +677,7 @@ function renderTables(books) {
   const characterIndex = details.findIndex(([key]) => key === "document_char_count");
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
-  const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
+  const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
   document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive</h2>${exportMenu("table-bigfive")}<div id="table-bigfive">${table(tableBooks, RADAR)}</div></div><div class="table-wrap"><h2>Tableau 2 · Synthèse</h2>${exportMenu("table-summary")}<div id="table-summary">${table(tableBooks, SUMMARY)}</div></div><div class="table-wrap" id="details-table-wrap"><h2>Tableau 3 · détails</h2>${exportMenu("table-details")}<div id="table-details">${table(tableBooks, details)}</div></div><div class="table-wrap"><h2>Tableau 4 · données objectives</h2>${exportMenu("table-technical")}<div id="table-technical">${table(tableBooks, technical)}</div></div>`;
 }
 function downloadRenderedTable(container, name, format) {
@@ -825,7 +829,14 @@ function controls() {
   document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
-  const savedBooks = new Set(JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number));
+  const savedBookIds = JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number);
+  // Après une resynchronisation SQLite, les identifiants peuvent changer.
+  // Une ancienne sélection qui ne contient plus aucun livre ne doit pas
+  // laisser l'interface et les tableaux avec zéro colonne d'œuvre.
+  const currentBookIds = new Set(data.books.map(book => book.id));
+  const validSavedBookIds = savedBookIds.filter(id => currentBookIds.has(id));
+  const savedBooks = new Set(validSavedBookIds.length ? validSavedBookIds : []);
+  if (savedBookIds.length && !validSavedBookIds.length) localStorage.removeItem("unshiter-books");
   const savedMetrics = new Set(JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey));
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
   const authorsPanel = document.getElementById("authors-panel");
@@ -923,7 +934,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260828231130156855000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829083812042640000").then(r => r.json()).then(json => {
   data = json;
   COLORS = Object.entries(data.palette || {}).filter(([key, color]) => key.startsWith("color") && color).map(([, color]) => color);
   IA_COLOR = data.palette?.ia || IA_COLOR;

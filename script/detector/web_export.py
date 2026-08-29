@@ -9,7 +9,11 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRIC_ID_BY_FIELD, SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE
+from .config import (EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRIC_ID_BY_FIELD,
+                     SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE,
+                     CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
+                     NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
+                     DISCURSIVITE_WEIGHTS)
 from .config import CHART_PALETTE_FILE, STATS_NOTES_FILE
 
 
@@ -100,21 +104,6 @@ def note_ids() -> dict[str, str]:
 def metric_note_ids() -> dict[str, str]:
     """Correspondance unique définie dans config.py, jamais par un libellé."""
     return dict(METRIC_ID_BY_FIELD)
-    """legacy mapping removed"""
-    keys = [
-        "punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm",
-        "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate",
-        "stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate",
-        "function_word_ratio", "trigram_repetition", "moving_trigram_repetition", "noun_ratio", "verb_ratio",
-        "adjective_ratio", "adverb_ratio", "gzip_compression_ratio", "relative_clause_ratio",
-        "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "average_syntactic_depth",
-        "form_lemma_ratio", "hapax_ratio",
-        "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
-        "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
-        "paragraph_length_std_dev",
-        "document_char_count",
-    ]
-    return {key: f"mesure_{index}" for index, key in enumerate(keys[:27], 1)} | {"hapax_ratio": "mesure_28"} | {key: f"mesure_{index}" for index, key in enumerate(keys[27:], 30)}
 
 
 def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
@@ -188,6 +177,11 @@ def export_json() -> int:
                     if missing:
                         raise ValueError(f"Mesures radar absentes pour {book['title']}: {', '.join(missing)}")
                     stats_data.setdefault(METRIC_ID_BY_FIELD["document_char_count"], book["size"])
+                    # Migration sans réanalyse : ce champ composite est
+                    # exactement la somme des deux compteurs déjà stockés.
+                    literary_id = METRIC_ID_BY_FIELD["literary_tense_ratio"]
+                    if literary_id not in stats_data:
+                        stats_data[literary_id] = sum(float(stats_data.get(METRIC_ID_BY_FIELD[field], 0) or 0) for field in ("simple_past_ratio", "literary_subjunctive_ratio"))
                     analyses.append({
                         "window": row["window_index"], "start": row["char_start"], "end": row["char_end"],
                         "chars": row["char_count"], "stats": stats_data,
@@ -209,13 +203,14 @@ def export_json() -> int:
                 maximum = maxima.get(field, 0)
                 return value / maximum if maximum else 0.0
 
-            component_fields = {
-                "classicism_score": ("simple_past_ratio", "literary_subjunctive_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "structural_diversity", "verb_ratio", "gzip_compression_ratio", "active_voice_ratio", "dialogue_ratio"),
-                "baroque_score": ("heavily_modified_noun_ratio", "lexical_rarity_score", "metaphorical_comme_ratio", "adjective_chain_ratio", "average_syntactic_depth", "avg_sentence_length"),
-                "narrativity_score": ("action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "dialogue_ratio", "active_voice_ratio", "nominal_sentence_ratio", "adjective_ratio"),
-                "emotionality_score": ("emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio"),
-                "discursivite_score": ("logical_connector_ratio",),
+            component_weights = {
+                "classicism_score": CLASSICISM_WEIGHTS,
+                "baroque_score": ORNATENESS_WEIGHTS,
+                "narrativity_score": NARRATIVITY_WEIGHTS,
+                "emotionality_score": EMOTIONALITY_WEIGHTS,
+                "discursivite_score": DISCURSIVITE_WEIGHTS,
             }
+            component_fields = {axis: tuple(weights) for axis, weights in component_weights.items()}
             maxima = {}
             for fields_for_axis in component_fields.values():
                 for field in fields_for_axis:
@@ -225,12 +220,16 @@ def export_json() -> int:
             for book in books:
                 for analysis in book["analyses"]:
                     c = lambda field: component(field, analysis, maxima)
+                    # Chaque composante est d'abord divisée par son maximum
+                    # observé dans tout le corpus. Les poids de config.py sont
+                    # ensuite appliqués ; aucun composite brut n'est pondéré.
+                    weighted = lambda weights: sum(weight * c(field) for field, weight in weights.items())
                     values = {
-                        "classicism_score": .25*(c("simple_past_ratio") + c("literary_subjunctive_ratio")) -.10*c("periphrastic_future_ratio") -.15*c("oral_familiarity_ratio") + .20*c("structural_diversity") + .10*c("verb_ratio") + .10*(1-c("gzip_compression_ratio")) + .15*c("active_voice_ratio") -.10*c("dialogue_ratio"),
-                        "baroque_score": .25*c("heavily_modified_noun_ratio") + .25*c("lexical_rarity_score") + .15*c("metaphorical_comme_ratio") + .15*c("adjective_chain_ratio") + .10*c("average_syntactic_depth") + .10*c("avg_sentence_length"),
-                        "narrativity_score": .30*c("action_verb_ratio") + .20*c("temporal_connector_ratio") + .02*c("personal_subject_ratio") + .15*c("dialogue_ratio") + .10*c("active_voice_ratio") -.07*c("nominal_sentence_ratio") -.10*c("adjective_ratio"),
-                        "emotionality_score": .15*c("emotion_word_ratio") + .45*c("affect_verb_ratio") + .25*c("exclamation_ratio") + .15*c("exclamative_construction_ratio"),
-                        "discursivite_score": c("logical_connector_ratio"),
+                        "classicism_score": weighted(CLASSICISM_WEIGHTS),
+                        "baroque_score": weighted(ORNATENESS_WEIGHTS),
+                        "narrativity_score": weighted(NARRATIVITY_WEIGHTS),
+                        "emotionality_score": weighted(EMOTIONALITY_WEIGHTS),
+                        "discursivite_score": weighted(DISCURSIVITE_WEIGHTS),
                     }
                     for field, value in values.items():
                         analysis["stats"][METRIC_ID_BY_FIELD[field]] = value

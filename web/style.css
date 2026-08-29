@@ -56,6 +56,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .bonus-links .bonus-link { display: inline; margin: 0; }
 .bonus-links .bonus-link + .bonus-link { border-left: 1px solid #aaa29b; border-radius: 0; padding-left: .8rem; margin-left: .8rem; }
 .table-download { border: 1px solid #c9c1bb; background: white; color: #514a44; padding: .35rem .65rem; border-radius: .25rem; cursor: pointer; }
+.table-wrap > .table-download { position: absolute; top: .7rem; right: .7rem; z-index: 5; display: block; opacity: 1; }
 .neighborhood-box .table-download { position: static; display: block; margin: .6rem 0 0 auto; }
 .reference-select { display: block; margin: 0 0 .5rem; color: #6f6962; font-size: .9rem; }
 .evolution-box { width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; box-sizing: border-box; overflow: hidden; }
