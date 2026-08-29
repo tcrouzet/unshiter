@@ -53,9 +53,10 @@ class Metrics:
     est réutilisé par les mesures suivantes.
     """
 
-    def __init__(self, text: str, progress=None):
+    def __init__(self, text: str, progress=None, shared_metrics=None):
         self.text = text
         self.progress = progress
+        self.shared_metrics = shared_metrics or {}
         self._computed = None
 
     @cached_property
@@ -120,6 +121,39 @@ class Metrics:
             * question_mark_narration_ratio(self.text, self.dialogue_ranges)
             + EMOTIONALITY_WEIGHTS["intensifier_adjective_ratio"]
             * intensifier_adjective_ratio(self.doc)
+        )
+
+    def classicism_score(self):
+        if all(field in self.shared_metrics for field in CLASSICISM_WEIGHTS):
+            values = dict(self.shared_metrics)
+            values["oral_familiarity_ratio"] = min((values["oral_familiarity_ratio"] or 0) / 10, 1)
+            return sum(CLASSICISM_WEIGHTS[field] * (values[field] or 0) for field in CLASSICISM_WEIGHTS)
+        syntax = self.syntax
+        narrative_text = self.text
+        if self.dialogue_ranges:
+            chars = list(self.text)
+            for start, end in self.dialogue_ranges:
+                chars[start:end] = [" "] * (end - start)
+            narrative_text = "".join(chars)
+        if syntax:
+            verb_ratio_value = syntax["pos_distribution"]["verbs"]
+            literary_ratio = syntax.get("literary_tense_ratio", 0)
+            future_ratio = syntax.get("periphrastic_future_ratio") or 0
+            active_ratio = syntax.get("active_voice_ratio") or 0
+            dialogue_ratio_value = syntax.get("dialogue_ratio", 0)
+        else:
+            _, verb_ratio_value, _, _ = _grammatical_ratios(self.words)
+            literary_ratio = future_ratio = active_ratio = dialogue_ratio_value = 0
+        structures = sentence_structure_signatures(split_structure_units(self.text))
+        return (
+            CLASSICISM_WEIGHTS["literary_tense_ratio"] * literary_ratio
+            + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * future_ratio
+            + CLASSICISM_WEIGHTS["oral_familiarity_ratio"] * min(oral_familiarity_ratio(narrative_text) / 10, 1)
+            + CLASSICISM_WEIGHTS["structural_diversity"] * structural_diversity(structures)
+            + CLASSICISM_WEIGHTS["verb_ratio"] * verb_ratio_value
+            + CLASSICISM_WEIGHTS["active_voice_ratio"] * active_ratio
+            + CLASSICISM_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
+            + CLASSICISM_WEIGHTS["punctuation_variety_score"] * punctuation_variety_score(self.text, len(self.sentences))
         )
 
     def right_branching_depth(self):
@@ -1146,6 +1180,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         + CLASSICISM_WEIGHTS["verb_ratio"] * verb_ratio
         + CLASSICISM_WEIGHTS["active_voice_ratio"] * active_ratio
         + CLASSICISM_WEIGHTS["dialogue_ratio"] * dialogue_ratio_value
+        + CLASSICISM_WEIGHTS["punctuation_variety_score"] * punctuation_variety_score(text, len(sentences))
     )
     baroque = (
         ORNATENESS_WEIGHTS["heavily_modified_noun_ratio"] * heavily_modified

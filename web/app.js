@@ -51,6 +51,12 @@ let evolutionOrder = "values", evolutionHighlight = "";
 const flippedAxes = new Set();
 function publicMetricId(key) { return key; }
 function metricKey(ref) { return ref; }
+function isEvolutionHighlighted(entity) {
+  if (!entity || !evolutionHighlight) return false;
+  return evolutionHighlight.startsWith("author:")
+    ? entity.author === evolutionHighlight.slice(7)
+    : evolutionHighlight === `work:${entity.id}`;
+}
 function noteEntry(key) {
   const id = key;
   const title = data?.note_titles?.[key] || `Mesure ${key}`;
@@ -569,7 +575,7 @@ function drawEvolution(selectedBooks) {
     .map(entity => `<option value="${escapeOption(entityKey(entity))}"${entityKey(entity) === evolutionHighlight ? " selected" : ""}>${escapeOption(entityLabel(entity))}</option>`)
     .join("");
   const highlightOptions = `<optgroup label="Auteurs">${authorOptions}</optgroup>${workOptions ? `<optgroup label="Œuvres">${workOptions}</optgroup>` : ""}`;
-  container.innerHTML = `<div class="evolution-controls"><span class="evolution-order" role="group" aria-label="Ordre des graphiques"><button type="button" data-order="dates" class="${evolutionOrder === "dates" ? "active" : ""}" aria-pressed="${evolutionOrder === "dates"}">Dates</button><span aria-hidden="true">|</span><button type="button" data-order="values" class="${evolutionOrder === "values" ? "active" : ""}" aria-pressed="${evolutionOrder === "values"}">Valeurs</button></span><label>Étiquette rouge <select class="evolution-highlight"><option value="">Aucune</option>${highlightOptions}</select></label></div>`;
+  container.innerHTML = `<div class="evolution-controls"><span class="evolution-order" role="group" aria-label="Ordre des graphiques"><button type="button" data-order="dates" class="${evolutionOrder === "dates" ? "active" : ""}" aria-pressed="${evolutionOrder === "dates"}">Dates</button><span aria-hidden="true">|</span><button type="button" data-order="values" class="${evolutionOrder === "values" ? "active" : ""}" aria-pressed="${evolutionOrder === "values"}">Valeurs</button></span><label>Étiquette bleue <select class="evolution-highlight"><option value="">Aucune</option>${highlightOptions}</select></label></div>`;
   container.querySelectorAll(".evolution-order button").forEach(button => button.addEventListener("click", () => {
     evolutionOrder = button.dataset.order;
     drawEvolution(selectedBooks);
@@ -577,6 +583,7 @@ function drawEvolution(selectedBooks) {
   container.querySelector(".evolution-highlight").addEventListener("change", event => {
     evolutionHighlight = event.target.value;
     drawEvolution(selectedBooks);
+    renderTables(selectedBooks);
   });
   definitions.forEach(([key, label], i) => {
     // Le tri par valeur suit le score effectivement affiché : les axes
@@ -593,11 +600,9 @@ function drawEvolution(selectedBooks) {
     const isHighlighted = index => {
       const entity = plotBooks[index];
       if (!entity) return false;
-      return evolutionHighlight.startsWith("author:")
-        ? entity.author === evolutionHighlight.slice(7)
-        : entityKey(entity) === evolutionHighlight;
+      return isEvolutionHighlighted(entity);
     };
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#c62828" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#c62828" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#c62828" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
     lineChart.$years = authorMode ? [] : plotBooks.map(book => book.publication_date.slice(0, 4));
     lineChart.$pointLabels = authorMode ? plotBooks.map(book => format(value(book, key), key)) : [];
     lineChart.$pointEntities = plotBooks;
@@ -788,7 +793,7 @@ function dispersion(values, key) {
 }
 const DISPERSION_SIGNIFICANCE_POINTS = 5;
 function table(books, definitions) {
-  const header = `<th>Mesure</th>${books.map(b => `<th>${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>`;
+  const header = `<th>Mesure</th>${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>`;
   const rows = definitions.map(([key, label]) => {
     const rawValues = books.map(book => value(book, key));
     const displayed = rawValues.map(n => DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n);
@@ -796,7 +801,7 @@ function table(books, definitions) {
     const noteId = noteEntry(key).id;
     const note = noteId == null ? "" : ` <button class="table-note-help metric-help" type="button" data-note-id="${noteId}" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
     const significant = sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS;
-    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${isAI(books[i]) ? "ai-value" : ""}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td></tr>`;
+    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${[isAI(books[i]) ? "ai-value" : "", isEvolutionHighlighted(books[i]) ? "highlighted-entity" : ""].filter(Boolean).join(" ")}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td></tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1008,7 +1013,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829193703540307000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260829204037788962000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

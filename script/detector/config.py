@@ -154,6 +154,7 @@ CLASSICISM_WEIGHTS = {
     "verb_ratio": 0.15,
     "active_voice_ratio": 0.15,
     "dialogue_ratio": -0.10,
+    "punctuation_variety_score": 0.15,
 }
 
 ORNATENESS_WEIGHTS = {

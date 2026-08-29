@@ -83,7 +83,7 @@ dialog { border: 1px solid #cfc8c0; border-radius: .5rem; padding: 1.2rem; box-s
 /* Le remplissage gauche appartient à la zone fixe : il doit masquer les
    cellules qui défilent sous la première colonne. */
 .table-wrap::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 1rem; background: white; z-index: 3; pointer-events: none; }
-table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: calc(var(--table-pad) * -1); z-index: 4; background: white; padding-left: calc(.6rem + var(--table-pad)); } .ai-value { color: #b3261e; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td { border-bottom: 1px solid #e5e1dc; padding: .45rem .6rem; text-align: right; } th:first-child, td:first-child { text-align: left; position: sticky; left: calc(var(--table-pad) * -1); z-index: 4; background: white; padding-left: calc(.6rem + var(--table-pad)); } .ai-value { color: #b3261e; font-weight: 600; } .highlighted-entity { color: #1565c0 !important; font-weight: 700; }
 footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
 @media (max-width: 50rem) {
   main { display: block; padding: 0; overflow-x: hidden; }

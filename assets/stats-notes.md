@@ -226,7 +226,7 @@ Part des futurs employés qui sont construits avec « aller » au présent suivi
 Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
 
 # **Classique** / Contemporain (classicism_score)
-Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, la diversité syntaxique, un style verbal et une voix active. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus « classique ».
+Score qui agrège l'usage du passé simple, des subjonctifs imparfaits ou plus-que-parfaits, l'absence de futur périphrastique, l'absence de familiarité orale en dehors des dialogues, la diversité syntaxique, un style verbal, une voix active et l'emploi des points-virgules et deux-points. Ce score est calibré sur le corpus, avec 100 % attribué à l'œuvre la plus « classique ».
 
 # **Modificateurs par nom** (avg_modifiers_per_noun)
 Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).

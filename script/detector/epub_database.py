@@ -376,8 +376,10 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
                     (book_id, index, start, end, len(fragment)),
                 )
             windowed = windowed_metric_fields()
-            window_metrics = Metrics(fragment, progress=progress)
-            document_metrics = Metrics(body, progress=progress)
+            # Les composites peuvent réutiliser leurs composantes déjà
+            # persistées sans relancer spaCy ni les calculs structurels.
+            window_metrics = Metrics(fragment, progress=progress, shared_metrics=previous_stats)
+            document_metrics = Metrics(body, progress=progress, shared_metrics=previous_stats)
             requested = set(METRICS) if full_recompute else missing_metric_ids
             total = len(requested)
             step = 0
