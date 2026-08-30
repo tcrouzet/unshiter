@@ -37,7 +37,7 @@ FULL_DOCUMENT_FIELDS = {
     "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
     "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
     "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
-    "dialogue_ratio",
+    "dialogue_ratio", "emotion_sentence_ratio",
     "logical_connector_ratio", "temporal_connector_ratio", "scene_summary_ratio", "punctuation_variety_score", "modal_generalization_ratio",
 }
 

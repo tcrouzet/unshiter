@@ -98,6 +98,22 @@ def family_map(lexemes: Iterable[str]) -> dict[str, frozenset[str]]:
     return {lexeme: frozenset(families) for lexeme, families in result.items()}
 
 
+def family_lexemes(families: Iterable[str]) -> frozenset[str]:
+    """Retourne en une requête les lexèmes appartenant aux familles données."""
+    normalized = sorted({family for family in families if family})
+    if not normalized:
+        return frozenset()
+    ensure_index()
+    result: set[str] = set()
+    with closing(sqlite3.connect(DEMONETTE_INDEX)) as connection:
+        for start in range(0, len(normalized), 900):
+            chunk = normalized[start:start + 900]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = connection.execute(f"SELECT DISTINCT lexeme FROM families WHERE family IN ({placeholders})", chunk)
+            result.update(row[0] for row in rows)
+    return frozenset(result)
+
+
 def phonetic_map(forms: Iterable[str]) -> dict[str, frozenset[str]]:
     normalized = sorted({normalize_lexeme(form) for form in forms if form})
     if not normalized:

@@ -1,0 +1,525 @@
+# --- Joie ---
+
+lemme: rire
+lemme: sourire
+lemme: jubiler
+lemme: exulter
+lemme: pétiller
+lemme: rayonner
+lemme: s'épanouir
+lemme: gambader
+lemme: savourer
+lemme: s'esclaffer
+lemme: glousser
+lemme: pouffer
+lemme: sautiller
+lemme: s'illuminer
+lemme: embrasser
+lemme: enlacer
+lemme: étreindre
+lemme: caresser
+lemme: cajoler
+lemme: pavaner
+lemme: s'égayer
+lemme: batifoler
+lemme: s'enthousiasmer
+lemme: applaudir
+lemme: acclamer
+lemme: chanter
+lemme: fredonner
+lemme: virevolter
+lemme: danser
+lemme: s'ébaudir
+lemme: planer
+lemme: resplendir
+lemme: illuminer
+lemme: égayer
+lemme: amuser
+lemme: divertir
+lemme: combler
+lemme: scintiller
+lemme: s'émerveiller
+lemme: s'extasier
+lemme: triompher
+lemme: joie
+lemme: allégresse
+lemme: bonheur
+lemme: plaisir
+lemme: euphorie
+lemme: extase
+lemme: ravissement
+lemme: gaieté
+lemme: entrain
+lemme: liesse
+lemme: félicité
+lemme: contentement
+lemme: satisfaction
+lemme: délectation
+lemme: enthousiasme
+lemme: ivresse
+lemme: béatitude
+lemme: aise
+lemme: exaltation
+lemme: émerveillement
+lemme: enjouement
+lemme: hilarité
+lemme: pep
+lemme: vivacité
+lemme: réjouissance
+lemme: festivité
+lemme: célébration
+lemme: heureux
+lemme: radieux
+lemme: épanoui
+lemme: jovial
+lemme: guilleret
+lemme: transporté
+lemme: léger
+lemme: aérien
+lemme: insouciant
+lemme: bienheureux
+lemme: attendri
+lemme: se congratuler
+lemme: bonne humeur
+lemme: être aux anges
+lemme: avoir des papillons dans le ventre
+lemme: être sur un nuage
+lemme: être au septième ciel
+lemme: avoir la tête dans les nuages
+lemme: avoir des étoiles dans les yeux
+lemme: flotter sur un nuage
+lemme: avoir un cœur qui déborde
+lemme: yeux qui brillent
+lemme: poitrine chaude
+lemme: chaleur qui monte
+lemme: envie de sauter
+
+# --- Tristesse ---
+
+lemme: pleurer
+lemme: sangloter
+lemme: gémir
+lemme: s'affliger
+lemme: larmoyer
+lemme: s'apitoyer
+lemme: déprimer
+lemme: languir
+lemme: soupirer
+lemme: pleurnicher
+lemme: s'attrister
+lemme: s'affaisser
+lemme: s'effondrer
+lemme: dépérir
+lemme: renifler
+lemme: s'isoler
+lemme: ruminer
+lemme: désespérer
+lemme: craquer
+lemme: flancher
+lemme: s'écrouler
+lemme: tristesse
+lemme: chagrin
+lemme: peine
+lemme: douleur
+lemme: mélancolie
+lemme: désespoir
+lemme: affliction
+lemme: morosité
+lemme: cafard
+lemme: spleen
+lemme: larmes
+lemme: détresse
+lemme: désolation
+lemme: amertume
+lemme: nostalgie
+lemme: regret
+lemme: deuil
+lemme: abattement
+lemme: prostration
+lemme: langueur
+lemme: morose
+lemme: éploré
+lemme: accablé
+lemme: meurtri
+lemme: effondré
+lemme: inconsolable
+lemme: dépité
+lemme: éteint
+lemme: sombre
+lemme: terne
+lemme: vide
+lemme: brisé
+lemme: anéanti
+lemme: dévasté
+lemme: affecté
+lemme: touché
+lemme: se lamenter
+lemme: essuyer ses yeux
+lemme: se recroqueviller
+lemme: se replier sur soi
+lemme: se murer dans le silence
+lemme: errer tristement
+lemme: se morfondre
+lemme: nœud dans la gorge
+lemme: mal-être
+lemme: vague à l'âme
+lemme: gorge serrée
+lemme: avoir la gorge nouée
+lemme: avoir le moral à zéro
+lemme: broyer du noir
+lemme: avoir le cœur gros
+lemme: avoir le cœur en berne
+lemme: avoir les yeux rouges
+lemme: avoir le visage défait
+lemme: avoir les traits tirés
+lemme: avoir la mort dans l'âme
+lemme: épaules voûtées
+lemme: poids sur la poitrine
+lemme: poitrine comprimée
+lemme: yeux brûlants
+lemme: membres lourds
+
+# --- Peur ---
+
+lemme: trembler
+lemme: grelotter
+lemme: frémir
+lemme: frissonner
+lemme: sursauter
+lemme: s'affoler
+lemme: paniquer
+lemme: redouter
+lemme: craindre
+lemme: appréhender
+lemme: blêmir
+lemme: pâlir
+lemme: transpirer
+lemme: suer
+lemme: vaciller
+lemme: chanceler
+lemme: défaillir
+lemme: reculer
+lemme: suffoquer
+lemme: étouffer
+lemme: haleter
+lemme: bafouiller
+lemme: bredouiller
+lemme: paralyser
+lemme: geler
+lemme: s'immobiliser
+lemme: détaler
+lemme: fuir
+lemme: s'enfuir
+lemme: décamper
+lemme: s'échapper
+lemme: s'agripper
+lemme: glapir
+lemme: chevroter
+lemme: s'étrangler
+lemme: chavirer
+lemme: s'évanouir
+lemme: peur
+lemme: effroi
+lemme: terreur
+lemme: angoisse
+lemme: frayeur
+lemme: épouvante
+lemme: saisissement
+lemme: alarme
+lemme: effarement
+lemme: désarroi
+lemme: vertige
+lemme: tétanie
+lemme: paralysie
+lemme: phobie
+lemme: cauchemar
+lemme: hantise
+lemme: sidération
+lemme: effrayé
+lemme: terrifié
+lemme: tétanisé
+lemme: livide
+lemme: pétrifié
+lemme: figé
+lemme: glacé
+lemme: hagard
+lemme: affolé
+lemme: traqué
+lemme: cerné
+lemme: se raidir
+lemme: se crisper
+lemme: se troubler
+lemme: se cacher
+lemme: s'arrêter net
+lemme: se sauver
+lemme: se blottir
+lemme: se tapir
+lemme: se cramponner
+lemme: claquer des dents
+lemme: avoir la tremblote
+lemme: sueur froide
+lemme: chair de poule
+lemme: nœud à l'estomac
+lemme: souffle suspendu
+lemme: jambes en coton
+lemme: aux abois
+lemme: avoir la chair de poule
+lemme: avoir des sueurs froides
+lemme: avoir le souffle coupé
+lemme: avoir les cheveux qui se dressent sur la tête
+lemme: avoir un blanc
+lemme: ne plus pouvoir bouger
+lemme: avoir les jambes en coton
+lemme: avoir la gorge qui se serre
+lemme: avoir le cœur qui s'arrête
+lemme: perdre ses moyens
+lemme: perdre pied
+lemme: avoir un nœud dans le ventre
+lemme: avoir la trouille de sa vie
+lemme: mains moites
+lemme: jambes tremblantes
+lemme: souffle court
+lemme: gorge sèche
+lemme: ventre noué
+lemme: bouche sèche
+lemme: sang qui bat aux tempes
+
+# --- Colère ---
+
+lemme: crier
+lemme: hurler
+lemme: rugir
+lemme: rager
+lemme: enrager
+lemme: fulminer
+lemme: s'emporter
+lemme: exploser
+lemme: tempêter
+lemme: vociférer
+lemme: s'énerver
+lemme: bouillir
+lemme: rougir
+lemme: tonner
+lemme: gronder
+lemme: invectiver
+lemme: s'insurger
+lemme: éclater
+lemme: fustiger
+lemme: maudire
+lemme: insulter
+lemme: injurier
+lemme: vitupérer
+lemme: pester
+lemme: ronchonner
+lemme: bougonner
+lemme: écumer
+lemme: gifler
+lemme: frapper
+lemme: cogner
+lemme: casser
+lemme: colère
+lemme: fureur
+lemme: irritation
+lemme: exaspération
+lemme: courroux
+lemme: indignation
+lemme: agacement
+lemme: ire
+lemme: emportement
+lemme: hargne
+lemme: animosité
+lemme: aigreur
+lemme: ressentiment
+lemme: vindicte
+lemme: véhémence
+lemme: esclandre
+lemme: algarade
+lemme: altercation
+lemme: querelle
+lemme: furieux
+lemme: vindicatif
+lemme: virulent
+lemme: féroce
+lemme: acerbe
+lemme: mordant
+lemme: cinglant
+lemme: irascible
+lemme: bilieux
+lemme: survolté
+lemme: serrer les poings
+lemme: grincer des dents
+lemme: taper du poing
+lemme: se déchaîner
+lemme: cracher son venin
+lemme: pétage de plombs
+lemme: coup de sang
+lemme: hors de soi
+lemme: à cran
+lemme: voir rouge
+lemme: sortir de ses gonds
+lemme: avoir les nerfs à vif
+lemme: monter sur ses grands chevaux
+lemme: ne plus se contenir
+lemme: serrer les dents
+lemme: avoir la moutarde qui monte au nez
+lemme: être au bord de l'explosion
+lemme: faire une scène
+lemme: monter au créneau
+lemme: péter un câble
+lemme: péter les plombs
+lemme: avoir un coup de sang
+lemme: taper sur la table
+lemme: envoyer tout balader
+lemme: poings serrés
+lemme: mâchoire crispée
+lemme: visage rouge
+lemme: veines gonflées
+lemme: respiration saccadée
+lemme: sang qui monte à la tête
+lemme: tempes qui battent
+lemme: mâchoires serrées
+
+# --- Surprise ---
+
+lemme: sursauter
+lemme: s'exclamer
+lemme: s'étonner
+lemme: tressaillir
+lemme: bondir
+lemme: s'ébahir
+lemme: béer
+lemme: sidérer
+lemme: stupéfier
+lemme: ébaubir
+lemme: désarçonner
+lemme: déconcerter
+lemme: décontenancer
+lemme: dérouter
+lemme: surprise
+lemme: étonnement
+lemme: stupeur
+lemme: saisissement
+lemme: ébahissement
+lemme: stupéfaction
+lemme: ahurissement
+lemme: révélation
+lemme: exclamation
+lemme: abasourdi
+lemme: interloqué
+lemme: éberlué
+lemme: pantois
+lemme: coi
+lemme: interdit
+lemme: médusé
+lemme: ouvrir de grands yeux
+lemme: écarquiller les yeux
+lemme: hausser les sourcils
+lemme: coup de théâtre
+lemme: choc émotionnel
+lemme: avoir le souffle coupé
+lemme: ne pas en croire ses yeux
+lemme: tomber des nues
+lemme: rester sans voix
+lemme: avoir un choc
+lemme: en rester muet
+lemme: avoir un coup au cœur
+lemme: tomber de sa chaise
+lemme: en tomber à la renverse
+lemme: avoir la mâchoire qui tombe
+lemme: ne pas s'y attendre
+lemme: yeux écarquillés
+lemme: bouche ouverte
+lemme: sourcils levés
+lemme: souffle bloqué
+lemme: sang qui reflue
+
+# --- Dégoût ---
+
+lemme: dégoûter
+lemme: répugner
+lemme: écœurer
+lemme: grimacer
+lemme: vomir
+lemme: exécrer
+lemme: abhorrer
+lemme: abominer
+lemme: répudier
+lemme: rejeter
+lemme: répugnance
+lemme: nausée
+lemme: écœurement
+lemme: aversion
+lemme: horreur
+lemme: répulsion
+lemme: malaise
+lemme: révulsé
+lemme: abject
+lemme: immonde
+lemme: ignoble
+lemme: infect
+lemme: immangeable
+lemme: insupportable
+lemme: révoltant
+lemme: se détourner
+lemme: retenir sa respiration
+lemme: se boucher le nez
+lemme: plisser le nez
+lemme: ne pas pouvoir avaler
+lemme: tourner de l'œil
+lemme: avoir mal au cœur
+lemme: nez plissé
+lemme: bouche tordue
+lemme: estomac noué
+lemme: salive amère
+lemme: gorge qui se contracte
+
+# --- Mépris ---
+
+lemme: mépriser
+lemme: dédaigner
+lemme: ricaner
+lemme: toiser
+lemme: snober
+lemme: rabaisser
+lemme: ignorer
+lemme: railler
+lemme: dénigrer
+lemme: discréditer
+lemme: vilipender
+lemme: honnir
+lemme: fustiger
+lemme: dévaloriser
+lemme: minimiser
+lemme: humilier
+lemme: ironiser
+lemme: persifler
+lemme: brocarder
+lemme: huer
+lemme: mépris
+lemme: arrogance
+lemme: condescendance
+lemme: moue
+lemme: rictus
+lemme: sarcasme
+lemme: dérision
+lemme: moquerie
+lemme: morgue
+lemme: suffisance
+lemme: hautain
+lemme: arrogant
+lemme: narquois
+lemme: suffisant
+lemme: prétentieux
+lemme: cinglant
+lemme: cassant
+lemme: écraser du regard
+lemme: se gausser
+lemme: tordre la bouche
+lemme: hausser un sourcil
+lemme: regarder du coin de l'œil
+lemme: menton relevé
+lemme: traiter comme un moins que rien
+lemme: ne pas mériter un regard
+lemme: ne pas s'abaisser à répondre
+lemme: lèvre qui se retrousse
+lemme: regard qui se durcit

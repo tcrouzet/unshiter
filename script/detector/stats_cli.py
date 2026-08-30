@@ -549,9 +549,11 @@ def markdown_sections(path: Path) -> dict[str, str]:
     current_title = None
     window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
     for line in path.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
-        if line.startswith("# "):
-            current_title = line[2:].strip()
+        if line.startswith("### "):
+            current_title = line[4:].strip()
             sections[current_title] = []
+        elif line.startswith("#"):
+            current_title = None
         elif current_title is not None:
             sections[current_title].append(line)
     return {title: "\n".join(content).strip() for title, content in sections.items()}

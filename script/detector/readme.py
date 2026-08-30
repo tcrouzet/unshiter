@@ -6,18 +6,25 @@ from .config import METRICS, README_FILE, README_STATS_END, README_STATS_START, 
 
 
 def documented_metrics() -> str:
-    """Retourne les notes des métriques, sans la note générale de dispersion."""
-    notes = STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).strip()
-    sections = re.split(r"(?=^# )", notes, flags=re.MULTILINE)
-    metrics = []
-    for section in sections:
-        section = section.strip()
-        if not section:
-            continue
-        match = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", section.splitlines()[0])
-        if match and match.group(1) in METRICS:
-            metrics.append(section)
-    return "\n\n".join(re.sub(r"^# ", "### ", section, count=1) for section in metrics)
+    """Retourne la documentation structurée, sans les notes d’interface."""
+    kept = []
+    skipping = False
+    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+        heading = re.match(r"^(#{1,3})\s+(.+)$", line)
+        if heading:
+            identifier = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading.group(2))
+            skipping = bool(identifier and identifier.group(1).startswith("note_"))
+            if skipping:
+                continue
+            if heading.group(2) == "Lecture des résultats":
+                continue
+            # La documentation est insérée sous « ## Métriques » dans le
+            # README : on décale sa hiérarchie de deux niveaux.
+            level = min(6, len(heading.group(1)) + 2)
+            line = "#" * level + " " + heading.group(2)
+        if not skipping:
+            kept.append(line)
+    return "\n".join(kept).strip()
 
 
 def main() -> int:

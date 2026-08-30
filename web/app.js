@@ -13,7 +13,7 @@ const SUMMARY = [
 ];
 const DETAILS = [
   ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
-  ["emotion_word_ratio", "Mots émotionnels", true], ["affect_verb_ratio", "Verbes de réaction affective", true],
+  ["emotion_word_ratio", "Mots émotionnels", true], ["emotion_sentence_ratio", "Phrases à caractère émotionnel", true], ["affect_verb_ratio", "Verbes de réaction affective", true],
   ["interjection_density", "Densité d’interjections émotionnelles", true], ["intensifier_adjective_ratio", "Intensificateurs devant adjectif", true],
   ["somatic_reaction_noun_ratio", "Noms de manifestation somatique", true], ["ellipsis_ratio", "Densité de points de suspension", true],
   ["question_mark_narration_ratio", "Points d’interrogation hors dialogue", true],
@@ -50,7 +50,7 @@ const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.h
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
 let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
-let evolutionOrder = "values", evolutionHighlight = "";
+let evolutionOrder = "values", evolutionHighlight = localStorage.getItem("unshiter-evolution-highlight") || "";
 const flippedAxes = new Set();
 function publicMetricId(key) { return key; }
 function metricKey(ref) { return ref; }
@@ -566,10 +566,6 @@ function drawEvolution(selectedBooks) {
   const entityLabel = entity => authorMode ? entity.author : `${entity.title} — ${entity.author}`;
   const escapeOption = text => String(text ?? "").replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
   const authors = [...new Set(books.map(entity => entity.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
-  const validHighlight = evolutionHighlight.startsWith("author:")
-    ? authors.includes(evolutionHighlight.slice(7))
-    : books.some(entity => entityKey(entity) === evolutionHighlight);
-  if (!validHighlight) evolutionHighlight = "";
   const authorOptions = authors.map(author => `<option value="${escapeOption(`author:${author}`)}"${evolutionHighlight === `author:${author}` ? " selected" : ""}>${escapeOption(author)}</option>`).join("");
   const workOptions = authorMode ? "" : [...books]
     .sort((a, b) => entityLabel(a).localeCompare(entityLabel(b), "fr"))
@@ -583,6 +579,8 @@ function drawEvolution(selectedBooks) {
   }));
   container.querySelector(".evolution-highlight").addEventListener("change", event => {
     evolutionHighlight = event.target.value;
+    if (evolutionHighlight) localStorage.setItem("unshiter-evolution-highlight", evolutionHighlight);
+    else localStorage.removeItem("unshiter-evolution-highlight");
     drawEvolution(selectedBooks);
     renderTables(selectedBooks);
   });
@@ -603,11 +601,9 @@ function drawEvolution(selectedBooks) {
       if (!entity) return false;
       return isEvolutionHighlighted(entity);
     };
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => authorMode ? `${plotBooks[items[0].dataIndex].author} · ${format(value(plotBooks[items[0].dataIndex], key), key)}` : `${plotBooks[items[0].dataIndex].publication_date.slice(0, 4)} · ${plotBooks[items[0].dataIndex].title}` } } } } });
-    lineChart.$years = plotBooks.map(book => String(book.publication_date || "").slice(0, 4));
-    lineChart.$pointLabels = evolutionOrder === "values"
-      ? plotBooks.map(book => format(value(book, key), key))
-      : [];
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: true, stepSize: 20 }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => { const book = plotBooks[items[0]?.dataIndex]; return authorMode ? book?.author || "" : `${String(book?.publication_date || "").slice(0, 4)} · ${book?.title || ""}${book?.author ? ` — ${book.author}` : ""}`; }, label: item => format(value(plotBooks[item.dataIndex], key), key) } } } } });
+    lineChart.$years = [];
+    lineChart.$pointLabels = [];
     lineChart.$pointEntities = plotBooks;
     lineChart.$csvRows = [
       [authorMode ? "Auteur" : "Œuvre", "Auteur", "Date", "Valeur brute", "Valeur graphique (0–100)"],
@@ -910,10 +906,10 @@ function controls() {
   const distanceTitle = document.querySelector(".distance-box h2");
   if (distanceTitle) {
     distanceTitle.childNodes[0].textContent = "Singularité ";
-    if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="43" type="button" aria-label="Afficher l’explication">?</button>');
+    if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
-  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="44" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="45" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1048,7 +1044,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260830065920170188000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260830151015653139000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

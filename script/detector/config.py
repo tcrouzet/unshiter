@@ -55,6 +55,7 @@ LOGICAL_CONNECTORS_FILE = DICTIONARIES_DIR / "logical-connectors.txt"
 AFFECT_VERBS_FILE = DICTIONARIES_DIR / "affect-verbs.txt"
 EMOTIONAL_INTERJECTIONS_FILE = DICTIONARIES_DIR / "emotional-interjections.txt"
 SOMATIC_NOUNS_FILE = DICTIONARIES_DIR / "somatic-nouns.txt"
+EMOTIONS_FILE = DICTIONARIES_DIR / "emotions.txt"
 FEEL_DIR = DICTIONARIES_DIR / "feel"
 FEEL_ARCHIVE = FEEL_DIR / "FEEL.csv"
 FEEL_INDEX = FEEL_DIR / "feel.sqlite3"
@@ -97,11 +98,11 @@ COMPARISON_WINDOW_STEP_DIVISOR = 4
 
 def _metrics_from_notes() -> tuple[str, ...]:
     """Construit le registre depuis les titres de ``stats-notes.md``."""
-    heading = re.compile(r"^# .+? \(([a-z][a-z0-9_]*)\)\s*$")
+    heading = re.compile(r"^### .+? \(([a-z][a-z0-9_]*)\)\s*$")
     metrics: list[str] = []
     malformed: list[str] = []
     for line_number, line in enumerate(STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines(), 1):
-        if not line.startswith("# "):
+        if not line.startswith("### "):
             continue
         match = heading.match(line)
         if not match:
@@ -127,15 +128,38 @@ def _metrics_from_notes() -> tuple[str, ...]:
 METRICS = _metrics_from_notes()
 
 
-# Les cinq axes de synthèse sont définis ici, au même endroit que les autres
-# références de mesures, afin que les rapports n'en maintiennent pas une copie.
-BIGFIVE_AXES = (
-    ("Classique", "classicism_score"),
-    ("Maximaliste", "baroque_score"),
-    ("Narratif", "narrativity_score"),
-    ("Émotionnel", "emotionality_score"),
-    ("Discursif", "discursivite_score"),
-)
+def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
+    """Construit des axes depuis les métriques d'une section Markdown."""
+    axes: list[tuple[str, str]] = []
+    section_level: int | None = None
+    expected_title = section_title.strip().casefold()
+    heading = re.compile(r"^### (.+?) \(([a-z][a-z0-9_]*)\)\s*$")
+    for line in STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines():
+        section = re.match(r"^(#{1,2})\s+(.+?)\s*$", line)
+        if section:
+            level, title = len(section.group(1)), section.group(2).strip()
+            if title.casefold() == expected_title:
+                section_level = level
+            elif section_level is not None and level <= section_level:
+                section_level = None
+            continue
+        if section_level is None or not line.startswith("### "):
+            continue
+        match = heading.match(line)
+        if not match:
+            raise ValueError(f"Titre invalide dans la section {section_title!r} de {STATS_NOTES_FILE}: {line}")
+        title, field = match.groups()
+        if field not in METRICS:
+            raise ValueError(f"Axe de la section {section_title!r} absent de METRICS: {field}")
+        bold = re.findall(r"\*\*([^*]+)\*\*", title)
+        label = bold[0].strip() if bold else title.replace("**", "").split("/", 1)[0].strip()
+        axes.append((label, field))
+    if not axes:
+        raise ValueError(f"Section {section_title!r} vide ou absente dans {STATS_NOTES_FILE}")
+    return tuple(axes)
+
+
+BIGFIVE_AXES = _metric_axes_from_notes("BigFive")
 
 
 # Poids des scores composites. Les valeurs sont regroupées ici pour rendre
@@ -179,10 +203,11 @@ NARRATIVITY_WEIGHTS = {
 }
 
 EMOTIONALITY_WEIGHTS = {
-    "exclamation_ratio": 0.35,
-    "ellipsis_ratio": 0.30,
-    "question_mark_narration_ratio": 0.20,
-    "intensifier_adjective_ratio": 0.15,
+    "emotion_sentence_ratio": 0.50,
+    "exclamation_ratio": 0.175,
+    "ellipsis_ratio": 0.15,
+    "question_mark_narration_ratio": 0.10,
+    "intensifier_adjective_ratio": 0.075,
 }
 
 DISCURSIVITE_WEIGHTS = {

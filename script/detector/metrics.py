@@ -29,7 +29,7 @@ def windowed_metric_fields() -> set[str]:
     fields: set[str] = set()
     current_field = None
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        heading = re.match(r"^# .* \(([a-z][a-z0-9_]*)\)\s*$", line.strip())
+        heading = re.match(r"^### .* \(([a-z][a-z0-9_]*)\)\s*$", line.strip())
         if heading:
             current_field = heading.group(1)
         elif current_field and "{windows}" in line:

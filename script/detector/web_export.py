@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import (EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS,
+from .config import (BIGFIVE_AXES, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS,
                      SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE,
                      CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
@@ -57,11 +57,15 @@ def notes() -> dict[str, str]:
             if "-->" in line:
                 in_comment = False
             continue
-        if line.startswith("# "):
+        if line.startswith("### "):
             if heading:
                 result[heading] = " ".join(body).strip()
-            heading = re.sub(r"\s+\([a-z][a-z0-9_]*\)\s*$", "", line[2:].strip())
+            heading = re.sub(r"\s+\([a-z][a-z0-9_]*\)\s*$", "", line[4:].strip())
             heading, body = heading, []
+        elif line.startswith("#"):
+            if heading:
+                result[heading] = " ".join(body).strip()
+            heading, body = None, []
         elif heading and not line.startswith("<!--"):
             if line.strip(): body.append(line.strip())
     if heading:
@@ -88,11 +92,14 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
         blocks = []
     window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
-        match = re.match(r"^# (.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line.strip())
+        match = re.match(r"^### (.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line.strip())
         if match:
             save_note()
             heading, identifier, body = match.group(1), match.group(2), []
             titles[identifier] = heading
+        elif identifier is not None and re.match(r"^#{1,2}\s", line.strip()):
+            save_note()
+            heading = body = identifier = None
         elif identifier is not None and line.strip() and not line.lstrip().startswith("<!--"):
             body.append(line.strip())
         elif identifier is not None and not line.strip():
@@ -103,13 +110,7 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
 
 def default_radar_ids() -> list[str]:
     """Axes BigFive affichés par défaut, dans l'ordre du tableau principal."""
-    return [
-        field
-        for field in (
-            "classicism_score", "baroque_score", "narrativity_score",
-            "emotionality_score", "discursivite_score",
-        )
-    ]
+    return [field for _label, field in BIGFIVE_AXES]
 
 
 def export_json() -> int:
