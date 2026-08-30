@@ -357,10 +357,22 @@ Proportion de transitions entre paragraphes consécutifs où le temps verbal dom
 ##### Taux de marqueurs de sommaire (scene_summary_ratio)
 Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient un mot ou une expression d'une liste fixe (« souvent », « chaque jour », « pendant des années », « avait l'habitude de »… définie dans `assets/dictionnaires/duration-markers.txt`) tout en étant nettement plus courte que la phrase la plus longue du corpus. Signale un sommaire narratif selon Genette : le récit qui condense une longue durée en peu de mots — par opposition à la scène, qui déploie un moment précis en détail.
 
-#### Émotions
-
 ##### **Négativité** / Positivité (negation_ratio)
  Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
+
+##### Densité de points de suspension (ellipsis_ratio)
+Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.
+
+##### Points d'interrogation hors dialogue (question_mark_narration_ratio)
+Nombre de points d'interrogation situés hors des plages de dialogue, rapporté au nombre de phrases narratives. Cette mesure vise les questions portées par la voix narrative plutôt que les échanges conversationnels.
+
+##### Exclamations (exclamation_ratio)
+Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
+
+##### Constructions exclamatives (exclamative_construction_ratio)
+Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
+
+#### Émotions
 
 ##### Mots émotionnels (emotion_word_ratio)
 Part des mots lexicaux dont le lemme ou la famille lexicale figure dans `assets/dictionnaires/emotions.txt`, divisée par le nombre total de mots lexicaux. Les formes sont ramenées à leur lemme avec Morphalou. La mesure ne tient compte ni de la négation ni du contexte.
@@ -376,18 +388,6 @@ Part des adjectifs immédiatement précédés ou syntaxiquement modifiés (`advm
 
 ##### Intensification émotionnelle (emotion_intensification_ratio)
 Part des occurrences de lemmes, familles lexicales ou expressions composées de `assets/dictionnaires/emotions.txt` qui sont intensifiées ou qualifiées, divisée par leur nombre total d’occurrences. Une occurrence compte lorsqu’elle est précédée par un intensificateur tel que « très », « tellement » ou « terriblement », ou lorsque spaCy lui rattache un modificateur adjectival (`amod`) ou adverbial (`advmod`).
-
-##### Densité de points de suspension (ellipsis_ratio)
-Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.
-
-##### Points d'interrogation hors dialogue (question_mark_narration_ratio)
-Nombre de points d'interrogation situés hors des plages de dialogue, rapporté au nombre de phrases narratives. Cette mesure vise les questions portées par la voix narrative plutôt que les échanges conversationnels.
-
-##### Exclamations (exclamation_ratio)
-Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
-
-##### Constructions exclamatives (exclamative_construction_ratio)
-Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
 
 #### Discours et modalité
 
