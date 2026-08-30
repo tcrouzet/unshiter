@@ -796,7 +796,10 @@ const RAW_DISPLAY_METRICS = new Set([
   "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10",
   "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev",
   "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
-  "avg_adjective_chain_length",
+  "avg_adjective_chain_length", "right_branching_depth",
+]);
+const NATIVE_PERCENT_METRICS = new Set([
+  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
 ]);
 const PERCENT_DECIMALS = new Map([
   ["interjection_density", 2],
@@ -808,11 +811,20 @@ const PERCENT_DECIMALS = new Map([
 function dispersion(values, key) {
   const numbers = values.filter(Number.isFinite);
   if (numbers.length < 2) return null;
-  const maximum = Math.max(...(corpusValues.get(key) || []).filter(Number.isFinite));
-  if (!Number.isFinite(maximum) || maximum <= 0) return null;
-  const normalized = numbers.map(value => value / maximum * 100);
-  const mean = normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-  return Math.sqrt(normalized.reduce((sum, value) => sum + (value - mean) ** 2, 0) / normalized.length);
+  let percentages;
+  if (!RAW_DISPLAY_METRICS.has(key) || NATIVE_PERCENT_METRICS.has(key)) {
+    const factor = NATIVE_PERCENT_METRICS.has(key) ? 1 : 100;
+    percentages = numbers.map(value => value * factor);
+  } else {
+    const corpusNumbers = (corpusValues.get(key) || []).filter(Number.isFinite);
+    if (!corpusNumbers.length) return null;
+    const corpusMean = corpusNumbers.reduce((sum, value) => sum + value, 0) / corpusNumbers.length;
+    if (corpusMean === 0) return numbers.every(value => value === 0) ? 0 : null;
+    percentages = numbers.map(value => (value - corpusMean) / Math.abs(corpusMean) * 100);
+  }
+  if (Math.max(...percentages) - Math.min(...percentages) < 5) return 0;
+  const mean = percentages.reduce((sum, value) => sum + value, 0) / percentages.length;
+  return Math.sqrt(percentages.reduce((sum, value) => sum + (value - mean) ** 2, 0) / percentages.length);
 }
 const DISPERSION_SIGNIFICANCE_POINTS = 5;
 function table(books, definitions) {
@@ -1036,7 +1048,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
 }
-fetch("data.json?v=20260829214812586038000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260830065920170188000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

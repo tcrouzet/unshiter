@@ -1,5 +1,7 @@
 # Dispersion (note_dispersion)
-Indique à quel point les valeurs diffèrent dans le corpus. Chaque valeur est d’abord divisée par le maximum observé pour cette mesure dans le corpus complet, puis ramenée sur une échelle de 0 à 100. σ est l’écart-type de ces valeurs normalisées : `std([v / max_corpus × 100])`. Il est donc indépendant de l’unité native et ne pénalise pas les marqueurs rares. Une mesure est considérée comme significativement dispersée lorsque σ est supérieur ou égal à 5 sur cette échelle normalisée.
+Indique à quel point les valeurs diffèrent dans le corpus. La dispersion σ est toujours exprimée en points de pourcentage et une mesure est considérée comme significativement dispersée lorsque σ est supérieur ou égal à 5.
+
+Pour une mesure déjà exprimée sous forme de proportion ou de pourcentage, les valeurs sont simplement ramenées en pourcentage. Pour une mesure exprimée dans une autre unité (mots, caractères, profondeur, ratio numérique, etc.), chaque valeur devient son écart relatif à la moyenne du corpus : `(valeur − moyenne) / |moyenne| × 100`. Si l’écart entre la plus petite et la plus grande valeur ainsi obtenues est strictement inférieur à 5 points, σ est fixé à 0 ; sinon σ est l’écart-type de ces valeurs en pourcentage.
 
 # **Densité de ponctuations** / Sparsité de ponctuations (punctuation_per_300_words)
 Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
