@@ -13,9 +13,10 @@ const SUMMARY = [
 ];
 const DETAILS = [
   ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
-  ["emotion_word_ratio", "Mots émotionnels", true], ["emotion_sentence_ratio", "Phrases à caractère émotionnel", true], ["affect_verb_ratio", "Verbes de réaction affective", true],
+  ["emotion_word_ratio", "Mots émotionnels", true], ["emotion_sentence_ratio", "Phrases à caractère émotionnel", true],
   ["interjection_density", "Densité d’interjections émotionnelles", true], ["intensifier_adjective_ratio", "Intensificateurs devant adjectif", true],
-  ["somatic_reaction_noun_ratio", "Noms de manifestation somatique", true], ["ellipsis_ratio", "Densité de points de suspension", true],
+  ["emotion_intensification_ratio", "Intensification émotionnelle", true],
+  ["ellipsis_ratio", "Densité de points de suspension", true],
   ["question_mark_narration_ratio", "Points d’interrogation hors dialogue", true],
   ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
   ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
@@ -129,7 +130,15 @@ function neighborhoodState() {
   const books = selected(), entities = authorProfile || authorLimits ? authorAverages(books) : books;
   const reference = document.getElementById("neighborhood-reference"), pinned = document.getElementById("neighborhood-pinned"), count = document.getElementById("neighborhood-count");
   const key = entity => entity ? `${entity.author || ""}\u0000${entity.title || ""}` : "";
-  return { reference: key(entities[Number(reference?.value)]), pinned: key(entities[Number(pinned?.value)]), count: count?.value || "5" };
+  const pinnedValue = pinned?.value ?? "";
+  const mode = authorProfile ? "authors" : authorLimits ? "author-limits" : corpusProfile ? "limits" : "works";
+  return {
+    mode,
+    book_ids: books.map(book => book.id),
+    reference: key(entities[Number(reference?.value || 0)]),
+    pinned: pinnedValue === "" ? "" : key(entities[Number(pinnedValue)]),
+    count: count?.value || "5",
+  };
 }
 function saveNeighborhoodState() { localStorage.setItem("unshiter-neighborhood", JSON.stringify(neighborhoodState())); }
 function radarTitle(books) {
@@ -486,7 +495,8 @@ function drawNeighborhood(books) {
   allRows.forEach((row, index) => { row.rank = index + 1; });
   const pinnedSelect = document.getElementById("neighborhood-pinned");
   if (pinnedSelect && pinnedSelect.dataset.signature !== referenceSignature) {
-    const oldPinnedKey = entities[Number(pinnedSelect.value)] ? entityKey(entities[Number(pinnedSelect.value)]) : "";
+    const oldPinnedValue = pinnedSelect.value;
+    const oldPinnedKey = oldPinnedValue === "" ? "" : (entities[Number(oldPinnedValue)] ? entityKey(entities[Number(oldPinnedValue)]) : "");
     const escape = text => String(text ?? "").replace(/[&<>\"]/g, "");
     let pinnedOptions;
     if (authorEntities) {
@@ -500,8 +510,9 @@ function drawNeighborhood(books) {
     }
     pinnedSelect.innerHTML = `<option value="">Aucune œuvre épinglée</option>${pinnedOptions}`;
     const saved = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
-    const restoredPinned = entities.findIndex(entity => entityKey(entity) === (saved?.pinned || oldPinnedKey));
-    if (restoredPinned >= 0) pinnedSelect.value = String(restoredPinned);
+    const pinnedKey = saved && Object.hasOwn(saved, "pinned") ? saved.pinned : oldPinnedKey;
+    const restoredPinned = pinnedKey ? entities.findIndex(entity => entityKey(entity) === pinnedKey) : -1;
+    pinnedSelect.value = restoredPinned >= 0 ? String(restoredPinned) : "";
     pinnedSelect.dataset.signature = referenceSignature;
   }
   const countSelect = document.getElementById("neighborhood-count");
@@ -799,8 +810,8 @@ const NATIVE_PERCENT_METRICS = new Set([
 ]);
 const PERCENT_DECIMALS = new Map([
   ["interjection_density", 2],
-  ["somatic_reaction_noun_ratio", 2],
   ["intensifier_adjective_ratio", 1],
+  ["emotion_intensification_ratio", 1],
   ["ellipsis_ratio", 1],
   ["question_mark_narration_ratio", 1],
 ]);
@@ -824,7 +835,7 @@ function dispersion(values, key) {
 }
 const DISPERSION_SIGNIFICANCE_POINTS = 5;
 function table(books, definitions) {
-  const header = `<th>Mesure</th>${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>`;
+  const header = `<th>Mesure</th><th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}`;
   const rows = definitions.map(([key, label]) => {
     const rawValues = books.map(book => value(book, key));
     const displayed = rawValues.map(n => DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n);
@@ -832,7 +843,9 @@ function table(books, definitions) {
     const noteId = noteEntry(key).id;
     const note = noteId == null ? "" : ` <button class="table-note-help metric-help" type="button" data-note-id="${noteId}" data-key="${publicMetricId(key)}" aria-label="Afficher la note">?</button>`;
     const significant = sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS;
-    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td>${displayed.map((n, i) => `<td class="${[isAI(books[i]) ? "ai-value" : "", isEvolutionHighlighted(books[i]) ? "highlighted-entity" : ""].filter(Boolean).join(" ")}">${format(n, key)}</td>`).join("")}<td>${sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td></tr>`;
+    const dispersionClass = sigma == null ? "" : significant ? "dispersion-usable" : "dispersion-low";
+    const dispersionCell = sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td><td class="${dispersionClass}">${dispersionCell}</td>${displayed.map((n, i) => `<td class="${[isAI(books[i]) ? "ai-value" : "", isEvolutionHighlighted(books[i]) ? "highlighted-entity" : ""].filter(Boolean).join(" ")}">${format(n, key)}</td>`).join("")}</tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -866,7 +879,7 @@ function exportPromptAndData() {
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
     ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
-    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "affect_verb_ratio", "interjection_density", "intensifier_adjective_ratio", "somatic_reaction_noun_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
+    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
     ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
   ];
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
@@ -935,7 +948,7 @@ function controls() {
   document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
-  const savedBookIds = JSON.parse(localStorage.getItem("unshiter-books") || "[]").map(Number);
+  const savedBookIds = JSON.parse(localStorage.getItem("unshiter-books") || JSON.stringify(savedNeighborhood?.book_ids || [])).map(Number);
   // Après une resynchronisation SQLite, les identifiants peuvent changer.
   // Une ancienne sélection qui ne contient plus aucun livre ne doit pas
   // laisser l'interface et les tableaux avec zéro colonne d'œuvre.
@@ -985,6 +998,7 @@ function controls() {
     localStorage.setItem("unshiter-books", JSON.stringify(check ? data.books.map(book => book.id) : []));
     updateClearBooksLabel();
     draw();
+    saveNeighborhoodState();
   });
   MENU_METRICS.forEach(([key]) => { const id = publicMetricId(key); const defaultChecked = RADAR.some(([radarKey]) => radarKey === key); document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${id}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (defaultChecked ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${id}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${id}" type="button">?</button></label>`); });
   const reset = document.createElement("button"); reset.id = "metrics-reset"; reset.type = "button"; reset.textContent = "Réinitialiser"; (document.getElementById("metrics-panel") || document.getElementById("metrics")).after(reset);
@@ -1016,8 +1030,8 @@ function controls() {
     localStorage.setItem("unshiter-presets", JSON.stringify(presets));
     location.reload();
   });
-  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); }));
-  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); }));
+  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
+  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
   updateClearBooksLabel();
   document.addEventListener("change", event => { const select = event.target.closest(".chart-download, .table-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else if (select.dataset.tableId) downloadRenderedTable(document.getElementById(select.dataset.tableId), select.dataset.tableId, select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
   const noteClose = document.getElementById("metric-note-close");
@@ -1029,7 +1043,7 @@ function controls() {
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
   document.querySelector("aside")?.appendChild(exportBox);
-  const savedViewMode = localStorage.getItem("unshiter-view-mode") || "works";
+  const savedViewMode = localStorage.getItem("unshiter-view-mode") || savedNeighborhood?.mode || "works";
   if (savedViewMode === "authors") { authorProfile = true; corpusProfile = false; authorLimits = false; }
   else if (savedViewMode === "author-limits") { authorProfile = false; corpusProfile = true; authorLimits = true; }
   else if (savedViewMode === "limits") { authorProfile = false; corpusProfile = true; authorLimits = false; }
@@ -1039,12 +1053,12 @@ function controls() {
   if (authorProfile) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; }
   else if (authorLimits) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = true; worksButton.hidden = false; }
   else if (corpusProfile) showLimitsMode();
-  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "limits"); showLimitsMode(); draw(); });
-  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "authors"); limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); });
-  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); });
-  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); });
+  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "limits"); showLimitsMode(); draw(); saveNeighborhoodState(); });
+  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "authors"); limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); saveNeighborhoodState(); });
+  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
+  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260830151015653139000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260830163927073418000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

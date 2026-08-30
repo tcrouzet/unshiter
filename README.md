@@ -88,7 +88,7 @@ Score composite : proche de 0, minimalisme ; proche de 1, maximalisme. Il combin
 Score composite : proche de 1, récit d'action ; proche de 0, peinture descriptive. Il combine les verbes d'action, les connecteurs temporels, les dialogues, la voix active, le taux de rupture temporelle entre paragraphes et la densité de noms propres, en retirant les phrases nominales et l'accumulation d'adjectifs. Le passé narratif et le taux de marqueurs de sommaire restent des mesures informatives séparées et n'entrent pas dans ce score.
 
 ##### **Émotionnel** / Neutre (emotionality_score)
-Score composite dont la moitié vient des phrases à caractère émotionnel (poids 0,50). L’autre moitié conserve les proportions relatives des anciens signaux : exclamations (0,175), points de suspension (0,15), questions portées par la narration (0,10) et adjectifs modifiés par un intensificateur (0,075). Il décrit une densité d’expression affective explicite, pas sa qualité ni sa valence positive ou négative. Les noms somatiques et interjections émotionnelles restent disponibles comme mesures exploratoires mais n’entrent pas dans ce score.
+Score composite fondé principalement sur les phrases à caractère émotionnel, complétées par les points de suspension et les adjectifs modifiés par un intensificateur. Il décrit une densité d’expression affective explicite, pas sa qualité ni sa valence positive ou négative. Les interjections émotionnelles et l’intensification émotionnelle restent disponibles comme mesures exploratoires mais n’entrent pas dans ce score.
 
 ##### **Discursif** / Immersif (discursivite_score)
 Score fondé sur la densité des connecteurs logiques et argumentatifs, la part de noms abstraits et le présent gnomique. Une valeur élevée indique davantage de commentaire, de généralisation ou d'argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite.
@@ -363,13 +363,10 @@ Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient
  Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
 
 ##### Mots émotionnels (emotion_word_ratio)
-Part des mots lexicaux dont le lemme figure dans le lexique FEEL (French Expanded Emotion Lexicon). Le lexique ne tient pas compte du contexte ni de la négation : « peur » est compté de la même façon dans une phrase affirmative ou négative. Source : http://advanse.lirmm.fr/feel.php.
+Part des mots lexicaux dont le lemme ou la famille lexicale figure dans `assets/dictionnaires/emotions.txt`, divisée par le nombre total de mots lexicaux. Les formes sont ramenées à leur lemme avec Morphalou. La mesure ne tient compte ni de la négation ni du contexte.
 
 ##### Phrases à caractère émotionnel (emotion_sentence_ratio)
-Part des phrases contenant au moins un lemme ou une expression lemmatisée répertoriés dans `assets/dictionnaires/emotions.txt`. Toutes les formes du document sont lemmatisées en une seule passe par l’index Morphalou puis réutilisées phrase par phrase, sans nouvelle analyse spaCy. Une phrase n’est comptée qu’une fois même si elle contient plusieurs marqueurs. La mesure détecte un vocabulaire ou un geste associé à l’émotion, sans interpréter la négation, l’ironie ni le contexte.
-
-##### Verbes de réaction affective (affect_verb_ratio)
-Part des verbes finis appartenant à `assets/dictionnaires/affect-verbs.txt` (pleurer, trembler, rire, etc.). Ces manifestations ponctuelles complètent le vocabulaire émotionnel.
+Part des phrases contenant au moins un lemme, une famille lexicale ou une expression composée de `assets/dictionnaires/emotions.txt`. Le document est lemmatisé en une seule passe par Morphalou ; une phrase n’est comptée qu’une fois même si elle contient plusieurs marqueurs. La mesure ne tient compte ni de la négation ni du contexte.
 
 ##### Densité d'interjections émotionnelles (interjection_density)
 Occurrences des interjections définies dans `assets/dictionnaires/emotional-interjections.txt`, divisées par le nombre total de mots. Les expressions les plus longues sont reconnues en premier afin qu'une occurrence de « mon Dieu » ne compte pas aussi « Dieu » séparément.
@@ -377,8 +374,8 @@ Occurrences des interjections définies dans `assets/dictionnaires/emotional-int
 ##### Intensificateurs devant adjectif (intensifier_adjective_ratio)
 Part des adjectifs immédiatement précédés ou syntaxiquement modifiés (`advmod`) par un adverbe d'intensité tel que « si », « tellement », « extrêmement » ou « terriblement ».
 
-##### Noms de manifestation somatique (somatic_reaction_noun_ratio)
-Part des noms communs dont le lemme figure dans `assets/dictionnaires/somatic-nouns.txt` (larmes, sueur, frisson, sanglot, soupir, tremblement, palpitation, etc.).
+##### Intensification émotionnelle (emotion_intensification_ratio)
+Part des occurrences de lemmes, familles lexicales ou expressions composées de `assets/dictionnaires/emotions.txt` qui sont intensifiées ou qualifiées, divisée par leur nombre total d’occurrences. Une occurrence compte lorsqu’elle est précédée par un intensificateur tel que « très », « tellement » ou « terriblement », ou lorsque spaCy lui rattache un modificateur adjectival (`amod`) ou adverbial (`advmod`).
 
 ##### Densité de points de suspension (ellipsis_ratio)
 Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.

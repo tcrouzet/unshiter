@@ -56,7 +56,7 @@ FULL_DOCUMENT_FIELDS = {
     "word_count", "unique_word_count", "sentence_count", "paragraph_count",
     "lexical_word_count", "unique_lemma_count", "relative_clause_count",
     "subordinate_clause_count", "nominal_sentence_count", "dialogue_ratio", "oral_familiarity_ratio", "classicism_score", "baroque_score",
-    "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
+    "emotion_word_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
     "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "discursivite_score",
 }
 
@@ -399,7 +399,6 @@ def statistic_rows(stats, comparison: dict | None = None) -> list[tuple[str, obj
         ("Passé narratif[^83]", f"{stats.narrative_past_ratio * 100:.1f} %" if stats.narrative_past_ratio is not None else "—"),
         ("Narratif / Descriptif[^84]", f"{stats.narrativity_score * 100:.1f} %"),
         ("Mots émotionnels[^85]", f"{stats.emotion_word_ratio * 100:.1f} %"),
-        ("Verbes de réaction affective[^86]", f"{stats.affect_verb_ratio * 100:.1f} %"),
         ("Exclamations[^87]", f"{stats.exclamation_ratio * 100:.1f} %"),
         ("Constructions exclamatives[^88]", f"{stats.exclamative_construction_ratio * 100:.1f} %"),
         ("Émotionnel / Neutre[^89]", f"{stats.emotionality_score * 100:.1f} %"),
@@ -471,7 +470,7 @@ NEAREST_NEIGHBOR_FIELDS = (
     "form_lemma_ratio", "hapax_ratio", "sentence_word_std_dev", "sentence_length_amplitude", "sentence_length_std_dev",
     "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio",
     "periphrastic_future_ratio", "oral_familiarity_ratio", "classicism_score",
-    "emotion_word_ratio", "affect_verb_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
+    "emotion_word_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
     "dialogue_ratio", "negation_ratio", "narrative_past_ratio", "narrativity_score",
     "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "discursivite_score",
 )

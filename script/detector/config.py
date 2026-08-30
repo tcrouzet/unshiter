@@ -52,13 +52,8 @@ LEXIQUE_INDEX = LEXIQUE_DIR / "lexique.sqlite3"
 STATIVE_VERBS_FILE = DICTIONARIES_DIR / "stative-verbs.txt"
 TEMPORAL_CONNECTORS_FILE = DICTIONARIES_DIR / "temporal-connectors.txt"
 LOGICAL_CONNECTORS_FILE = DICTIONARIES_DIR / "logical-connectors.txt"
-AFFECT_VERBS_FILE = DICTIONARIES_DIR / "affect-verbs.txt"
 EMOTIONAL_INTERJECTIONS_FILE = DICTIONARIES_DIR / "emotional-interjections.txt"
-SOMATIC_NOUNS_FILE = DICTIONARIES_DIR / "somatic-nouns.txt"
 EMOTIONS_FILE = DICTIONARIES_DIR / "emotions.txt"
-FEEL_DIR = DICTIONARIES_DIR / "feel"
-FEEL_ARCHIVE = FEEL_DIR / "FEEL.csv"
-FEEL_INDEX = FEEL_DIR / "feel.sqlite3"
 STATS_NOTES_FILE = ASSETS_DIR / "stats-notes.md"
 STRUCTURE_REPORT_SUFFIX = "_structure"
 LEMMA_REPORT_SUFFIX = "_lemmes"
@@ -203,11 +198,8 @@ NARRATIVITY_WEIGHTS = {
 }
 
 EMOTIONALITY_WEIGHTS = {
-    "emotion_sentence_ratio": 0.50,
-    "exclamation_ratio": 0.175,
-    "ellipsis_ratio": 0.15,
-    "question_mark_narration_ratio": 0.10,
-    "intensifier_adjective_ratio": 0.075,
+    "emotion_sentence_ratio": 0.60,
+    "emotion_intensification_ratio": 0.40,
 }
 
 DISCURSIVITE_WEIGHTS = {

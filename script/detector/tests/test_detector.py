@@ -8,8 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from detector.config import OUTPUT_DIR, SOURCE_DIR
 from detector.syntax_depth import analyze_syntax, dialogue_char_ranges
 from detector.stats import (ellipsis_ratio, interjection_density, emotion_sentence_ratio,
-                            question_mark_narration_ratio,
-                            somatic_reaction_noun_ratio)
+                            emotion_intensification_ratio,
+                            question_mark_narration_ratio)
 from detector.stats_cli import (
     comparison_sources,
     comparison_documents,
@@ -29,8 +29,19 @@ from detector.stats_cli import (
 
 class DetectorTests(unittest.TestCase):
     def test_emotional_sentences_match_single_and_multiword_lemmas_once(self):
-        sentences = [("il", "rire", "et", "sourire"), ("il", "fondre", "en", "larme"), ("la", "pierre", "tomber")]
+        sentences = [("il", "rire", "et", "sourire"), ("il", "fondre", "en", "larme"), ("xyz", "abc")]
         self.assertEqual(emotion_sentence_ratio(sentences), 2 / 3)
+
+    def test_emotional_intensification_uses_emotional_lemma_denominator(self):
+        class Token:
+            def __init__(self, lemma, index, dep=""):
+                self.lemma_, self.i, self.dep_ = lemma, index, dep
+                self.is_alpha, self.children = True, []
+
+        doc = [Token("très", 0), Token("triste", 1), Token("joie", 2),
+               Token("xyz", 3, "amod"), Token("peur", 4)]
+        doc[2].children.append(doc[3])
+        self.assertEqual(emotion_intensification_ratio(doc), 2 / 3)
 
     def test_exploratory_emotional_punctuation_metrics(self):
         text = "Pourquoi partir ?\n\n— Tu pars ?\n\nIl reste..."
@@ -40,11 +51,6 @@ class DetectorTests(unittest.TestCase):
 
     def test_interjections_do_not_double_count_multiword_markers(self):
         self.assertEqual(interjection_density("Ah, mon Dieu !", 3), 2 / 3)
-
-    def test_somatic_nouns_use_lemmas_and_common_noun_denominator(self):
-        tokens = [("larmes", "larme", "nom"), ("visage", "visage", "nom"),
-                  ("pleure", "pleurer", "verbe")]
-        self.assertEqual(somatic_reaction_noun_ratio(tokens), 1 / 2)
 
     def test_dialogue_is_excluded_from_classicism_narrative_counters(self):
         narrative = analyze_syntax("Il chanta.")

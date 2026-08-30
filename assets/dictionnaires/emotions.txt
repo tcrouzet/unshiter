@@ -523,3 +523,22 @@ lemme: ne pas mériter un regard
 lemme: ne pas s'abaisser à répondre
 lemme: lèvre qui se retrousse
 lemme: regard qui se durcit
+
+# --- Manifestations somatiques ---
+
+lemme: hoquet
+lemme: essoufflement
+lemme: souffle
+lemme: convulsion
+lemme: spasme
+lemme: crispation
+lemme: chair de poule
+lemme: rougeur
+lemme: pâleur
+lemme: sueur
+lemme: moiteur
+lemme: chaleur
+lemme: palpitation
+lemme: nœud
+lemme: étourdissement
+lemme: serrement
