@@ -9,6 +9,7 @@ from detector.config import OUTPUT_DIR, SOURCE_DIR
 from detector.syntax_depth import analyze_syntax, dialogue_char_ranges
 from detector.stats import (ellipsis_ratio, interjection_density, emotion_sentence_ratio,
                             emotion_intensification_ratio,
+                            emotion_category_profile,
                             question_mark_narration_ratio)
 from detector.stats_cli import (
     comparison_sources,
@@ -42,6 +43,12 @@ class DetectorTests(unittest.TestCase):
                Token("xyz", 3, "amod"), Token("peur", 4)]
         doc[2].children.append(doc[3])
         self.assertEqual(emotion_intensification_ratio(doc), 2 / 3)
+
+    def test_emotional_category_profile_uses_dictionary_sections(self):
+        profile = emotion_category_profile([("joie", "et", "tristesse")])
+        self.assertEqual(profile["joie"], 0.5)
+        self.assertEqual(profile["tristesse"], 0.5)
+        self.assertAlmostEqual(profile["entropy"], 1.0)
 
     def test_exploratory_emotional_punctuation_metrics(self):
         text = "Pourquoi partir ?\n\n— Tu pars ?\n\nIl reste..."

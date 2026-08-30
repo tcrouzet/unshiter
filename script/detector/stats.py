@@ -103,6 +103,10 @@ class Metrics:
         mapping = lemma_map(forms)
         return [tuple(mapping.get(word, word) for word in sentence) for sentence in tokenized]
 
+    @cached_property
+    def emotion_category_profile(self):
+        return emotion_category_profile(self.sentence_lemmas)
+
     def emotion_sentence_ratio(self):
         return emotion_sentence_ratio(self.sentence_lemmas)
 
@@ -117,6 +121,33 @@ class Metrics:
 
     def emotion_intensification_ratio(self):
         return emotion_intensification_ratio(self.doc)
+
+    def joy_emotion_ratio(self):
+        return self.emotion_category_profile["joie"]
+
+    def sadness_emotion_ratio(self):
+        return self.emotion_category_profile["tristesse"]
+
+    def fear_emotion_ratio(self):
+        return self.emotion_category_profile["peur"]
+
+    def anger_emotion_ratio(self):
+        return self.emotion_category_profile["colère"]
+
+    def surprise_emotion_ratio(self):
+        return self.emotion_category_profile["surprise"]
+
+    def disgust_emotion_ratio(self):
+        return self.emotion_category_profile["dégoût"]
+
+    def contempt_emotion_ratio(self):
+        return self.emotion_category_profile["mépris"]
+
+    def somatic_emotion_ratio(self):
+        return self.emotion_category_profile["manifestations somatiques"]
+
+    def emotional_category_entropy(self):
+        return self.emotion_category_profile["entropy"]
 
     def ellipsis_ratio(self):
         return ellipsis_ratio(self.text, len(self.sentences))
@@ -338,6 +369,56 @@ def emotion_word_ratio(words: list[str]) -> float:
     return sum(lemma in emotional_lemmas for lemma in lemmas) / len(lemmas)
 
 
+EMOTION_CATEGORIES = (
+    "joie", "tristesse", "peur", "colère", "surprise", "dégoût",
+    "mépris", "manifestations somatiques",
+)
+
+
+@lru_cache(maxsize=1)
+def emotional_category_patterns() -> dict[str, tuple[frozenset[str], dict[str, tuple[tuple[str, ...], ...]]]]:
+    """Charge les sections du dictionnaire comme huit lexiques lemmatisés."""
+    raw_by_category = {category: [] for category in EMOTION_CATEGORIES}
+    current_category = None
+    for raw_line in EMOTIONS_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
+        line = raw_line.strip()
+        heading = re.fullmatch(r"#\s*---\s*(.+?)\s*---", line)
+        if heading:
+            current_category = heading.group(1).strip().casefold()
+            if current_category not in raw_by_category:
+                raise ValueError(f"Catégorie émotionnelle inconnue dans {EMOTIONS_FILE}: {heading.group(1)!r}")
+            continue
+        if not line or line.casefold() == "&nbsp;":
+            continue
+        kind, separator, value = line.partition(":")
+        if current_category is None or not separator or kind.strip().casefold() != "lemme" or not value.strip():
+            raise ValueError(f"Entrée invalide dans {EMOTIONS_FILE}: {raw_line!r}")
+        pattern = tuple(tokenize(value.strip()))
+        if pattern:
+            raw_by_category[current_category].append(pattern)
+    mapping = lemma_map(
+        word for patterns in raw_by_category.values() for pattern in patterns for word in pattern
+    )
+    result = {}
+    for category, raw_patterns in raw_by_category.items():
+        singles = set()
+        phrases: dict[str, list[tuple[str, ...]]] = {}
+        for raw_pattern in raw_patterns:
+            pattern = tuple(mapping.get(word, word) for word in raw_pattern)
+            if len(pattern) == 1:
+                singles.add(pattern[0])
+            else:
+                phrases.setdefault(pattern[0], []).append(pattern)
+        families = family_map(singles)
+        emotional_families = frozenset().union(*(families.get(lemma, frozenset()) for lemma in singles))
+        expanded = frozenset(singles).union(family_lexemes(emotional_families))
+        result[category] = (expanded, {
+            first: tuple(sorted(patterns, key=len, reverse=True))
+            for first, patterns in phrases.items()
+        })
+    return result
+
+
 @lru_cache(maxsize=1)
 def emotional_lemma_patterns() -> tuple[frozenset[str], dict[str, tuple[tuple[str, ...], ...]]]:
     """Charge et lemmatise les marqueurs du dictionnaire émotionnel."""
@@ -368,6 +449,32 @@ def emotional_lemma_patterns() -> tuple[frozenset[str], dict[str, tuple[tuple[st
         first: tuple(sorted(patterns, key=len, reverse=True))
         for first, patterns in phrases.items()
     }
+
+
+def emotion_category_profile(sentence_lemmas: list[tuple[str, ...]]) -> dict[str, float]:
+    """Parts des huit catégories et entropie normalisée de leur distribution."""
+    category_patterns = emotional_category_patterns()
+    counts = dict.fromkeys(EMOTION_CATEGORIES, 0)
+    for lemmas in sentence_lemmas:
+        for category, (singles, phrases) in category_patterns.items():
+            index = 0
+            while index < len(lemmas):
+                lemma = lemmas[index]
+                phrase = next(
+                    (pattern for pattern in phrases.get(lemma, ()) if lemmas[index:index + len(pattern)] == pattern),
+                    None,
+                )
+                if phrase:
+                    counts[category] += 1
+                    index += len(phrase)
+                else:
+                    counts[category] += int(lemma in singles)
+                    index += 1
+    total = sum(counts.values())
+    ratios = {category: count / total if total else 0.0 for category, count in counts.items()}
+    entropy = -sum(ratio * math.log2(ratio) for ratio in ratios.values() if ratio)
+    ratios["entropy"] = entropy if total else 0.0
+    return ratios
 
 
 def emotion_sentence_ratio(sentence_lemmas: list[tuple[str, ...]]) -> float:
@@ -554,6 +661,15 @@ class TextStats:
     interjection_density: float = 0
     intensifier_adjective_ratio: float = 0
     emotion_intensification_ratio: float = 0
+    joy_emotion_ratio: float = 0
+    sadness_emotion_ratio: float = 0
+    fear_emotion_ratio: float = 0
+    anger_emotion_ratio: float = 0
+    surprise_emotion_ratio: float = 0
+    disgust_emotion_ratio: float = 0
+    contempt_emotion_ratio: float = 0
+    somatic_emotion_ratio: float = 0
+    emotional_category_entropy: float = 0
     ellipsis_ratio: float = 0
     question_mark_narration_ratio: float = 0
     exclamation_ratio: float = 0
@@ -1262,6 +1378,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
     contextual_for_affect = context.contextual_tokens
     emotion_ratio = emotion_word_ratio(words)
     emotion_sentence = context.emotion_sentence_ratio()
+    emotion_categories = context.emotion_category_profile
     interjection_ratio = interjection_density(text, len(words))
     intensifier_ratio = intensifier_adjective_ratio(context.doc)
     intensification_ratio = emotion_intensification_ratio(context.doc)
@@ -1373,6 +1490,15 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         emotion_word_ratio=r(emotion_ratio), emotion_sentence_ratio=r(emotion_sentence),
         interjection_density=r(interjection_ratio), intensifier_adjective_ratio=r(intensifier_ratio),
         emotion_intensification_ratio=r(intensification_ratio),
+        joy_emotion_ratio=r(emotion_categories["joie"]),
+        sadness_emotion_ratio=r(emotion_categories["tristesse"]),
+        fear_emotion_ratio=r(emotion_categories["peur"]),
+        anger_emotion_ratio=r(emotion_categories["colère"]),
+        surprise_emotion_ratio=r(emotion_categories["surprise"]),
+        disgust_emotion_ratio=r(emotion_categories["dégoût"]),
+        contempt_emotion_ratio=r(emotion_categories["mépris"]),
+        somatic_emotion_ratio=r(emotion_categories["manifestations somatiques"]),
+        emotional_category_entropy=r(emotion_categories["entropy"]),
         ellipsis_ratio=r(suspension_ratio),
         question_mark_narration_ratio=r(narrative_question_ratio), exclamation_ratio=r(exclaim_ratio),
         exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),

@@ -16,6 +16,11 @@ const DETAILS = [
   ["emotion_word_ratio", "Mots émotionnels", true], ["emotion_sentence_ratio", "Phrases à caractère émotionnel", true],
   ["interjection_density", "Densité d’interjections émotionnelles", true], ["intensifier_adjective_ratio", "Intensificateurs devant adjectif", true],
   ["emotion_intensification_ratio", "Intensification émotionnelle", true],
+  ["joy_emotion_ratio", "Part émotionnelle de la joie", true], ["sadness_emotion_ratio", "Part émotionnelle de la tristesse", true],
+  ["fear_emotion_ratio", "Part émotionnelle de la peur", true], ["anger_emotion_ratio", "Part émotionnelle de la colère", true],
+  ["surprise_emotion_ratio", "Part émotionnelle de la surprise", true], ["disgust_emotion_ratio", "Part émotionnelle du dégoût", true],
+  ["contempt_emotion_ratio", "Part émotionnelle du mépris", true], ["somatic_emotion_ratio", "Part des manifestations somatiques", true],
+  ["emotional_category_entropy", "Entropie des catégories émotionnelles", true],
   ["ellipsis_ratio", "Densité de points de suspension", true],
   ["question_mark_narration_ratio", "Points d’interrogation hors dialogue", true],
   ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
@@ -803,7 +808,7 @@ const RAW_DISPLAY_METRICS = new Set([
   "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10",
   "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev",
   "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
-  "avg_adjective_chain_length", "right_branching_depth",
+  "avg_adjective_chain_length", "right_branching_depth", "emotional_category_entropy",
 ]);
 const NATIVE_PERCENT_METRICS = new Set([
   "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
@@ -812,6 +817,8 @@ const PERCENT_DECIMALS = new Map([
   ["interjection_density", 2],
   ["intensifier_adjective_ratio", 1],
   ["emotion_intensification_ratio", 1],
+  ["joy_emotion_ratio", 1], ["sadness_emotion_ratio", 1], ["fear_emotion_ratio", 1], ["anger_emotion_ratio", 1],
+  ["surprise_emotion_ratio", 1], ["disgust_emotion_ratio", 1], ["contempt_emotion_ratio", 1], ["somatic_emotion_ratio", 1],
   ["ellipsis_ratio", 1],
   ["question_mark_narration_ratio", 1],
 ]);
@@ -879,7 +886,7 @@ function exportPromptAndData() {
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
     ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
-    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
+    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
     ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
   ];
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
@@ -1058,7 +1065,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260830164336781495000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260830180318767924000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

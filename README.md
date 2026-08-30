@@ -389,6 +389,33 @@ Part des adjectifs immédiatement précédés ou syntaxiquement modifiés (`advm
 ##### Intensification émotionnelle (emotion_intensification_ratio)
 Part des occurrences de lemmes, familles lexicales ou expressions composées de `assets/dictionnaires/emotions.txt` qui sont intensifiées ou qualifiées, divisée par leur nombre total d’occurrences. Une occurrence compte lorsqu’elle est précédée par un intensificateur tel que « très », « tellement » ou « terriblement », ou lorsque spaCy lui rattache un modificateur adjectival (`amod`) ou adverbial (`advmod`).
 
+##### Joie (joy_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Joie » de `assets/dictionnaires/emotions.txt`, parmi toutes les occurrences des huit catégories. Les lemmes, familles lexicales et expressions composées sont reconnus.
+
+##### Tristesse (sadness_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Tristesse » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Peur (fear_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Peur » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Colère (anger_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Colère » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Surprise (surprise_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Surprise » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Dégoût (disgust_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Dégoût » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Mépris (contempt_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Mépris » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Manifestations somatiques (somatic_emotion_ratio)
+Part des occurrences émotionnelles rattachées à la section « Manifestations somatiques » du dictionnaire, parmi toutes les occurrences des huit catégories.
+
+##### Entropie émotionnelle (emotional_category_entropy)
+Entropie de Shannon brute, en bits, de la répartition des occurrences entre les huit sections du dictionnaire. Une valeur proche de 0 indique qu’un seul registre émotionnel domine ; le maximum théorique de 3 bits correspond à huit registres mobilisés de façon équilibrée. La mesure décrit la diversité et l’équilibre émotionnels, indépendamment de la quantité totale de marqueurs.
+
 #### Discours et modalité
 
 ##### Connecteurs logiques (logical_connector_ratio)
