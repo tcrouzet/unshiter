@@ -65,10 +65,30 @@ python3 -m http.server 8000 --directory web
 
 Puis ouvrir <http://localhost:8000/>.
 
+## Organisation du projet
+
+- `script/detector/` : calculs, interface et tests ;
+- `script/detector/config.py` : chemins et variables globales ;
+- `assets/` : Morphalou, Démonette, mots-outils et notes du rapport ;
+- `assets/stats-notes.md` : source des notes affichées sur le site et de la liste des métriques de ce README ;
+- `assets/unshiter.sqlite3` : base statistique ;
+- `_epub/` : EPUB et Markdown extraits ;
+- `sources/` : corpus Markdown indépendant ;
+- `web/` : application statique et données exportées ;
+- `_temp/` : cache et fichiers temporaires.
+
 <!-- STATS:START -->
 ## Métriques
 
 Les mesures effectuées sur les textes du corpus sont déterministes er reproductibles. Les mesures effectuées sont visible sur [l’application web](https://tcrouzet.github.io/unshiter/).
+
+**Limites**
+
+- Les résultats dépendent du découpage en phrases, des dictionnaires et du modèle spaCy.
+- Morphalou analyse les formes hors contexte et peut conserver des ambiguïtés.
+- Les ellipses, incises, phrases nominales et constructions littéraires peuvent dégrader l’analyse spaCy.
+- Une mesure très dispersée dans le corpus actuel ne le sera pas nécessairement dans un autre corpus.
+- Les graphiques du site résument les mesures choisies ; ils ne calculent pas une probabilité d’origine IA.
 
 ### BigFive
 
@@ -569,24 +589,3 @@ Nombre total de paragraphes relevés dans le document analysé.
 ##### Caractères (document_char_count)
 Nombre total de caractères du document analysé, espaces et retours à la ligne compris.
 <!-- STATS:END -->
-## Limites
-
-- Les résultats dépendent du découpage en phrases, des dictionnaires et du modèle spaCy.
-- Morphalou analyse les formes hors contexte et peut conserver des ambiguïtés.
-- Les ellipses, incises, phrases nominales et constructions littéraires peuvent dégrader l’analyse spaCy.
-- Une mesure très dispersée dans le corpus actuel ne le sera pas nécessairement dans un autre corpus.
-- Les graphiques du site résument les mesures choisies ; ils ne calculent pas une probabilité d’origine IA.
-
-## Organisation du projet
-
-- `script/detector/` : calculs, interface et tests ;
-- `assets/` : Morphalou, Démonette, mots-outils et notes du rapport ;
-- `_epub/` : EPUB et Markdown extraits ;
-- `sources/` : corpus Markdown indépendant ;
-- `web/` : application statique et données exportées ;
-- `assets/unshiter.sqlite3` : base statistique ;
-- `_temp/` : cache et fichiers temporaires.
-
-Tous les chemins sont définis dans `script/detector/config.py`.
-
-`assets/stats-notes.md` est la source éditoriale des notes affichées sur le site et de la liste des métriques de ce README.
