@@ -1,6 +1,6 @@
 ## Métriques
 
-Les résultats, tableaux et graphiques sont consultables exclusivement sur [l’application web](https://tcrouzet.github.io/unshiter/). La liste ci-dessous documente les mesures disponibles ; elle est générée depuis `assets/stats-notes.md`.
+Les mesures effectuées sur les textes du corpus sont déterministes er reproductibles. Les mesures effectuées sont visible sur [l’application web](https://tcrouzet.github.io/unshiter/).
 
 ### BigFive
 
