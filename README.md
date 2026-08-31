@@ -1,8 +1,8 @@
 # Unshiter — analyse statistique de textes
 
-Unshiter compare des textes français à partir de mesures reproductibles : ponctuation, rythme, répétitions lexicales et sonores, structures syntaxiques, catégories grammaticales et statistiques de longueur. Les résultats décrivent un corpus ; ils ne constituent ni une preuve d’origine humaine ou artificielle, ni un jugement littéraire.
+Unshiter compare des textes français à partir de mesures déterministes et reproductibles. Les résultats décrivent un corpus ; ils ne constituent ni une preuve d’origine humaine ou artificielle, ni un jugement littéraire.
 
-[Plusieurs articles commente cette exérience…](https://tcrouzet.com/tag/textstat/)
+[Plusieurs articles commentent cette exérience…](https://tcrouzet.com/tag/textstat/)
 
 ## Installation
 
@@ -569,8 +569,6 @@ Nombre total de paragraphes relevés dans le document analysé.
 ##### Caractères (document_char_count)
 Nombre total de caractères du document analysé, espaces et retours à la ligne compris.
 <!-- STATS:END -->
-Les mesures sont enregistrées séparément pour chaque document dans SQLite. Modifier `assets/stats-notes.md` ne recalcule aucune mesure : `./readme.sh` actualise seulement le site et la documentation ci-dessus.
-
 ## Limites
 
 - Les résultats dépendent du découpage en phrases, des dictionnaires et du modèle spaCy.
