@@ -10,6 +10,9 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .metric-row { display: flex; align-items: center; gap: .25rem; } .metric-row span { flex: 1; } .metric-help, .metric-flip { width: 1.35rem; height: 1.35rem; padding: 0; border: 1px solid #b8afa6; border-radius: 50%; background: white; color: #6f6962; font-size: .75rem; cursor: pointer; } .metric-flip { border: 0; border-radius: 0; font-size: 1rem; }
 .chart-box { width: 100%; max-width: 100%; padding: 1rem; background: white; height: min(65vh, 40.625rem); box-sizing: border-box; overflow: hidden; }
 .chart-frame { position: relative; }
+.chart-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 2.2rem; }
+.chart-heading h2, .chart-heading h3 { flex: 1 1 auto; margin: 0; padding: 0; }
+.chart-heading .chart-download { position: static; flex: 0 0 auto; }
 .radar-title { margin: .4rem 0 0; text-align: center; font-size: 1.1rem; font-weight: 600; }
 .authors-clear { margin: .6rem 0 .4rem; }
 .prompt-exports { display: grid; gap: .4rem; margin-top: 1rem; }
@@ -32,13 +35,14 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .axis-help h2 { margin: 0 0 1rem; font-size: 1.25rem; }
 .axis-help p { margin: 0 0 1rem; }
 .axis-help p + p { margin-top: 1rem; }
+.note-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .app-help-link { text-align: right; border-top: 1px solid #e4dfda; padding-top: .8rem; }
 .app-help-link button { border: 0; background: transparent; color: #6f6962; text-decoration: underline; cursor: pointer; font: inherit; }
 .surface-box, .distance-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; height: auto; box-sizing: border-box; overflow: hidden; }
 .surface-box canvas, .distance-box canvas { display: block; width: 100% !important; max-width: 100%; }
 .mds-box, .neighborhood-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; height: 38.75rem; box-sizing: border-box; overflow: hidden; }
 .mds-box canvas, .neighborhood-box canvas { display: block; width: 100% !important; max-width: 100%; height: calc(100% - 2rem) !important; }
-.mds-controls { display: flex; gap: .35rem; position: absolute; top: .35rem; right: .5rem; z-index: 2; }
+.mds-controls { display: flex; gap: .35rem; position: static; flex: 0 0 auto; }
 .mds-controls button { border: 1px solid #c9c1bb; background: #fff; color: #514a44; border-radius: .25rem; min-width: 2rem; height: 1.8rem; padding: 0 .45rem; cursor: pointer; font: inherit; line-height: 1; }
 .mds-controls button:hover { background: #f1ede9; }
 .neighborhood-verdict { margin: .35rem 0 .65rem; padding: .45rem .6rem; color: #514a44; line-height: 1.45; }
@@ -66,7 +70,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .evolution-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1.25rem; margin: 0 0 1.25rem; color: #514a44; font-size: .9rem; }
 .evolution-controls label { display: inline-flex; align-items: center; gap: .45rem; }
 .evolution-controls select { max-width: min(26rem, 60vw); }
-.evolution-chart h3 { margin: 0 0 .4rem; padding-right: 3.5rem; font-size: .95rem; }
+.evolution-chart h3 { font-size: .95rem; }
 .evolution-order { display: inline-flex; gap: .3rem; align-items: center; white-space: nowrap; font-weight: 400; }
 .evolution-order button { padding: 0; border: 0; background: none; color: #666; font: inherit; cursor: pointer; }
 .evolution-order button:hover, .evolution-order button.active { color: #111; text-decoration: underline; text-underline-offset: .18em; }
@@ -75,7 +79,6 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .help { width: 1.25rem; height: 1.25rem; padding: 0; border: 1px solid #8d857d; border-radius: 50%; color: #6f6962; background: white; font-size: .8rem; cursor: help; vertical-align: middle; }
 .help-text { position: absolute; top: 3.2rem; left: 1rem; z-index: 10; max-width: 28rem; margin: 0; padding: .7rem .85rem; border: 1px solid #cfc8c0; border-radius: .4375rem; background: #fffdf9; box-shadow: 0 .25rem 1rem #0002; color: #6f6962; font-size: .9rem; }
 .chart-download option { color: #282522; background: white; }
-.evolution-chart .chart-download { top: 1.9rem; }
 .downloads { margin: .5rem 0; display: flex; justify-content: flex-end; gap: .5rem; } button, select { padding: .45rem .8rem; border: 1px solid #cfc8c0; border-radius: .375rem; background: white; cursor: pointer; }
 .download-icon { width: 2.2rem; height: 2.2rem; padding: 0; font-size: 1.45rem; line-height: 1; }
 dialog { border: 1px solid #cfc8c0; border-radius: .5rem; padding: 1.2rem; box-shadow: 0 .5rem 1.875rem #0002; } dialog::backdrop { background: #0003; } dialog h3 { margin: 0 0 1rem; } .download-choices { display: flex; gap: .5rem; } dialog .cancel { margin-top: 1rem; width: 100%; }

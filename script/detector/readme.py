@@ -10,7 +10,7 @@ def documented_metrics() -> str:
     kept = []
     skipping = False
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        heading = re.match(r"^(#{1,3})\s+(.+)$", line)
+        heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
             identifier = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading.group(2))
             skipping = bool(identifier and identifier.group(1).startswith("note_"))
@@ -18,10 +18,8 @@ def documented_metrics() -> str:
                 continue
             if heading.group(2) == "Lecture des résultats":
                 continue
-            # La documentation est insérée sous « ## Métriques » dans le
-            # README : on décale sa hiérarchie de deux niveaux.
-            level = min(6, len(heading.group(1)) + 2)
-            line = "#" * level + " " + heading.group(2)
+            if identifier:
+                kept.append(f'<a id="{identifier.group(1)}"></a>')
         if not skipping:
             kept.append(line)
     return "\n".join(kept).strip()
@@ -35,11 +33,6 @@ def main() -> int:
     _, after = remainder.split(README_STATS_END, 1)
     block = (
         f"{README_STATS_START}\n"
-        "## Métriques\n\n"
-        "Les résultats, tableaux et graphiques sont consultables exclusivement sur "
-        "[l’application web](https://tcrouzet.github.io/unshiter/). "
-        "La liste ci-dessous documente les mesures disponibles ; elle est générée depuis "
-        "`assets/stats-notes.md`.\n\n"
         f"{documented_metrics()}\n"
         f"{README_STATS_END}"
     )

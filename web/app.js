@@ -82,7 +82,7 @@ function renderNote(id) {
   const title = data.note_titles?.[String(id)] || "Note";
   const raw = data.notes?.[String(id)] || "";
   const escape = text => text.replace(/[&<>"']/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char]));
-  let body = escape(raw).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  let body = escape(raw).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\(#([a-z][a-z0-9_]*)\)/g, '<button type="button" class="note-link" data-note-id="$2">$1</button>').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   body = body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>");
   return `<h2>${escape(title.replace(/\*\*/g, ""))}</h2><p>${body}</p><p class="app-help-link"><button type="button" class="open-app-help">Aide de l’application</button></p>`;
 }
@@ -175,10 +175,12 @@ function scale(key, n) {
   // Important : la référence est l'ensemble des livres exportés, pas la
   // sélection affichée. Ainsi retirer un auteur ne change pas les limites.
   const values = corpusValues.get(key) || [];
-  if (values.length < 2) return 50;
-  const minimum = Math.min(...values), maximum = Math.max(...values);
-  if (!Number.isFinite(minimum) || maximum === minimum) return 50;
-  let relative = Math.max(0, Math.min(1, (n - minimum) / (maximum - minimum)));
+  if (!values.length) return null;
+  const maximum = Math.max(...values);
+  if (!Number.isFinite(maximum)) return null;
+  // L'origine reste le zéro réel : la plus petite valeur du corpus n'est
+  // jamais artificiellement ramenée à 0 %.
+  let relative = Math.max(0, Math.min(1, maximum ? n / maximum : 0));
   const entry = noteEntry(key);
   const preferredIsSecond = ["punctuation_per_300_words", "sentence_word_std_dev"].includes(key)
     ? false
@@ -608,9 +610,9 @@ function drawEvolution(selectedBooks) {
       : [...books].sort((a, b) => (scale(key, value(a, key)) ?? Infinity) - (scale(key, value(b, key)) ?? Infinity));
     const id = `evolution-${i}`;
     const evolutionTitle = `${label}${!authorMode && singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
-    const noteId = data.metric_note_ids?.[key] ? data.note_ids?.[data.metric_note_ids[key]] : null;
+    const noteId = noteEntry(key).id;
     const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
-    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><h3>${evolutionTitle}${help}</h3><canvas id="${id}"></canvas><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div>`);
+    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><div class="chart-heading"><h3>${evolutionTitle}${help}</h3><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="${id}"></canvas></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
     const isHighlighted = index => {
       const entity = plotBooks[index];
@@ -879,9 +881,8 @@ function exportPromptAndData() {
   const books = selected();
   const metrics = {};
   for (const [field, label] of Object.entries(data.metric_labels || {})) {
-    const id = data.metric_note_ids?.[field] || field;
-    const noteId = data.note_ids?.[id];
-    metrics[field] = { id, label, title: noteId == null ? label : (data.note_titles?.[String(noteId)] || label), definition: noteId == null ? "" : (data.notes?.[String(noteId)] || "") };
+    const entry = noteEntry(field);
+    metrics[field] = { id: entry.id, label, title: entry.title || label, definition: data.notes?.[entry.id] || "" };
   }
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
@@ -929,7 +930,7 @@ function controls() {
     if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
-  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><canvas id="mds"></canvas><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1044,7 +1045,7 @@ function controls() {
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { if (event.target.closest(".open-app-help")) { event.preventDefault(); showApplicationHelp(); } });
-  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
+  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help, .note-link"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("note-link")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
@@ -1065,7 +1066,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260830180318767924000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260831083852146756000").then(r => r.json()).then(json => {
   data = json;
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

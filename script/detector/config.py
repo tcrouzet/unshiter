@@ -93,15 +93,15 @@ COMPARISON_WINDOW_STEP_DIVISOR = 4
 
 def _metrics_from_notes() -> tuple[str, ...]:
     """Construit le registre depuis les titres de ``stats-notes.md``."""
-    heading = re.compile(r"^### .+? \(([a-z][a-z0-9_]*)\)\s*$")
+    heading = re.compile(r"^#{1,6} .+? \(([a-z][a-z0-9_]*)\)\s*$")
     metrics: list[str] = []
     malformed: list[str] = []
     for line_number, line in enumerate(STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines(), 1):
-        if not line.startswith("### "):
+        if not re.match(r"^#{1,6}\s", line):
             continue
         match = heading.match(line)
         if not match:
-            malformed.append(f"ligne {line_number}: {line}")
+            # Titre de section sans identifiant de fonction.
             continue
         field = match.group(1)
         if field.startswith("note_"):
@@ -128,21 +128,23 @@ def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
     axes: list[tuple[str, str]] = []
     section_level: int | None = None
     expected_title = section_title.strip().casefold()
-    heading = re.compile(r"^### (.+?) \(([a-z][a-z0-9_]*)\)\s*$")
+    heading = re.compile(r"^#{1,6}\s+(.+?) \(([a-z][a-z0-9_]*)\)\s*$")
     for line in STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines():
-        section = re.match(r"^(#{1,2})\s+(.+?)\s*$", line)
-        if section:
-            level, title = len(section.group(1)), section.group(2).strip()
-            if title.casefold() == expected_title:
-                section_level = level
-            elif section_level is not None and level <= section_level:
-                section_level = None
+        section = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if not section:
             continue
-        if section_level is None or not line.startswith("### "):
+        level, title = len(section.group(1)), section.group(2).strip()
+        if title.casefold() == expected_title:
+            section_level = level
+            continue
+        if section_level is None:
+            continue
+        if level <= section_level:
+            section_level = None
             continue
         match = heading.match(line)
         if not match:
-            raise ValueError(f"Titre invalide dans la section {section_title!r} de {STATS_NOTES_FILE}: {line}")
+            continue
         title, field = match.groups()
         if field not in METRICS:
             raise ValueError(f"Axe de la section {section_title!r} absent de METRICS: {field}")
@@ -199,7 +201,8 @@ NARRATIVITY_WEIGHTS = {
 
 EMOTIONALITY_WEIGHTS = {
     "emotion_sentence_ratio": 0.60,
-    "emotion_intensification_ratio": 0.40,
+    "emotion_intensification_ratio": 0.30,
+    "emotional_category_entropy": 0.10
 }
 
 DISCURSIVITE_WEIGHTS = {

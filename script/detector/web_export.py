@@ -57,10 +57,11 @@ def notes() -> dict[str, str]:
             if "-->" in line:
                 in_comment = False
             continue
-        if line.startswith("### "):
+        metric_heading = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line)
+        if metric_heading:
             if heading:
                 result[heading] = " ".join(body).strip()
-            heading = re.sub(r"\s+\([a-z][a-z0-9_]*\)\s*$", "", line[4:].strip())
+            heading = metric_heading.group(1)
             heading, body = heading, []
         elif line.startswith("#"):
             if heading:
@@ -92,12 +93,12 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
         blocks = []
     window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
-        match = re.match(r"^### (.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line.strip())
+        match = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line.strip())
         if match:
             save_note()
             heading, identifier, body = match.group(1), match.group(2), []
             titles[identifier] = heading
-        elif identifier is not None and re.match(r"^#{1,2}\s", line.strip()):
+        elif identifier is not None and re.match(r"^#{1,6}\s", line.strip()):
             save_note()
             heading = body = identifier = None
         elif identifier is not None and line.strip() and not line.lstrip().startswith("<!--"):
