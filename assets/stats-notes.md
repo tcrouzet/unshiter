@@ -47,7 +47,7 @@ Score fondé sur la densité des [connecteurs logiques](#logical_connector_ratio
 
 ### Mesures
 
-Ces mesures décrivent séparément la ponctuation, la syntaxe, le lexique, le rythme, la narration, les émotions et le discours. Leurs valeurs détaillées, leur dispersion et leurs représentations graphiques sont consultables sur [le site web](https://tcrouzet.github.io/unshiter/).
+Tentent de capturer les diverses caractéristiques d'un texte.
 
 #### Lecture des résultats
 

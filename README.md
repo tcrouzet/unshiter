@@ -132,8 +132,38 @@ Score fondé sur la densité des [connecteurs logiques](#logical_connector_ratio
 
 ### Mesures
 
-Ces mesures décrivent séparément la ponctuation, la syntaxe, le lexique, le rythme, la narration, les émotions et le discours. Leurs valeurs détaillées, leur dispersion et leurs représentations graphiques sont consultables sur [le site web](https://tcrouzet.github.io/unshiter/).
+Tentent de capturer les diverses caractéristiques d'un texte.
 
+#### Lecture des résultats
+
+<a id="note_dispersion"></a>
+##### Dispersion (note_dispersion)
+Indique à quel point une mesure diffèrent pour les œuvres du corpus. Une dispersion σ est jugée significative si elle est supérieure à 5 %, ce qui implique que les œuvres montrent des caractères différents.
+
+Pour les mesures exprimées autrement qu'en pourcentage (mots, caractères, profondeur, ratio numérique…), les valeurs deviennent leur écart relatif à la moyenne du corpus : `(valeur − moyenne) / |moyenne| × 100`. D'une manière générale, si l’écart entre la plus petite et la plus grande valeur est inférieur à 5 %, σ est fixé à 0 : pas de variation significative, mesure non expoitable.
+
+<a id="note_coverage"></a>
+##### Couverture stylistique (note_coverage)
+
+Surface sur le graphique radar en fonction des valeurs affichées. C'est une signature stylistique et non un critère de qualité.
+
+Pour rendre les axes comparables, le radar établit ses repères une seule fois sur tout le corpus, jamais sur la sélection affichée. La valeur est d'abord rapportée au maximum du corpus (`valeur / maximum`) sans soustraire le minimum, puis transformée par une courbe logarithmique `log(1 + 4x) / log(5)`. La plus petite valeur conserve ainsi sa proportion réelle au lieu d'être artificiellement ramenée à 0 %. Cette courbe continue étale les valeurs basses et ralentit progressivement l'approche de 100 %, sans supprimer ni saturer brutalement aucune œuvre. La transformation s'applique aux coordonnées du radar et au calcul de sa surface, sans modifier les valeurs brutes des tableaux.
+
+Ce tassemment modère l'influence des choix stylistiques extrêmes, comme les phrases très longues qui mécaniquement tirent beaucoup d'indices à la hausse.
+
+<a id="note_singularity"></a>
+##### Singularité (note_singularity)
+Distance de Burrows calculée sur les mesures stylistiques sélectionnées. Chaque mesure est d’abord centrée et réduite sur l’ensemble du corpus ; la distance entre deux œuvres est la moyenne des écarts absolus entre leurs z-scores. Le graphique affiche, pour chaque œuvre ou auteur sélectionné, la distance à son voisin le plus proche. Une valeur faible indique une proximité statistique, pas une identité d’auteur ni une preuve d’influence.
+
+<a id="note_mds"></a>
+##### Carte stylistique MDS (note_mds)
+Projection en deux dimensions des distances de Burrows. Les œuvres proches dans la carte sont proches dans l’espace multidimensionnel ; les axes de la projection n’ont pas de signification littéraire propre. Le stress indique la déformation introduite par la réduction à deux dimensions : plus il est faible, plus la carte respecte les distances originales.
+
+<a id="note_neighborhood"></a>
+##### Voisinage stylistique (note_neighborhood)
+Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
+
+Mathématiquement, chaque œuvre est représentée par le vecteur de ses mesures sélectionnées. Pour chaque mesure `j`, on calcule sur tout le corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
 
 #### Ponctuation
 

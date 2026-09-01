@@ -2,26 +2,19 @@
 
 import re
 
-from .config import METRICS, README_FILE, README_STATS_END, README_STATS_START, STATS_NOTES_FILE, TEXT_ENCODING
+from .config import README_FILE, README_STATS_END, README_STATS_START, STATS_NOTES_FILE, TEXT_ENCODING
 
 
 def documented_metrics() -> str:
-    """Retourne la documentation structurée, sans les notes d’interface."""
+    """Retourne toutes les notes, enrichies d’ancres pour les liens internes."""
     kept = []
-    skipping = False
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
             identifier = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading.group(2))
-            skipping = bool(identifier and identifier.group(1).startswith("note_"))
-            if skipping:
-                continue
-            if heading.group(2) == "Lecture des résultats":
-                continue
             if identifier:
                 kept.append(f'<a id="{identifier.group(1)}"></a>')
-        if not skipping:
-            kept.append(line)
+        kept.append(line)
     return "\n".join(kept).strip()
 
 
