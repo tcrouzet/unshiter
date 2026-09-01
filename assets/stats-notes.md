@@ -45,11 +45,7 @@ Score fondé sur la densité des [connecteurs logiques](#logical_connector_ratio
 **Limite :** les trois composantes reposent sur des lexiques et des patrons syntaxiques fixes ; un texte qui argumente sans connecteurs explicites (par juxtaposition, par exemple) ou qui généralise sans passer par le présent gnomique passera sous le radar de cette mesure.
 
 
-### Mesures
-
-Tentent de capturer les diverses caractéristiques d'un texte.
-
-#### Lecture des résultats
+### Lecture des résultats
 
 ##### Dispersion (note_dispersion)
 Indique à quel point une mesure diffèrent pour les œuvres du corpus. Une dispersion σ est jugée significative si elle est supérieure à 5 %, ce qui implique que les œuvres montrent des caractères différents.
@@ -74,6 +70,10 @@ Projection en deux dimensions des distances de Burrows. Les œuvres proches dans
 Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
 
 Mathématiquement, chaque œuvre est représentée par le vecteur de ses mesures sélectionnées. Pour chaque mesure `j`, on calcule sur tout le corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
+
+### Mesures
+
+Tentent de capturer les diverses caractéristiques d'un texte.
 
 #### Ponctuation
 
