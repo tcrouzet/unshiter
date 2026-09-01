@@ -19,7 +19,7 @@ La base SQLite `assets/unshiter.sqlite3` est la source de vérité. Les scripts 
 
 ### Ajouter ou actualiser des EPUB
 
-Les EPUB sont déposés dans `_epub/`. L’extraction produit un Markdown normalisé dans le même dossier ; les préliminaires, titres, citations et paragraphes sont convertis selon le balisage de l’EPUB. La première fenêtre d’analyse est limitée à la taille configurée dans `config.py`.
+Les EPUB peuvent être déposés n’importe où sous `corpus/<id>/`, avec autant de sous-dossiers que souhaité. L’extraction produit un Markdown normalisé à côté de chaque EPUB ; les préliminaires, titres, citations et paragraphes sont convertis selon son balisage. `bigcorpus` est le corpus par défaut ; un autre corpus peut être choisi avec `UNSHITER_CORPUS=<id>` ou l’option `--corpus <id>` de l’indexeur.
 
 ```bash
 ./epubs.sh
@@ -27,7 +27,7 @@ Les EPUB sont déposés dans `_epub/`. L’extraction produit un Markdown normal
 
 La commande met à jour la base, supprime les livres disparus et signale les publications sans date. Les corrections éditoriales (titre ou année) se font dans `assets/publication.yml` ; les entrées sont conservées lors des actualisations.
 
-Les Markdown placés dans `sources/` sont également indexés. C’est le champ `author` de leur en-tête YAML qui détermine le classement : `author: "IA"` les place dans le groupe IA, quel que soit le nom du fichier ; toute autre valeur les classe parmi les textes humains. Chaque fichier IA reste une œuvre distincte dans la base et dans le rapport.
+Tous les Markdown trouvés récursivement sous `corpus/<id>/` sont indexés. C’est le champ `author` de leur en-tête YAML qui détermine le classement : `author: "IA"` les place dans le groupe IA, quel que soit le nom du fichier ; toute autre valeur les classe parmi les textes humains. Une œuvre présente dans plusieurs corpus conserve une seule analyse, reconnue par son empreinte SHA-256.
 
 ### Actualiser le site et la documentation des métriques
 
@@ -72,8 +72,7 @@ Puis ouvrir <http://localhost:8000/>.
 - `assets/` : Morphalou, Démonette, mots-outils et notes du rapport ;
 - `assets/stats-notes.md` : source des notes affichées sur le site et de la liste des métriques de ce README ;
 - `assets/unshiter.sqlite3` : base statistique ;
-- `_epub/` : EPUB et Markdown extraits ;
-- `sources/` : corpus Markdown indépendant ;
+- `corpus/<id>/` : arborescence libre contenant les EPUB et Markdown du corpus ;
 - `web/` : application statique et données exportées ;
 - `_temp/` : cache et fichiers temporaires.
 
@@ -177,7 +176,7 @@ Répartition des signes de ponctuation en dix familles : point, virgule, point-
 
 <a id="punctuation_variety_score"></a>
 ##### Densité de ponctuation savante (punctuation_variety_score)
-Nombre de points-virgules et de deux-points rapporté au nombre total de phrases du document. Ces signes explicitent ou déploient une articulation logique ou énumérative à l'intérieur de la phrase ; une valeur élevée indique une syntaxe plus élaborée.
+Nombre de points-virgules et de deux-points rapporté au [nombre de phrases](#sentence_count). Ces signes explicitent ou déploient une articulation logique ou énumérative à l'intérieur de la phrase ; une valeur élevée indique une syntaxe plus élaborée.
 
 #### Syntaxe et grammaire
 
@@ -221,11 +220,10 @@ Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre tota
 
 <a id="relative_clause_ratio"></a>
 ##### **Densité de relatives** / Sparcité de relatives (relative_clause_ratio)
-Nombre de dépendances de proposition relative (`acl:relcl`) reconnues par spaCy, divisé par le nombre de phrases. Une phrase peut contenir plusieurs relatives, la valeur peut donc dépasser 100 %. Les autres subordonnées sont mesurées séparément par `subordinate_clause_ratio`.
+Nombre de dépendances de proposition relative (`acl:relcl`) reconnues par spaCy, divisé par le [nombre de phrases](#sentence_count). Une phrase peut contenir plusieurs relatives, la valeur peut donc dépasser 100 %. Les autres subordonnées sont mesurées séparément par `subordinate_clause_ratio`.
 
-<a id="nominal_sentence_ratio"></a>
-##### Densité de phrases nominales / Sparcité de phrases nominales (nominal_sentence_ratio)
-Part des phrases dans lesquelles spaCy ne trouve aucun verbe conjugué. Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. », mais dépend de la qualité de l’analyse syntaxique.
+##### Densité de phrases nominales / Sparcité de phrases nominales (./)
+Part des [phrases nominales](#nominal_sentence_count) / [nombre de phrases](#sentence_count). Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. ».
 
 <a id="active_voice_ratio"></a>
 ##### **Densité de voix active** / Densité de voix passive (active_voice_ratio)
@@ -241,29 +239,17 @@ L'idée : une phrase simple (« Le chat dort ») a une profondeur faible — un
 ##### Répétition des structures (structural_repetition_rate)
 Part des signatures syntaxiques de phrases déjà rencontrées dans le texte.
 
-<a id="relative_clause_count"></a>
-##### Propositions relatives (relative_clause_count)
-Nombre de propositions relatives reconnues par spaCy.
-
-<a id="subordinate_clause_count"></a>
-##### Propositions subordonnées (subordinate_clause_count)
-Nombre de propositions subordonnées reconnues par spaCy.
-
 <a id="subordinate_clause_ratio"></a>
 ##### Densité de subordonnées (subordinate_clause_ratio)
 Nombre moyen de propositions subordonnées par phrase.
 
-<a id="nominal_sentence_count"></a>
-##### Phrases nominales (nominal_sentence_count)
-Nombre de phrases dans lesquelles spaCy ne trouve aucun verbe conjugué.
+<a id="common_noun_ratio"></a>
+##### Part de noms communs (common_noun_ratio)
+Part des [noms communs](#common_noun_count) / [nombre de mots](#word_count).
 
-<a id="pos_common_noun_ratio"></a>
-##### Noms communs spaCy (pos_common_noun_ratio)
-Part des noms communs dans la distribution grammaticale calculée par spaCy.
-
-<a id="pos_proper_noun_ratio"></a>
-##### Noms propres spaCy (pos_proper_noun_ratio)
-Part des noms propres dans la distribution grammaticale calculée par spaCy.
+<a id="proper_noun_ratio"></a>
+##### Part des noms propres (proper_noun_ratio)
+Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
 
 <a id="avg_modifiers_per_noun"></a>
 ##### **Modificateurs par nom** (avg_modifiers_per_noun)
@@ -275,7 +261,7 @@ Part des noms portant au moins deux modificateurs directs (voir modificateurs pa
 
 <a id="adjective_chain_ratio"></a>
 ##### **Chaînes adjectivales** (adjective_chain_ratio)
-Nombre de chaînes d’adjectifs coordonnés rapporté au nombre de phrases.
+Nombre de chaînes d’adjectifs coordonnés rapporté au [nombre de phrases](#sentence_count).
 
 <a id="avg_adjective_chain_length"></a>
 ##### **Longueur des chaînes adjectivales** (avg_adjective_chain_length)
@@ -360,10 +346,6 @@ Part des formes lexicales reconnues et lemmatisées par Morphalou.
 <a id="lexical_word_count"></a>
 ##### Mots lexicaux (lexical_word_count)
 Nombre de mots lexicaux retenus après exclusion des mots-outils.
-
-<a id="unique_lemma_count"></a>
-##### Lemmes distincts (unique_lemma_count)
-Nombre de lemmes lexicaux distincts relevés dans le document.
 
 <a id="lexical_rarity_score"></a>
 ##### **Rareté lexicale** (lexical_rarity_score)
@@ -511,13 +493,13 @@ Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient
 ##### Densité de points de suspension (ellipsis_ratio)
 Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.
 
-<a id="question_mark_narration_ratio"></a>
-##### Points d'interrogation hors dialogue (question_mark_narration_ratio)
-Nombre de points d'interrogation situés hors des plages de dialogue, rapporté au nombre de phrases narratives. Cette mesure vise les questions portées par la voix narrative plutôt que les échanges conversationnels.
+<a id="question_mark_ratio"></a>
+##### Points d'interrogation (question_mark_ratio)
+[Nombre total de points d’interrogation](#question_mark_count) rapporté [au nombre de phrases](#sentence_count).
 
 <a id="exclamation_ratio"></a>
 ##### Exclamations (exclamation_ratio)
-Nombre de points d’exclamation rapporté au nombre de phrases. Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
+[Nombre de points d’exclamation](#exclamation_point_count) rapporté [au nombre de phrases](#sentence_count). Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
 
 <a id="exclamative_construction_ratio"></a>
 ##### Constructions exclamatives (exclamative_construction_ratio)
@@ -585,7 +567,7 @@ Entropie de Shannon brute, en bits, de la répartition des occurrences entre les
 
 <a id="logical_connector_ratio"></a>
 ##### Connecteurs logiques (logical_connector_ratio)
-Occurrences de connecteurs logiques ou argumentatifs rapportées au nombre de phrases. Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
+Occurrences de connecteurs logiques ou argumentatifs rapportées au [nombre de phrases]((#sentence_count)). Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
 
 <a id="abstract_noun_ratio"></a>
 ##### Noms abstraits (abstract_noun_ratio)
@@ -601,7 +583,7 @@ Part des verbes qui sont des modaux (`devoir`, `pouvoir`, `falloir`) dont le suj
 
 ### Données brutes
 
-Ces quatre comptages décrivent directement le volume du document. Ils sont affichés à part et ne participent pas au calcul de dispersion stylistique.
+Ces comptages décrivent directement le volume ou les éléments linguistiques du document. Ils sont affichés à part et ne participent pas au calcul de dispersion stylistique.
 
 <a id="word_count"></a>
 ##### Mots (word_count)
@@ -618,4 +600,222 @@ Nombre total de paragraphes relevés dans le document analysé.
 <a id="document_char_count"></a>
 ##### Caractères (document_char_count)
 Nombre total de caractères du document analysé, espaces et retours à la ligne compris.
+
+<a id="relative_clause_count"></a>
+##### Propositions relatives (relative_clause_count)
+Nombre de propositions relatives reconnues par spaCy.
+
+<a id="subordinate_clause_count"></a>
+##### Propositions subordonnées (subordinate_clause_count)
+Nombre de propositions subordonnées reconnues par spaCy.
+
+<a id="nominal_sentence_count"></a>
+##### Phrases nominales (nominal_sentence_count)
+Nombre de phrases dans lesquelles spaCy ne trouve aucun verbe conjugué.
+
+<a id="common_noun_count"></a>
+##### Noms communs (common_noun_count)
+Nombre de noms communs dans la distribution grammaticale calculée par spaCy.
+
+<a id="proper_noun_count"></a>
+##### Noms propres (proper_noun_count)
+Nombre de noms propres dans la distribution grammaticale calculée par spaCy.
+
+
+
+<a id="lemma_count"></a>
+##### Lemmes (lemma_count)
+Nombre total d’occurrences lexicales après lemmatisation. Chaque occurrence reste comptée, même lorsque plusieurs formes correspondent au même lemme. Par exemple, dans « il marche et elles marchent », les formes « marche » et « marchent » sont toutes deux ramenées à « marcher », mais elles produisent **2 occurrences de lemme**.
+
+<a id="unique_lemma_count"></a>
+##### Lemmes distincts (unique_lemma_count)
+Nombre de lemmes lexicaux différents, sans compter plusieurs fois leurs occurrences ou leurs variantes conjuguées. Par exemple, dans « il marche et elles marchent », « marche » et « marchent » correspondent toutes deux au lemme « marcher » et produisent donc **1 seul lemme distinct**.
+
+<a id="verb_count"></a>
+##### Verbes (verb_count)
+Nombre de tokens reconnus comme verbes ou auxiliaires par spaCy.
+
+<a id="conjugue_verb_count"></a>
+##### Verbes conjugués (conjugue_verb_count)
+Nombre de verbes ou auxiliaires portant la marque morphologique d’une forme finie.
+
+<a id="adjective_count"></a>
+##### Adjectifs (adjective_count)
+Nombre d’adjectifs reconnus par spaCy.
+
+<a id="adverb_count"></a>
+##### Adverbes (adverb_count)
+Nombre d’adverbes reconnus par spaCy.
+
+<a id="present_participe_count"></a>
+##### Participes présents (present_participe_count)
+Nombre de participes présents reconnus par spaCy.
+
+<a id="past_participe_count"></a>
+##### Participes passés (past_participe_count)
+Nombre de participes passés reconnus par spaCy.
+
+<a id="simple_past_count"></a>
+##### Passés simples (simple_past_count)
+Nombre de verbes au passé simple reconnus dans la narration.
+
+<a id="va_count"></a>
+##### Futurs périphrastiques (va_count)
+Nombre de constructions au futur périphrastique reconnues dans la narration.
+
+<a id="future_count"></a>
+##### Futurs simples (future_count)
+Nombre de verbes au futur simple reconnus dans la narration.
+
+<a id="subjonctive_count"></a>
+##### Subjonctifs (subjonctive_count)
+Nombre de subjonctifs imparfaits ou plus-que-parfaits reconnus dans la narration.
+
+<a id="negation_count"></a>
+##### Négations (negation_count)
+Nombre de négations reconnues dans la narration.
+
+<a id="verb_negation_count"></a>
+##### Négations avec « ne » (verb_negation_count)
+Nombre de négations complètes comportant « ne » dans la narration.
+
+<a id="dialog_word_count"></a>
+##### Mots en dialogue (dialog_word_count)
+Nombre de mots situés dans les plages reconnues comme dialogues.
+
+<a id="active_sentence_count"></a>
+##### Phrases actives (active_sentence_count)
+Nombre de phrases contenant une construction verbale active et aucune construction passive.
+
+<a id="passive_sentence_count"></a>
+##### Phrases passives (passive_sentence_count)
+Nombre de phrases contenant une construction passive.
+
+<a id="methaphore_count"></a>
+##### Métaphores (methaphore_count)
+Nombre de phrases contenant une comparaison reconnue.
+
+<a id="concrate_noun_count"></a>
+##### Noms concrets (concrate_noun_count)
+Nombre de noms communs non reconnus comme abstraits.
+
+<a id="active_verb_count"></a>
+##### Verbes d’action (active_verb_count)
+Nombre de verbes narratifs qui ne figurent pas dans le lexique des verbes statifs.
+
+<a id="narrative_verb_count"></a>
+##### Verbes narratifs (narrative_verb_count)
+Nombre de verbes conjugués situés hors dialogue.
+
+<a id="gnomic_present_count"></a>
+##### Présents gnomiques (gnomic_present_count)
+Nombre de verbes au présent reconnus dans une phrase à sujet générique.
+
+<a id="personal_subject_count"></a>
+##### Sujets personnels (personal_subject_count)
+Nombre de sujets personnels reconnus parmi les sujets classables.
+
+<a id="analyzed_noun_count"></a>
+##### Noms analysés pour leurs modificateurs (analyzed_noun_count)
+Nombre de noms pour lesquels les modificateurs directs sont comptés.
+
+<a id="heavily_modified_noun_count"></a>
+##### Noms fortement modifiés (heavily_modified_noun_count)
+Nombre de noms portant au moins deux modificateurs directs.
+
+<a id="adjective_chain_count"></a>
+##### Chaînes adjectivales (adjective_chain_count)
+Nombre de chaînes d’adjectifs coordonnées.
+
+<a id="interjection_count"></a>
+##### Interjections (interjection_count)
+Nombre d’interjections émotionnelles reconnues.
+
+<a id="suspention_point_count"></a>
+##### Points de suspension (suspention_point_count)
+Nombre de points de suspension, en comptant `...` et `…` comme une occurrence.
+
+<a id="exclamation_point_count"></a>
+##### Points d’exclamation (exclamation_point_count)
+Nombre de points d’exclamation.
+
+<a id="question_mark_count"></a>
+##### Points d’interrogation (question_mark_count)
+Nombre total de points d’interrogation dans le document.
+
+<a id="semicolons_count"></a>
+##### Points-virgules (semicolons_count)
+Nombre de points-virgules.
+
+<a id="temporal_connector_count"></a>
+##### Connecteurs temporels (temporal_connector_count)
+Nombre d’occurrences de connecteurs temporels, utilisées pour calculer la densité de connecteurs temporels.
+
+<a id="logical_connector_count"></a>
+##### Connecteurs logiques (logical_connector_count)
+Nombre d’occurrences de connecteurs logiques, utilisées pour calculer la densité de connecteurs logiques.
+
+<a id="joy_emotion_count"></a>
+##### Joie (joy_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Joie » du dictionnaire émotionnel.
+
+<a id="joy_intensified_emotion_count"></a>
+##### Joie intensifiée (joy_intensified_emotion_count)
+Nombre d’occurrences de joie intensifiées ou qualifiées.
+
+<a id="sadness_emotion_count"></a>
+##### Tristesse (sadness_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Tristesse ».
+
+<a id="sadness_intensified_emotion_count"></a>
+##### Tristesse intensifiée (sadness_intensified_emotion_count)
+Nombre d’occurrences de tristesse intensifiées ou qualifiées.
+
+<a id="fear_emotion_count"></a>
+##### Peur (fear_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Peur ».
+
+<a id="fear_intensified_emotion_count"></a>
+##### Peur intensifiée (fear_intensified_emotion_count)
+Nombre d’occurrences de peur intensifiées ou qualifiées.
+
+<a id="anger_emotion_count"></a>
+##### Colère (anger_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Colère ».
+
+<a id="anger_intensified_emotion_count"></a>
+##### Colère intensifiée (anger_intensified_emotion_count)
+Nombre d’occurrences de colère intensifiées ou qualifiées.
+
+<a id="surprise_emotion_count"></a>
+##### Surprise (surprise_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Surprise ».
+
+<a id="surprise_intensified_emotion_count"></a>
+##### Surprise intensifiée (surprise_intensified_emotion_count)
+Nombre d’occurrences de surprise intensifiées ou qualifiées.
+
+<a id="disgust_emotion_count"></a>
+##### Dégoût (disgust_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Dégoût ».
+
+<a id="disgust_intensified_emotion_count"></a>
+##### Dégoût intensifié (disgust_intensified_emotion_count)
+Nombre d’occurrences de dégoût intensifiées ou qualifiées.
+
+<a id="contempt_emotion_count"></a>
+##### Mépris (contempt_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Mépris ».
+
+<a id="contempt_intensified_emotion_count"></a>
+##### Mépris intensifié (contempt_intensified_emotion_count)
+Nombre d’occurrences de mépris intensifiées ou qualifiées.
+
+<a id="somatic_emotion_count"></a>
+##### Manifestations somatiques (somatic_emotion_count)
+Nombre d’occurrences rattachées à la catégorie « Manifestations somatiques ».
+
+<a id="somatic_intensified_emotion_count"></a>
+##### Manifestations somatiques intensifiées (somatic_intensified_emotion_count)
+Nombre de manifestations somatiques intensifiées ou qualifiées.
 <!-- STATS:END -->

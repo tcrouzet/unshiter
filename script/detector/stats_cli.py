@@ -55,7 +55,8 @@ from .metrics import cached_metric_values
 FULL_DOCUMENT_FIELDS = {
     "word_count", "unique_word_count", "sentence_count", "paragraph_count",
     "lexical_word_count", "unique_lemma_count", "relative_clause_count",
-    "subordinate_clause_count", "nominal_sentence_count", "dialogue_ratio", "oral_familiarity_ratio", "classicism_score", "baroque_score",
+    "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count",
+    "common_noun_ratio", "proper_noun_ratio", "dialogue_ratio", "oral_familiarity_ratio", "classicism_score", "baroque_score",
     "emotion_word_ratio", "exclamation_ratio", "exclamative_construction_ratio", "emotionality_score",
     "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "discursivite_score",
 }
@@ -679,8 +680,8 @@ def markdown_table(headers: list[str], rows_by_file: list[list[tuple[str, object
 
 def grammatical_distribution_table(title: str, stats) -> list[str]:
     values = [
-        ("Noms communs", stats.pos_common_noun_ratio),
-        ("Noms propres", stats.pos_proper_noun_ratio),
+        ("Noms communs", stats.common_noun_ratio),
+        ("Noms propres", stats.proper_noun_ratio),
         ("Verbes", stats.verb_ratio),
         ("Adjectifs", stats.adjective_ratio),
         ("Adverbes", stats.adverb_ratio),
@@ -696,8 +697,8 @@ def grammatical_distribution_table(title: str, stats) -> list[str]:
 def grammatical_distribution_chart(analyses: list[tuple[Path, object]]) -> str:
     """SVG de camemberts, au maximum trois par ligne, avec légende commune."""
     categories = [
-        ("Noms communs", "pos_common_noun_ratio", "#3d70a3"),
-        ("Noms propres", "pos_proper_noun_ratio", "#75a843"),
+        ("Noms communs", "common_noun_ratio", "#3d70a3"),
+        ("Noms propres", "proper_noun_ratio", "#75a843"),
         ("Adverbes", "adverb_ratio", "#efb349"),
         ("Verbes", "verb_ratio", "#ca4038"),
         ("Adjectifs", "adjective_ratio", "#835692"),

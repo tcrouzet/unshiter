@@ -1,14 +1,18 @@
 """Configuration centrale des répertoires et fichiers du projet."""
 
 from pathlib import Path
+import os
 import re
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 README_FILE = PROJECT_ROOT / "README.md"
 
 SCRIPT_DIR = PROJECT_ROOT / "script"
-SOURCE_DIR = PROJECT_ROOT / "sources"
-EPUB_DIR = PROJECT_ROOT / "_epub"
+CORPUS_DIR = PROJECT_ROOT / "corpus"
+DEFAULT_CORPUS_ID = os.environ.get("UNSHITER_CORPUS", "bigcorpus")
+ACTIVE_CORPUS_DIR = CORPUS_DIR / DEFAULT_CORPUS_ID
+SOURCE_DIR = ACTIVE_CORPUS_DIR / "sources"
+EPUB_DIR = ACTIVE_CORPUS_DIR / "_epub"
 OUTPUT_DIR = PROJECT_ROOT / "_output"
 WEB_DIR = PROJECT_ROOT / "web"
 WEB_DATA_FILE = WEB_DIR / "data.json"
@@ -122,6 +126,16 @@ def _metrics_from_notes() -> tuple[str, ...]:
 # Source de vérité unique : titre, identifiant et fonction vivent dans les notes.
 METRICS = _metrics_from_notes()
 
+# Ces mesures sont des vues calculées à partir de comptes persistés. Elles
+# restent dans METRICS et disposent d'une méthode Metrics, mais SQLite ne
+# conserve pas une seconde copie de la même information.
+DERIVED_METRICS = {
+    "common_noun_ratio", "proper_noun_ratio", "nominal_sentence_ratio",
+    "relative_clause_ratio", "subordinate_clause_ratio", "lexical_word_count",
+    "question_mark_ratio",
+}
+PERSISTED_METRICS = tuple(field for field in METRICS if field not in DERIVED_METRICS)
+
 
 def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
     """Construit des axes depuis les métriques d'une section Markdown."""
@@ -157,6 +171,7 @@ def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
 
 
 BIGFIVE_AXES = _metric_axes_from_notes("BigFive")
+RAW_METRICS = tuple(field for _label, field in _metric_axes_from_notes("Données brutes"))
 
 
 # Poids des scores composites. Les valeurs sont regroupées ici pour rendre

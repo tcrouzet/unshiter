@@ -1,6 +1,7 @@
 :root { color-scheme: light; font: 1rem system-ui, sans-serif; }
 body { margin: 0; max-width: 100%; overflow-x: hidden; background: #fff; color: #282522; }
 header { padding: 1rem 1.25rem; background: #fff; color: #282522; border-bottom: 1px solid #ddd; } header h1 { display: inline; margin: 0; } header p { display: inline; margin-left: 1rem; } header #site-description { display: block; margin: .45rem 0 0; color: #6f6962; } header a { color: #6f6962; }
+.corpus-picker { float: right; display: flex; align-items: center; gap: .45rem; } .corpus-picker select { padding: .3rem .5rem; }
 main { display: grid; grid-template-columns: 18.75rem minmax(0, 1fr); gap: 0; width: 100%; max-width: 100%; padding: 0; box-sizing: border-box; }
 aside { background: white; padding: 1rem; border-right: 1px solid #ddd; align-self: start; } h2 { font-size: 1rem; margin: .2rem 0 .7rem; }
 .content { min-width: 0; max-width: 100%; }

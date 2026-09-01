@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import (BIGFIVE_AXES, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS,
+from .config import (BIGFIVE_AXES, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS, RAW_METRICS,
                      SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE,
                      CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
@@ -126,11 +126,19 @@ def export_json() -> int:
         return bold[0].strip() if bold else title.split("/")[0].strip()
     metric_labels = {field: preferred_label(field) for field in METRICS}
     radar_ids = default_radar_ids()
+    composite_weights = {
+        "classicism_score": CLASSICISM_WEIGHTS,
+        "baroque_score": ORNATENESS_WEIGHTS,
+        "narrativity_score": NARRATIVITY_WEIGHTS,
+        "emotionality_score": EMOTIONALITY_WEIGHTS,
+        "discursivite_score": DISCURSIVITE_WEIGHTS,
+    }
     if not EPUB_DATABASE.exists():
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "books": []}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": [], "books": []}
     else:
         with sqlite3.connect(EPUB_DATABASE) as db:
             db.row_factory = sqlite3.Row
+            corpora = [dict(row) for row in db.execute("SELECT id,label FROM corpora ORDER BY id COLLATE NOCASE")]
             books = []
             for book in db.execute("SELECT id,path,title,author,publisher,publication_date,size,sha256 FROM books ORDER BY title COLLATE NOCASE"):
                 analyses = []
@@ -149,7 +157,9 @@ def export_json() -> int:
                     "id": book["id"], "filename": Path(book["path"]).name, "title": book["title"],
                     "author": book["author"], "publisher": book["publisher"],
                     "publication_date": book["publication_date"], "size": book["size"],
-                    "sha256": book["sha256"], "analyses": analyses,
+                    "sha256": book["sha256"],
+                    "corpora": [row[0] for row in db.execute("SELECT corpus_id FROM corpus_books WHERE book_id=? ORDER BY corpus_id", (book["id"],))],
+                    "analyses": analyses,
                 })
             # Même échelle pour tout le corpus : l’œuvre au score brut maximal
             # devient la référence 100 % dans l’interface.
@@ -162,13 +172,7 @@ def export_json() -> int:
                 maximum = maxima.get(field, 0)
                 return value / maximum if maximum else 0.0
 
-            component_weights = {
-                "classicism_score": CLASSICISM_WEIGHTS,
-                "baroque_score": ORNATENESS_WEIGHTS,
-                "narrativity_score": NARRATIVITY_WEIGHTS,
-                "emotionality_score": EMOTIONALITY_WEIGHTS,
-                "discursivite_score": DISCURSIVITE_WEIGHTS,
-            }
+            component_weights = composite_weights
             component_fields = {axis: tuple(weights) for axis, weights in component_weights.items()}
             maxima = {}
             for fields_for_axis in component_fields.values():
@@ -191,7 +195,7 @@ def export_json() -> int:
                     }
                     for field, value in values.items():
                         analysis["stats"][field] = value
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "books": books}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
 

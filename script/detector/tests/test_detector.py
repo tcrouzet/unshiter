@@ -10,7 +10,7 @@ from detector.syntax_depth import analyze_syntax, dialogue_char_ranges
 from detector.stats import (ellipsis_ratio, interjection_density, emotion_sentence_ratio,
                             emotion_intensification_ratio,
                             emotion_category_profile,
-                            question_mark_narration_ratio)
+                            question_mark_ratio)
 from detector.stats_cli import (
     comparison_sources,
     comparison_documents,
@@ -54,7 +54,7 @@ class DetectorTests(unittest.TestCase):
         text = "Pourquoi partir ?\n\n— Tu pars ?\n\nIl reste..."
         ranges = dialogue_char_ranges(text)
         self.assertEqual(ellipsis_ratio(text, 3), 1 / 3)
-        self.assertEqual(question_mark_narration_ratio(text, ranges), 1 / 2)
+        self.assertEqual(question_mark_ratio(text, 3), 2 / 3)
 
     def test_interjections_do_not_double_count_multiword_markers(self):
         self.assertEqual(interjection_density("Ah, mon Dieu !", 3), 2 / 3)
@@ -65,6 +65,15 @@ class DetectorTests(unittest.TestCase):
         self.assertEqual(dialogue_char_ranges("Il chanta.\n\n— Il chanta."), [(12, 24)])
         self.assertEqual(narrative["simple_past"], mixed["simple_past"])
         self.assertGreater(mixed["dialogue_ratio"], 0)
+
+    def test_present_homographs_are_not_counted_as_simple_past(self):
+        text = ("La maison ne frémit pas. Elle agit ainsi avec tous. "
+                "J'accours, oubliant l'interdit d'entrer. "
+                "Ses sourires nous déchirent. Elle ne réagit pas.")
+        self.assertEqual(analyze_syntax(text)["simple_past"], 0)
+
+    def test_unambiguous_simple_past_is_still_counted(self):
+        self.assertEqual(analyze_syntax("Il chanta puis partit.")["simple_past"], 2)
 
     def test_dialogue_ratio_is_zero_for_narration(self):
         self.assertEqual(analyze_syntax("Il marche dans la rue.")["dialogue_ratio"], 0)

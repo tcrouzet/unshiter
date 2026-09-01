@@ -22,7 +22,7 @@ const DETAILS = [
   ["contempt_emotion_ratio", "Part émotionnelle du mépris", true], ["somatic_emotion_ratio", "Part des manifestations somatiques", true],
   ["emotional_category_entropy", "Entropie des catégories émotionnelles", true],
   ["ellipsis_ratio", "Densité de points de suspension", true],
-  ["question_mark_narration_ratio", "Points d’interrogation hors dialogue", true],
+  ["question_mark_ratio", "Points d’interrogation", true],
   ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
   ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
   ["proper_noun_density", "Densité de noms propres", true],
@@ -32,18 +32,17 @@ const DETAILS = [
   ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
   ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
   ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true],
-  ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
-  ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false],
+  ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["common_noun_ratio", "Part de noms communs", true], ["proper_noun_ratio", "Part des noms propres", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
+  ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false], ["relative_clause_count", "Propositions relatives", false], ["subordinate_clause_count", "Propositions subordonnées", false], ["nominal_sentence_count", "Phrases nominales", false], ["common_noun_count", "Noms communs", false], ["proper_noun_count", "Noms propres", false],
 ];
 // Ensemble unique des champs pouvant être agrégés pour un profil d’auteur.
 // SUMMARY était auparavant absent : le tableau 2 devenait donc vide en mode
 // auteurs, alors que les tableaux utilisant DETAILS restaient alimentés.
 const ALL_METRICS = [...RADAR, ...SUMMARY, ...DETAILS.map(([key, label]) => [key, label])]
   .filter((item, index, all) => all.findIndex(other => other[0] === item[0]) === index);
-// Seuls les quatre comptages matériels restent dans le tableau 3. Toutes les
-// autres données descriptives sont des mesures comparables : elles disposent
-// d'un σ et peuvent participer aux graphiques et calculs stylistiques.
-const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count"]);
+// Les comptes bruts restent dans le tableau 3 et ne participent pas à la
+// dispersion ni aux distances stylistiques. Leurs ratios dérivés restent des mesures.
+const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count"]);
 // La distance stylistique utilise toutes les mesures individuelles, mais
 // exclut les cinq scores BigFive (composites) et les données objectives.
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
@@ -803,7 +802,7 @@ function downloadRenderedTable(container, name, format) {
   }
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
-const INTEGER_DISPLAY_METRICS = new Set(["word_count", "sentence_count", "paragraph_count", "document_char_count"]);
+const INTEGER_DISPLAY_METRICS = new Set(["word_count", "sentence_count", "paragraph_count", "document_char_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count"]);
 const RAW_DISPLAY_METRICS = new Set([
   "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
   "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length",
@@ -822,7 +821,7 @@ const PERCENT_DECIMALS = new Map([
   ["joy_emotion_ratio", 1], ["sadness_emotion_ratio", 1], ["fear_emotion_ratio", 1], ["anger_emotion_ratio", 1],
   ["surprise_emotion_ratio", 1], ["disgust_emotion_ratio", 1], ["contempt_emotion_ratio", 1], ["somatic_emotion_ratio", 1],
   ["ellipsis_ratio", 1],
-  ["question_mark_narration_ratio", 1],
+  ["question_mark_ratio", 1],
 ]);
 function dispersion(values, key) {
   const numbers = values.filter(Number.isFinite);
@@ -887,7 +886,7 @@ function exportPromptAndData() {
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
     ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
-    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_narration_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
+    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
     ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
   ];
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
@@ -1066,8 +1065,46 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260831083852146756000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260901151458492286000").then(r => r.json()).then(json => {
   data = json;
+  const corpusSelect = document.getElementById("corpus-select");
+  const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
+  const requestedCorpus = new URLSearchParams(location.search).get("corpus");
+  const defaultCorpus = availableCorpora.some(corpus => corpus.id === "bigcorpus") ? "bigcorpus" : availableCorpora[0]?.id;
+  const activeCorpus = availableCorpora.some(corpus => corpus.id === requestedCorpus) ? requestedCorpus : defaultCorpus;
+  if (corpusSelect) {
+    corpusSelect.replaceChildren(...availableCorpora.map(corpus => {
+      const option = document.createElement("option");
+      option.value = corpus.id;
+      option.textContent = corpus.label || corpus.id;
+      option.selected = corpus.id === activeCorpus;
+      return option;
+    }));
+    corpusSelect.addEventListener("change", () => {
+      const url = new URL(location.href);
+      if (corpusSelect.value === "bigcorpus") url.searchParams.delete("corpus");
+      else url.searchParams.set("corpus", corpusSelect.value);
+      location.assign(url);
+    });
+  }
+  data.books = data.books.filter(book => (book.corpora || ["bigcorpus"]).includes(activeCorpus));
+  // Les composites dépendent des maxima du corpus choisi. Les analyses
+  // élémentaires restent partagées ; seuls ces cinq scores sont recomposés.
+  for (const [score, weights] of Object.entries(data.composite_weights || {})) {
+    const maxima = Object.fromEntries(Object.keys(weights).map(field => [field, Math.max(0, ...data.books.map(book => Number(book.analyses?.[0]?.stats?.[field])).filter(Number.isFinite))]));
+    for (const book of data.books) for (const analysis of book.analyses || []) {
+      analysis.stats[score] = Object.entries(weights).reduce((sum, [field, weight]) => {
+        const raw = Number(analysis.stats?.[field]);
+        return sum + (Number.isFinite(raw) && maxima[field] ? weight * raw / maxima[field] : 0);
+      }, 0);
+    }
+  }
+  for (const key of data.raw_metrics || []) {
+    if (!DETAILS.some(([field]) => field === key)) DETAILS.push([key, data.metric_labels?.[key] || key, false]);
+    TECHNICAL_KEYS.add(key);
+    INTEGER_DISPLAY_METRICS.add(key);
+    if (!ALL_METRICS.some(([field]) => field === key)) ALL_METRICS.push([key, data.metric_labels?.[key] || key]);
+  }
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
     book: book.title,
@@ -1094,7 +1131,7 @@ fetch("data.json?v=20260831083852146756000").then(r => r.json()).then(json => {
     const ordered = data.default_radar.map(metricKey).map(key => RADAR.find(item => item[0] === key)).filter(Boolean);
     RADAR.splice(0, RADAR.length, ...ordered);
   }
-  document.getElementById("site-name").textContent = data.site?.name || "Site Unshiter";
+  document.getElementById("site-name").textContent = data.site?.name || "Unshiter";
   const footerAuthor = document.getElementById("footer-author");
   footerAuthor.textContent = data.site?.author || "Thierry Crouzet";
   footerAuthor.href = data.site?.author_url || "https://tcrouzet.com";

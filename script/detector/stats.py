@@ -96,6 +96,96 @@ class Metrics:
         return dialogue_char_ranges(self.text)
 
     @cached_property
+    def pos_counts(self):
+        """Comptes grammaticaux bruts issus de l'unique analyse spaCy."""
+        if self.doc is None:
+            return {"common_nouns": 0, "proper_nouns": 0}
+        return {
+            "common_nouns": sum(token.pos_ == "NOUN" for token in self.doc),
+            "proper_nouns": sum(token.pos_ == "PROPN" for token in self.doc),
+        }
+
+    def common_noun_count(self):
+        return self.pos_counts["common_nouns"]
+
+    def proper_noun_count(self):
+        return self.pos_counts["proper_nouns"]
+
+    def common_noun_ratio(self):
+        return self.common_noun_count() / len(self.words) if self.words else 0
+
+    def proper_noun_ratio(self):
+        return self.proper_noun_count() / len(self.words) if self.words else 0
+
+    def relative_clause_count(self): return self.syntax["relative_clauses"] if self.syntax else 0
+    def subordinate_clause_count(self): return self.syntax["subordinate_clauses"] if self.syntax else 0
+    def nominal_sentence_count(self): return self.syntax["nominal_sentence_count"] if self.syntax else 0
+    def relative_clause_ratio(self): return self.relative_clause_count() / len(self.sentences) if self.sentences else 0
+    def subordinate_clause_ratio(self): return self.subordinate_clause_count() / len(self.sentences) if self.sentences else 0
+
+    @cached_property
+    def lexical_lemma_values(self):
+        return lexical_lemmas(self.words)[0]
+
+    def lemma_count(self): return len(self.lexical_lemma_values)
+    def unique_lemma_count(self): return len(set(self.lexical_lemma_values))
+
+    def verb_count(self): return self.syntax["pos_counts"]["all_verbs"] if self.syntax else 0
+    def conjugue_verb_count(self): return self.syntax["finite_verbs"] if self.syntax else 0
+    def adjective_count(self): return self.syntax["pos_counts"]["adjectives"] if self.syntax else 0
+    def adverb_count(self): return self.syntax["pos_counts"]["adverbs"] if self.syntax else 0
+    def present_participe_count(self): return self.syntax["present_participles"] if self.syntax else 0
+    def past_participe_count(self): return self.syntax["past_participles"] if self.syntax else 0
+    def simple_past_count(self): return self.syntax["simple_past"] if self.syntax else 0
+    def va_count(self): return self.syntax["periphrastic_future"] if self.syntax else 0
+    def future_count(self): return self.syntax["simple_future"] if self.syntax else 0
+    def subjonctive_count(self): return self.syntax["literary_subjunctive"] if self.syntax else 0
+    def negation_count(self): return self.syntax["negation_total"] if self.syntax else 0
+    def verb_negation_count(self): return self.syntax["negation_with_ne"] if self.syntax else 0
+    def dialog_word_count(self): return self.syntax["dialog_word_count"] if self.syntax else 0
+    def active_sentence_count(self): return self.syntax["active_sentence_count"] if self.syntax else 0
+    def passive_sentence_count(self): return self.syntax["passive_sentence_count"] if self.syntax else 0
+    def methaphore_count(self): return self.syntax["comparison_sentence_count"] if self.syntax else 0
+    def concrate_noun_count(self): return self.syntax["concrete_noun_count"] if self.syntax else 0
+    def active_verb_count(self): return self.syntax["action_verb_count"] if self.syntax else 0
+    def narrative_verb_count(self): return self.syntax["narrative_verb_count"] if self.syntax else 0
+    def gnomic_present_count(self): return self.syntax["gnomic_present_count"] if self.syntax else 0
+    def personal_subject_count(self): return self.syntax["personal_subject_count"] if self.syntax else 0
+    def analyzed_noun_count(self): return self.syntax["analyzed_noun_count"] if self.syntax else 0
+    def heavily_modified_noun_count(self): return self.syntax["heavily_modified_noun_count"] if self.syntax else 0
+    def adjective_chain_count(self): return self.syntax["adjective_chain_count"] if self.syntax else 0
+
+    def interjection_count(self): return interjection_count(self.text)
+    def suspention_point_count(self): return punctuation_pattern_counts(self.text)["suspension"]
+    def exclamation_point_count(self): return punctuation_pattern_counts(self.text)["exclamation"]
+    def question_mark_count(self): return self.text.count("?")
+    def semicolons_count(self): return punctuation_pattern_counts(self.text)["semicolon"]
+    def temporal_connector_count(self): return connector_count(self.text, TEMPORAL_CONNECTORS_FILE)
+    def logical_connector_count(self): return connector_count(self.text, LOGICAL_CONNECTORS_FILE)
+
+    def joy_emotion_count(self): return self.emotion_category_profile["counts"]["joie"]
+    def sadness_emotion_count(self): return self.emotion_category_profile["counts"]["tristesse"]
+    def fear_emotion_count(self): return self.emotion_category_profile["counts"]["peur"]
+    def anger_emotion_count(self): return self.emotion_category_profile["counts"]["colère"]
+    def surprise_emotion_count(self): return self.emotion_category_profile["counts"]["surprise"]
+    def disgust_emotion_count(self): return self.emotion_category_profile["counts"]["dégoût"]
+    def contempt_emotion_count(self): return self.emotion_category_profile["counts"]["mépris"]
+    def somatic_emotion_count(self): return self.emotion_category_profile["counts"]["manifestations somatiques"]
+
+    @cached_property
+    def emotion_category_intensification_counts(self):
+        return emotion_category_intensification_counts(self.doc)
+
+    def joy_intensified_emotion_count(self): return self.emotion_category_intensification_counts["joie"]
+    def sadness_intensified_emotion_count(self): return self.emotion_category_intensification_counts["tristesse"]
+    def fear_intensified_emotion_count(self): return self.emotion_category_intensification_counts["peur"]
+    def anger_intensified_emotion_count(self): return self.emotion_category_intensification_counts["colère"]
+    def surprise_intensified_emotion_count(self): return self.emotion_category_intensification_counts["surprise"]
+    def disgust_intensified_emotion_count(self): return self.emotion_category_intensification_counts["dégoût"]
+    def contempt_intensified_emotion_count(self): return self.emotion_category_intensification_counts["mépris"]
+    def somatic_intensified_emotion_count(self): return self.emotion_category_intensification_counts["manifestations somatiques"]
+
+    @cached_property
     def sentence_lemmas(self):
         """Phrases lemmatisées en un seul accès groupé à Morphalou."""
         tokenized = [tokenize(sentence) for sentence in self.sentences]
@@ -152,8 +242,8 @@ class Metrics:
     def ellipsis_ratio(self):
         return ellipsis_ratio(self.text, len(self.sentences))
 
-    def question_mark_narration_ratio(self):
-        return question_mark_narration_ratio(self.text, self.dialogue_ranges)
+    def question_mark_ratio(self):
+        return question_mark_ratio(self.text, len(self.sentences))
 
     def emotionality_score(self):
         return sum(
@@ -266,16 +356,17 @@ def _load_simple_markers(path):
 
 
 def temporal_connector_ratio(text: str, sentence_count: int) -> float:
-    normalized = text.casefold().replace("’", "'")
-    markers = _load_simple_markers(TEMPORAL_CONNECTORS_FILE)
-    return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+    return connector_count(text, TEMPORAL_CONNECTORS_FILE) / sentence_count * 100 if sentence_count else 0
 
 
 def logical_connector_ratio(text: str, sentence_count: int) -> float:
     """Occurrences de connecteurs logiques pour 100 phrases."""
+    return connector_count(text, LOGICAL_CONNECTORS_FILE) / sentence_count * 100 if sentence_count else 0
+
+
+def connector_count(text: str, path) -> int:
     normalized = text.casefold().replace("’", "'")
-    markers = _load_simple_markers(LOGICAL_CONNECTORS_FILE)
-    return sum(normalized.count(marker) for marker in markers) / sentence_count * 100 if sentence_count else 0
+    return sum(normalized.count(marker) for marker in _load_simple_markers(path))
 
 
 def scene_summary_ratio(sentences: list[str], duration_markers: set[str] | None = None, max_sentence_length: int | None = None) -> float:
@@ -297,6 +388,10 @@ def interjection_density(text: str, word_count: int) -> float:
     """Occurrences d'interjections émotionnelles par mot."""
     if not word_count:
         return 0.0
+    return interjection_count(text) / word_count
+
+
+def interjection_count(text: str) -> int:
     normalized = " ".join(tokenize(text.casefold().replace("’", "'")))
     markers = sorted(set(_load_simple_markers(EMOTIONAL_INTERJECTIONS_FILE)), key=len, reverse=True)
     count = 0
@@ -304,7 +399,7 @@ def interjection_density(text: str, word_count: int) -> float:
         pattern = rf"(?<!\w){re.escape(marker)}(?!\w)"
         normalized, matches = re.subn(pattern, " ", normalized)
         count += matches
-    return count / word_count
+    return count
 
 
 INTENSIFIER_LEMMAS = {
@@ -345,14 +440,9 @@ def ellipsis_ratio(text: str, sentence_count: int) -> float:
     return punctuation_pattern_counts(text)["suspension"] / sentence_count if sentence_count else 0.0
 
 
-def question_mark_narration_ratio(text: str, dialogue_ranges: list[tuple[int, int]]) -> float:
-    """Questions hors dialogue rapportées aux phrases narratives."""
-    narrative_chars = list(text)
-    for start, end in dialogue_ranges:
-        narrative_chars[start:end] = [" "] * (end - start)
-    narrative_text = "".join(narrative_chars)
-    narrative_sentences = split_sentences(narrative_text)
-    return narrative_text.count("?") / len(narrative_sentences) if narrative_sentences else 0.0
+def question_mark_ratio(text: str, sentence_count: int) -> float:
+    """Points d'interrogation rapportés à toutes les phrases."""
+    return text.count("?") / sentence_count if sentence_count else 0.0
 
 
 def punctuation_variety_score(text: str, sentence_count: int) -> float:
@@ -363,10 +453,12 @@ def punctuation_variety_score(text: str, sentence_count: int) -> float:
 
 def emotion_word_ratio(words: list[str]) -> float:
     lemmas, _ = lexical_lemmas(words)
-    if not lemmas:
-        return 0.0
+    return emotion_word_count_from_lemmas(lemmas) / len(lemmas) if lemmas else 0.0
+
+
+def emotion_word_count_from_lemmas(lemmas: list[str]) -> int:
     emotional_lemmas, _ = emotional_lemma_patterns()
-    return sum(lemma in emotional_lemmas for lemma in lemmas) / len(lemmas)
+    return sum(lemma in emotional_lemmas for lemma in lemmas)
 
 
 EMOTION_CATEGORIES = (
@@ -474,6 +566,7 @@ def emotion_category_profile(sentence_lemmas: list[tuple[str, ...]]) -> dict[str
     ratios = {category: count / total if total else 0.0 for category, count in counts.items()}
     entropy = -sum(ratio * math.log2(ratio) for ratio in ratios.values() if ratio)
     ratios["entropy"] = entropy if total else 0.0
+    ratios["counts"] = counts
     return ratios
 
 
@@ -481,6 +574,11 @@ def emotion_sentence_ratio(sentence_lemmas: list[tuple[str, ...]]) -> float:
     """Part des phrases contenant un marqueur du dictionnaire émotionnel."""
     if not sentence_lemmas:
         return 0.0
+    emotional_lemmas, phrases = emotional_lemma_patterns()
+    return emotion_sentence_count(sentence_lemmas) / len(sentence_lemmas)
+
+
+def emotion_sentence_count(sentence_lemmas: list[tuple[str, ...]]) -> int:
     emotional_lemmas, phrases = emotional_lemma_patterns()
     emotional = 0
     for lemmas in sentence_lemmas:
@@ -490,39 +588,62 @@ def emotion_sentence_ratio(sentence_lemmas: list[tuple[str, ...]]) -> float:
             for pattern in phrases.get(lemma, ())
         )
         emotional += int(found)
-    return emotional / len(sentence_lemmas)
+    return emotional
 
 
 def emotion_intensification_ratio(doc) -> float:
     """Part des marqueurs émotionnels intensifiés ou qualifiés."""
     if doc is None:
         return 0.0
-    emotional_lemmas, phrases = emotional_lemma_patterns()
-    tokens = [token for token in doc if token.is_alpha]
-    lemmas = tuple(token.lemma_.casefold() for token in tokens)
-    emotional_count = intensified_count = index = 0
-    while index < len(tokens):
-        lemma = lemmas[index]
-        phrase = next(
-            (pattern for pattern in phrases.get(lemma, ()) if lemmas[index:index + len(pattern)] == pattern),
-            None,
-        )
-        length = len(phrase) if phrase else 1
-        if phrase or lemma in emotional_lemmas:
-            marker_tokens = tokens[index:index + length]
-            preceding = doc[marker_tokens[0].i - 1] if marker_tokens[0].i > 0 else None
-            explicit = preceding is not None and preceding.lemma_.casefold() in INTENSIFIER_LEMMAS
-            qualified = any(
-                child.dep_ in {"amod", "advmod"}
-                for token in marker_tokens
-                for child in token.children
-            )
-            emotional_count += 1
-            intensified_count += explicit or qualified
-            index += length
-        else:
-            index += 1
+    intensified_count, emotional_count = emotion_intensification_counts(doc)
     return intensified_count / emotional_count if emotional_count else 0.0
+
+
+def emotion_intensification_counts(doc) -> tuple[int, int]:
+    """Totaux agrégés, calculés depuis les huit catégories."""
+    intensified_by_category, emotional_by_category = _emotion_category_intensification_profile(doc)
+    return sum(intensified_by_category.values()), sum(emotional_by_category.values())
+
+
+def emotion_category_intensification_counts(doc) -> dict[str, int]:
+    """Comptes bruts des marqueurs intensifiés pour chaque émotion."""
+    return _emotion_category_intensification_profile(doc)[0]
+
+
+def _emotion_category_intensification_profile(doc) -> tuple[dict[str, int], dict[str, int]]:
+    if doc is None:
+        empty = dict.fromkeys(EMOTION_CATEGORIES, 0)
+        return empty.copy(), empty
+    category_patterns = emotional_category_patterns()
+    tokens = [token for token in doc if token.is_alpha]
+    mapping = lemma_map(token.lower_ for token in tokens)
+    lemmas = tuple(mapping.get(token.lower_, token.lemma_.casefold()) for token in tokens)
+    intensified_counts = dict.fromkeys(EMOTION_CATEGORIES, 0)
+    emotional_counts = dict.fromkeys(EMOTION_CATEGORIES, 0)
+    for category, (emotional_lemmas, phrases) in category_patterns.items():
+        index = 0
+        while index < len(tokens):
+            lemma = lemmas[index]
+            phrase = next(
+                (pattern for pattern in phrases.get(lemma, ()) if lemmas[index:index + len(pattern)] == pattern),
+                None,
+            )
+            length = len(phrase) if phrase else 1
+            if phrase or lemma in emotional_lemmas:
+                marker_tokens = tokens[index:index + length]
+                preceding = doc[marker_tokens[0].i - 1] if marker_tokens[0].i > 0 else None
+                explicit = preceding is not None and preceding.lemma_.casefold() in INTENSIFIER_LEMMAS
+                qualified = any(
+                    child.dep_ in {"amod", "advmod"}
+                    for token in marker_tokens
+                    for child in token.children
+                )
+                emotional_counts[category] += 1
+                intensified_counts[category] += int(explicit or qualified)
+                index += length
+            else:
+                index += 1
+    return intensified_counts, emotional_counts
 WORD_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?", re.UNICODE)
 PUNCTUATION_MARK_RE = re.compile(r'[.,;:!?…—–\-()«»"]')
 STRUCTURE_TOKEN_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?|\.\.\.|[…,.!?;:—–()«»\"-]", re.UNICODE)
@@ -626,8 +747,58 @@ class TextStats:
     nominal_sentence_ratio: float | None = None
     active_voice_ratio: float | None = None
     metaphorical_comme_ratio: float | None = None
-    pos_common_noun_ratio: float | None = None
-    pos_proper_noun_ratio: float | None = None
+    common_noun_count: int = 0
+    proper_noun_count: int = 0
+    lemma_count: int = 0
+    verb_count: int = 0
+    conjugue_verb_count: int = 0
+    adjective_count: int = 0
+    adverb_count: int = 0
+    present_participe_count: int = 0
+    past_participe_count: int = 0
+    simple_past_count: int = 0
+    va_count: int = 0
+    future_count: int = 0
+    subjonctive_count: int = 0
+    negation_count: int = 0
+    verb_negation_count: int = 0
+    dialog_word_count: int = 0
+    active_sentence_count: int = 0
+    passive_sentence_count: int = 0
+    methaphore_count: int = 0
+    concrate_noun_count: int = 0
+    active_verb_count: int = 0
+    narrative_verb_count: int = 0
+    gnomic_present_count: int = 0
+    personal_subject_count: int = 0
+    analyzed_noun_count: int = 0
+    heavily_modified_noun_count: int = 0
+    adjective_chain_count: int = 0
+    interjection_count: int = 0
+    suspention_point_count: int = 0
+    exclamation_point_count: int = 0
+    question_mark_count: int = 0
+    semicolons_count: int = 0
+    temporal_connector_count: int = 0
+    logical_connector_count: int = 0
+    joy_intensified_emotion_count: int = 0
+    sadness_intensified_emotion_count: int = 0
+    fear_intensified_emotion_count: int = 0
+    anger_intensified_emotion_count: int = 0
+    surprise_intensified_emotion_count: int = 0
+    disgust_intensified_emotion_count: int = 0
+    contempt_intensified_emotion_count: int = 0
+    somatic_intensified_emotion_count: int = 0
+    joy_emotion_count: int = 0
+    sadness_emotion_count: int = 0
+    fear_emotion_count: int = 0
+    anger_emotion_count: int = 0
+    surprise_emotion_count: int = 0
+    disgust_emotion_count: int = 0
+    contempt_emotion_count: int = 0
+    somatic_emotion_count: int = 0
+    common_noun_ratio: float = 0
+    proper_noun_ratio: float = 0
     proper_noun_density: float = 0
     concrete_noun_ratio: float = 0
     tense_shift_rate: float = 0
@@ -671,7 +842,7 @@ class TextStats:
     somatic_emotion_ratio: float = 0
     emotional_category_entropy: float = 0
     ellipsis_ratio: float = 0
-    question_mark_narration_ratio: float = 0
+    question_mark_ratio: float = 0
     exclamation_ratio: float = 0
     exclamative_construction_ratio: float = 0
     emotionality_score: float = 0
@@ -1349,7 +1520,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
     intensifier_ratio = intensifier_adjective_ratio(context.doc)
     intensification_ratio = emotion_intensification_ratio(context.doc)
     suspension_ratio = ellipsis_ratio(text, len(sentences))
-    narrative_question_ratio = question_mark_narration_ratio(text, dialogue_ranges)
+    narrative_question_ratio = question_mark_ratio(text, len(sentences))
     exclaim_ratio = exclamation_ratio(text, len(sentences))
     exclamative_ratio = syntax.get("exclamative_construction_ratio", 0) if syntax else 0
     emotional_components = {
@@ -1358,8 +1529,9 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         "interjection_density": interjection_ratio,
         "intensifier_adjective_ratio": intensifier_ratio,
         "emotion_intensification_ratio": intensification_ratio,
+        "emotional_category_entropy": emotion_categories["entropy"],
         "ellipsis_ratio": suspension_ratio,
-        "question_mark_narration_ratio": narrative_question_ratio,
+        "question_mark_ratio": narrative_question_ratio,
         "exclamation_ratio": exclaim_ratio,
         "exclamative_construction_ratio": exclamative_ratio,
     }
@@ -1426,11 +1598,13 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         relative_clause_ratio=r(syntax["relative_clause_ratio"]) if syntax else None,
         subordinate_clause_ratio=r(syntax["subordinate_clause_ratio"]) if syntax else None,
         nominal_sentence_count=syntax["nominal_sentence_count"] if syntax else None,
-        nominal_sentence_ratio=r(syntax["nominal_sentence_ratio"]) if syntax else None,
+        nominal_sentence_ratio=r(syntax["nominal_sentence_count"] / len(lengths)) if syntax and lengths else 0,
         active_voice_ratio=r(syntax["active_voice_ratio"]) if syntax and syntax["active_voice_ratio"] is not None else None,
         metaphorical_comme_ratio=r(syntax["metaphorical_comme_ratio"]) if syntax and syntax["metaphorical_comme_ratio"] is not None else None,
-        pos_common_noun_ratio=r(syntax["pos_distribution"]["common_nouns"]) if syntax else None,
-        pos_proper_noun_ratio=r(syntax["pos_distribution"]["proper_nouns"]) if syntax else None,
+        common_noun_count=syntax["pos_counts"]["common_nouns"] if syntax else 0,
+        proper_noun_count=syntax["pos_counts"]["proper_nouns"] if syntax else 0,
+        common_noun_ratio=r(syntax["pos_counts"]["common_nouns"] / len(words)) if syntax and words else 0,
+        proper_noun_ratio=r(syntax["pos_counts"]["proper_nouns"] / len(words)) if syntax and words else 0,
         proper_noun_density=r(syntax.get("proper_noun_density", 0)) if syntax else 0,
         concrete_noun_ratio=r(syntax.get("concrete_noun_ratio", 0)) if syntax else 0,
         tense_shift_rate=r(syntax.get("tense_shift_rate", 0)) if syntax else 0,
@@ -1466,7 +1640,7 @@ def _compute_all_stats(text: str, progress=None, context: Metrics | None = None)
         somatic_emotion_ratio=r(emotion_categories["manifestations somatiques"]),
         emotional_category_entropy=r(emotion_categories["entropy"]),
         ellipsis_ratio=r(suspension_ratio),
-        question_mark_narration_ratio=r(narrative_question_ratio), exclamation_ratio=r(exclaim_ratio),
+        question_mark_ratio=r(narrative_question_ratio), exclamation_ratio=r(exclaim_ratio),
         exclamative_construction_ratio=r(exclamative_ratio), emotionality_score=r(emotionality),
         logical_connector_ratio=r(logical_ratio), abstract_noun_ratio=r(abstract_ratio),
         narrative_past_ratio=r(past_ratio), narrativity_score=r(narrativity), gnomic_present_ratio=r(gnomic_ratio), discursivite_score=r(discursivite),

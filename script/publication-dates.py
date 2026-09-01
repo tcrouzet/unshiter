@@ -25,10 +25,9 @@ import unicodedata
 from pathlib import Path
 
 import certifi
-from detector.config import WIKIPEDIA_CACHE_FILE
+from detector.config import ACTIVE_CORPUS_DIR, WIKIPEDIA_CACHE_FILE
 
 ROOT = Path(__file__).resolve().parents[1]
-EPUB_DIR = ROOT / "_epub"
 DATES_FILE = ROOT / "assets" / "publication.yml"
 YEAR_RE = re.compile(r"^[+-](\d{4})")
 LAST_REQUEST = 0.0
@@ -165,7 +164,7 @@ def source_authors(overrides: dict[str, dict[str, str]] | None = None) -> dict[s
     éditoriale du livre et sert uniquement à ordonner le fichier de dates.
     """
     authors = {}
-    for md in EPUB_DIR.glob("*.md"):
+    for md in ACTIVE_CORPUS_DIR.rglob("*.md"):
         _title, author = front_matter(md)
         key = md.with_suffix(".epub").name
         authors[key] = (overrides or {}).get(key, {}).get("author") or author.strip() or "Auteur inconnu"
@@ -224,7 +223,7 @@ def main() -> int:
     args = parser.parse_args()
     existing = read_existing()
     updates = {}
-    for md in sorted(EPUB_DIR.glob("*.md")):
+    for md in sorted(ACTIVE_CORPUS_DIR.rglob("*.md")):
         title, author = front_matter(md)
         key = md.with_suffix(".epub").name
         # Une clé déjà présente, y compris avec une date vide, a été vérifiée

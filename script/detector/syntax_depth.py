@@ -14,6 +14,7 @@ from .config import (
     SPACY_RELATIVE_DEPENDENCIES,
     SPACY_SUBORDINATE_DEPENDENCIES,
 )
+from .morphalou import lexical_map
 
 NOMINAL_MODIFIER_DEPS = {"amod", "nmod", "acl:relcl", "acl"}
 ALWAYS_PERSONAL_PRONOUNS = {"je", "j", "tu", "nous", "vous", "elle", "elles", "ils"}
@@ -257,6 +258,27 @@ def _is_simple_past(token) -> bool:
     return (grammatical or fallback) and not any(child.dep_ in {"aux", "aux:pass"} for child in token.children)
 
 
+@lru_cache(maxsize=None)
+def _is_second_group_ir_verb(lemma: str) -> bool:
+    """Vrai si Morphalou connaît le présent pluriel en -issons."""
+    if not lemma.endswith("ir"):
+        return False
+    present_plural = f"{lemma[:-2]}issons"
+    return lexical_map((present_plural,)).get(present_plural, (None,))[0] == lemma
+
+
+def _is_present_simple_past_homograph(token) -> bool:
+    """Repère les formes que l'écrit seul ne permet pas de dater.
+
+    spaCy attribue fréquemment le passé à des présents comme « agit »,
+    « frémit » ou « réagit ». Pour les verbes en -ir, la forme
+    ``radical + it`` est effectivement commune aux deux temps.
+    """
+    form = token.lower_
+    lemma = token.lemma_.casefold()
+    return _is_second_group_ir_verb(lemma) and form == f"{lemma[:-1]}t"
+
+
 def _is_literary_subjunctive(token) -> bool:
     grammatical = (token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm")
                    and "Sub" in token.morph.get("Mood") and "Imp" in token.morph.get("Tense"))
@@ -438,6 +460,7 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         bool(predicates) and not any(_is_passive_predicate(token) for token in predicates)
         for predicates in sentence_predicates
     )
+    passive_sentences = sum(any(_is_passive_predicate(token) for token in predicates) for predicates in sentence_predicates)
     comparison_sentences = sum(_contains_comparison(sentence) for sentence in sentences)
     finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in narrative_tokens)
     present_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Pres" in token.morph.get("Tense") for token in doc)
@@ -447,13 +470,24 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     # passé ; une phrase entièrement au présent ne doit pas produire de faux
     # passé simple.
     def reliable_simple_past(sentence):
-        candidates = [token for token in sentence if _is_simple_past(token)]
+        candidates = [
+            token for token in sentence
+            if _is_simple_past(token)
+            and token.dep_ in {"ROOT", "conj", "advcl", "ccomp", "acl", "acl:relcl", "parataxis"}
+            # Un verbe du premier groupe a son passé simple pluriel en
+            # -èrent : « déchirent » est donc nécessairement un présent.
+            and not (token.lemma_.casefold().endswith("er") and token.lower_.endswith("irent"))
+        ]
         if not candidates:
             return []
         finite = [token for token in sentence if token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm")]
         has_other_past = any(token not in candidates and "Past" in token.morph.get("Tense") for token in finite)
         has_present = any("Pres" in token.morph.get("Tense") for token in finite)
-        return [] if has_present and not has_other_past else candidates
+        if has_present and not has_other_past:
+            return []
+        # Une forme identique au présent et au passé simple n'est retenue
+        # que si un autre passé de la phrase confirme le contexte narratif.
+        return [token for token in candidates if not _is_present_simple_past_homograph(token) or has_other_past]
     simple_past_tokens = [token for sentence in narrative_sentences for token in reliable_simple_past(sentence)]
     simple_past = len(simple_past_tokens)
     literary_subjunctive = sum(_is_literary_subjunctive(token) for token in narrative_tokens)
@@ -473,12 +507,14 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     pos_counts = {
         "common_nouns": sum(token.pos_ == "NOUN" for token in doc),
         "proper_nouns": sum(token.pos_ == "PROPN" for token in doc),
+        "all_verbs": sum(token.pos_ in {"VERB", "AUX"} for token in doc),
         "verbs": finite_verbs,
         "adjectives": sum(token.pos_ == "ADJ" for token in doc),
         "adverbs": sum(token.pos_ == "ADV" for token in doc),
     }
-    pos_total = sum(pos_counts.values())
-    pos_distribution = {name: count / pos_total if pos_total else 0 for name, count in pos_counts.items()}
+    distribution_keys = ("common_nouns", "proper_nouns", "verbs", "adjectives", "adverbs")
+    pos_total = sum(pos_counts[name] for name in distribution_keys)
+    pos_distribution = {name: pos_counts[name] / pos_total if pos_total else 0 for name in distribution_keys}
     modifier_counts = _noun_modifier_counts(doc)
     adjective_chains = _coordinated_modifier_chains(doc)
     stative = _load_word_list(STATIVE_VERBS_FILE)
@@ -500,8 +536,12 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "nominal_sentence_count": nominal_sentences,
         "nominal_sentence_ratio": nominal_sentences / len(depths) if depths else 0,
         "active_voice_ratio": active_sentences / len(sentences) if sentences else None,
+        "active_sentence_count": active_sentences,
+        "passive_sentence_count": passive_sentences,
+        "comparison_sentence_count": comparison_sentences,
         "metaphorical_comme_ratio": comparison_sentences / len(sentences) if sentences else None,
         "pos_distribution": pos_distribution,
+        "pos_counts": pos_counts,
         "proper_noun_density": proper_noun_density(doc),
         "concrete_noun_ratio": concrete_noun_ratio(doc),
         "tense_shift_rate": _tense_shift_rate_doc(text, doc),
@@ -519,6 +559,15 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "future_total": future_total,
         "periphrastic_future_ratio": periphrastic_future / future_total if future_total else None,
         "dialogue_ratio": sum(len(WORD_RE.findall(text[start:end])) for start, end in dialogue_ranges) / len(WORD_RE.findall(text)) if WORD_RE.findall(text) else 0,
+        "dialog_word_count": sum(len(WORD_RE.findall(text[start:end])) for start, end in dialogue_ranges),
+        "concrete_noun_count": sum(token.pos_ == "NOUN" and not _is_abstract_noun(token.lemma_) for token in doc),
+        "narrative_verb_count": len(finite_narrative),
+        "action_verb_count": sum(t.lemma_.casefold() not in stative for t in finite_narrative),
+        "gnomic_present_count": gnomic_present_count,
+        "personal_subject_count": sum(decided_subjects),
+        "analyzed_noun_count": len(modifier_counts),
+        "heavily_modified_noun_count": sum(c >= 2 for c in modifier_counts),
+        "adjective_chain_count": len(adjective_chains),
         "avg_modifiers_per_noun": sum(modifier_counts) / len(modifier_counts) if modifier_counts else 0,
         "heavily_modified_noun_ratio": sum(c >= 2 for c in modifier_counts) / len(modifier_counts) if modifier_counts else 0,
         "adjective_chain_ratio": len(adjective_chains) / len(sentences) if sentences else 0,

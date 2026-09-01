@@ -15,7 +15,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, EPUB_DIR, METRICS, PUBLICATION_FILE, SOURCE_DIR, TEXT_ENCODING, DURATION_MARKERS_FILE
+from .config import CORPUS_DIR, DEFAULT_CORPUS_ID, EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS, PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING, DURATION_MARKERS_FILE
 from .metrics import cached_metric_values, windowed_metric_fields
 from .stats import Metrics, compute_stats, punctuation_diversity, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
 
@@ -285,6 +285,16 @@ def init_database(connection: sqlite3.Connection) -> None:
             PRIMARY KEY(book_id, window_index, metric_name)
         );
         CREATE INDEX IF NOT EXISTS metric_cache_book_idx ON metric_cache(book_id);
+        CREATE TABLE IF NOT EXISTS corpora (
+            id TEXT PRIMARY KEY,
+            label TEXT NOT NULL DEFAULT ''
+        );
+        CREATE TABLE IF NOT EXISTS corpus_books (
+            corpus_id TEXT NOT NULL REFERENCES corpora(id) ON DELETE CASCADE,
+            book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+            PRIMARY KEY(corpus_id, book_id)
+        );
+        CREATE INDEX IF NOT EXISTS corpus_books_book_idx ON corpus_books(book_id);
         """
     )
     cache_columns = {row[1] for row in connection.execute("PRAGMA table_info(metric_cache)")}
@@ -319,14 +329,25 @@ def init_database(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE analyses DROP COLUMN stats_json")
     # Le registre dérivé des notes est la source de vérité : une mesure
     # retirée des notes ne doit pas survivre comme colonne fantôme du cache.
-    placeholders = ",".join("?" for _ in METRICS)
+    placeholders = ",".join("?" for _ in PERSISTED_METRICS)
     connection.execute(
         f"DELETE FROM metric_cache WHERE metric_name NOT IN ({placeholders})",
-        tuple(METRICS),
+        tuple(PERSISTED_METRICS),
     )
+    connection.execute("INSERT OR IGNORE INTO corpora(id,label) VALUES(?,?)", ("bigcorpus", "bigcorpus"))
+    project_root = CORPUS_DIR.parent
+    connection.execute(
+        "UPDATE books SET path=replace(path, ?, ?) WHERE path LIKE ?",
+        (str(project_root / "_epub"), str(CORPUS_DIR / "bigcorpus" / "_epub"), str(project_root / "_epub") + "/%"),
+    )
+    connection.execute(
+        "UPDATE books SET path=replace(path, ?, ?) WHERE path LIKE ?",
+        (str(project_root / "sources"), str(CORPUS_DIR / "bigcorpus" / "sources"), str(project_root / "sources") + "/%"),
+    )
+    connection.execute("INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) SELECT 'bigcorpus',id FROM books")
 
 
-def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None, progress=None) -> tuple[bool, int]:
+def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None, progress=None) -> tuple[bool, int, int]:
     raw = path.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     text = raw.decode(TEXT_ENCODING, errors="replace")
@@ -343,6 +364,8 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         metadata["author"] = author
     body = clean_analysis_body(markdown_body(text))
     old = connection.execute("SELECT id, sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
+    if old is None:
+        old = connection.execute("SELECT id, sha256, analysis_version FROM books WHERE sha256 = ? ORDER BY id LIMIT 1", (digest,)).fetchone()
     previous_stats = None
     if old is not None and old[1] == digest:
         previous_stats = cached_metric_values(connection, old[0])
@@ -353,7 +376,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         previous = connection.execute("SELECT author FROM books WHERE id = ?", (old[0],)).fetchone()
         if previous and previous[0]:
             metadata["author"] = previous[0]
-    required_metric_ids = set(METRICS)
+    required_metric_ids = set(PERSISTED_METRICS)
     missing_metric_ids = required_metric_ids.difference(previous_stats or {}) if old is not None and old[1] == digest else required_metric_ids
     full_recompute = old is None or old[1] != digest or old[2] != EPUB_ANALYSIS_VERSION
     changed = full_recompute or bool(missing_metric_ids)
@@ -387,7 +410,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
             # persistées sans relancer spaCy ni les calculs structurels.
             window_metrics = Metrics(fragment, progress=progress, shared_metrics=previous_stats)
             document_metrics = Metrics(body, progress=progress, shared_metrics=previous_stats)
-            requested = set(METRICS) if full_recompute else missing_metric_ids
+            requested = set(PERSISTED_METRICS) if full_recompute else missing_metric_ids
             total = len(requested)
             step = 0
             # METRICS est l'unique plan de génération. En mode partiel, les
@@ -413,17 +436,20 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
                     progress(step, total, field)
     else:
         windows = connection.execute("SELECT id FROM analyses WHERE book_id = ?", (book_id,)).fetchall()
-    return changed, len(windows)
+    return changed, len(windows), book_id
 
 
-def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
+def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_CORPUS_ID, complete_existing: bool = False) -> tuple[int, int]:
     EPUB_DATABASE.parent.mkdir(parents=True, exist_ok=True)
     synchronize = paths is None
     if paths is None:
         # La base regroupe les livres extraits des EPUB et les Markdown
         # autonomes déposés dans sources. Un même fichier n'est indexé
         # qu'une fois si les deux répertoires contiennent le même chemin.
-        discovered = set(EPUB_DIR.glob("*.md")) | set(SOURCE_DIR.glob("*.md"))
+        corpus_root = CORPUS_DIR / corpus_id
+        # L'organisation interne est libre : tous les Markdown situés sous
+        # le dossier du corpus lui appartiennent, quelle que soit la profondeur.
+        discovered = set(corpus_root.rglob("*.md"))
         paths = sorted(discovered)
     paths = [path.resolve() for path in paths]
     ensure_publication_date_entries(paths)
@@ -440,19 +466,13 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
     with sqlite3.connect(EPUB_DATABASE) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         init_database(connection)
+        connection.execute("INSERT OR IGNORE INTO corpora(id,label) VALUES(?,?)", (corpus_id, corpus_id))
         connection.commit()
         canonicalize_database_authors(connection)
         existing_authors = set(row[0] for row in connection.execute("SELECT DISTINCT author FROM books") if row[0])
         authors = canonical_authors([metadata.get("author", "") for metadata in metadata_by_path.values()], existing_authors)
         if synchronize:
-            current_paths = {str(path) for path in paths}
-            if current_paths:
-                connection.execute(
-                    "DELETE FROM books WHERE path NOT IN ({})".format(",".join("?" for _ in current_paths)),
-                    tuple(current_paths),
-                )
-            else:
-                connection.execute("DELETE FROM books")
+            connection.execute("DELETE FROM corpus_books WHERE corpus_id=?", (corpus_id,))
             connection.commit()
         # Le dénominateur de la mesure de sommaire est le maximum de longueur
         # de phrase observé dans tout le corpus, identique pour chaque livre.
@@ -468,6 +488,19 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
             epub_key = path.with_suffix(".epub").name
             correction = overrides.get(epub_key) or overrides.get(path.name, {})
             current_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            reusable = connection.execute(
+                "SELECT id FROM books WHERE sha256=? AND id NOT IN "
+                "(SELECT book_id FROM corpus_books WHERE corpus_id=?) ORDER BY id LIMIT 1",
+                (current_digest, corpus_id),
+            ).fetchone()
+            if reusable and not complete_existing:
+                book_id = reusable[0]
+                connection.execute("INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) VALUES(?,?)", (corpus_id, book_id))
+                count = connection.execute("SELECT COUNT(*) FROM analyses WHERE book_id=?", (book_id,)).fetchone()[0]
+                connection.commit()
+                print(f"[{index}/{total_paths}] Réutilisé sans recalcul : {path.name}", flush=True)
+                windows += count
+                continue
             previous = connection.execute("SELECT sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
             right_id = "right_branching_depth"
             right_present = connection.execute(
@@ -478,7 +511,7 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
                 "SELECT COUNT(*) FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0",
                 (str(path),),
             ).fetchone()[0]
-            metrics_present = metric_count >= len(METRICS)
+            metrics_present = metric_count >= len(PERSISTED_METRICS)
             if previous and previous[0] == current_digest and previous[1] == EPUB_ANALYSIS_VERSION and right_present and metrics_present:
                 print(f"[{index}/{total_paths}] Vérification : {path.name} — déjà à jour", flush=True)
             else:
@@ -492,7 +525,8 @@ def build_database(paths: list[Path] | None = None) -> tuple[int, int]:
                 if step >= total:
                     print(flush=True)
 
-            book_changed, count = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""), corpus_max_sentence_length, show_analysis_progress)
+            book_changed, count, book_id = analyse_book(connection, path, authors.get(raw_author, raw_author), correction.get("date", ""), correction.get("title", ""), corpus_max_sentence_length, show_analysis_progress)
+            connection.execute("INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) VALUES(?,?)", (corpus_id, book_id))
             connection.commit()
             print(f"[{index}/{total_paths}] {'Calculé' if book_changed else 'Déjà à jour'} : {path.name}", flush=True)
             changed += int(book_changed)
@@ -523,6 +557,8 @@ def main() -> int:
         "--purge", action="append", choices=tuple(METRICS), metavar="MESURE",
         help="supprime uniquement cette mesure avant de la recalculer (option répétable)",
     )
+    parser.add_argument("--corpus", default=DEFAULT_CORPUS_ID, help="identifiant du dossier dans corpus/ (bigcorpus par défaut)")
+    parser.add_argument("--complete", action="store_true", help="calcule les mesures manquantes des œuvres déjà analysées dans un autre corpus")
     parser.add_argument("paths", nargs="*", type=Path, help="Markdown à traiter ; sans argument, ceux de _epub et sources")
     args = parser.parse_args()
     if args.purge:
@@ -531,7 +567,7 @@ def main() -> int:
             for field in args.purge:
                 purge_metric(connection, field)
             connection.commit()
-    changed, windows = build_database(args.paths or None)
+    changed, windows = build_database(args.paths or None, args.corpus, args.complete)
     print(f"Base : {EPUB_DATABASE}")
     print(f"Livres recalculés : {changed}")
     # Le nombre de fenêtres est une donnée interne de calcul, pas une

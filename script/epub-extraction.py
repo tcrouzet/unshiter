@@ -18,7 +18,7 @@ import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 
-from detector.config import EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, EPUB_HASH_CACHE_FILE, PUBLICATION_FILE, TEXT_ENCODING
+from detector.config import ACTIVE_CORPUS_DIR, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, EPUB_HASH_CACHE_FILE, PUBLICATION_FILE, TEXT_ENCODING
 
 
 SKIP_DOCUMENT_WORDS = ("cover", "titlepage", "toc", "nav", "copyright", "imprint", "colophon")
@@ -524,7 +524,7 @@ def organize_publication_file() -> None:
             continue
         key, raw_value = clean.split(":", 1)
         key = key.strip().strip("\"'")
-        md = EPUB_DIR / Path(key).with_suffix(".md").name
+        md = next(ACTIVE_CORPUS_DIR.rglob(Path(key).with_suffix(".md").name), EPUB_DIR / Path(key).with_suffix(".md").name)
         metadata = existing_metadata(md)
         author = metadata.get("author", "").strip()
         date_match = re.search(r"\bdate\s*:\s*[\"']([^\"']*)[\"']", raw_value)
@@ -624,11 +624,11 @@ def extract_epub(source: Path) -> tuple[Path, None]:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Extrait les EPUB en Markdown")
-    parser.add_argument("epubs", nargs="*", type=Path, help="EPUB à traiter ; sans argument, tous les EPUB de _epub")
+    parser.add_argument("epubs", nargs="*", type=Path, help="EPUB à traiter ; sans argument, tous les EPUB du corpus actif")
     args = parser.parse_args(argv)
-    sources = args.epubs or sorted(EPUB_DIR.glob("*.epub"))
+    sources = args.epubs or sorted(ACTIVE_CORPUS_DIR.rglob("*.epub"))
     if not sources:
-        parser.error(f"aucun EPUB dans {EPUB_DIR}")
+        parser.error(f"aucun EPUB dans {ACTIVE_CORPUS_DIR}")
     normalized_sources = []
     for source in sources:
         target = source.parent / f"{web_slug(source.stem)}.epub"
@@ -645,7 +645,11 @@ def main(argv=None) -> int:
     for source in normalized_sources:
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         output_md = source.parent / f"{web_slug(source.stem)}.md"
-        if output_md.exists() and hash_cache.get(source.name) == digest:
+        try:
+            cache_key = str(source.resolve().relative_to(ACTIVE_CORPUS_DIR.resolve()))
+        except ValueError:
+            cache_key = str(source.resolve())
+        if output_md.exists() and hash_cache.get(cache_key) == digest:
             print(f"Déjà extrait : {source.name} -> {output_md.name}", flush=True)
             continue
         try:
@@ -655,7 +659,7 @@ def main(argv=None) -> int:
             print(f"ALERTE : {error}", flush=True)
             continue
         print(f"Extrait : {source.name} -> {markdown.name}", flush=True)
-        hash_cache[source.name] = digest
+        hash_cache[cache_key] = digest
     EPUB_HASH_CACHE_FILE.write_text(json.dumps(hash_cache, ensure_ascii=False, indent=2) + "\n", encoding=TEXT_ENCODING)
     organize_publication_file()
     # Une source unique en échec doit interrompre epubs.sh avant toute analyse
