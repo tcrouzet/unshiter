@@ -1,11 +1,11 @@
 ## Métriques
 
-Les mesures effectuées sur les textes du corpus sont déterministes er reproductibles. Les mesures effectuées sont visible sur [l’application web](https://tcrouzet.github.io/unshiter/).
+Les mesures sur les textes du corpus sont déterministes, reproductibles et visibles sur [l’application web](https://tcrouzet.github.io/unshiter/).
 
 **Limites**
 
-- Les résultats dépendent du découpage en phrases, des dictionnaires et du modèle spaCy.
-- Morphalou analyse les formes hors contexte et peut conserver des ambiguïtés.
+- Les résultats dépendent du découpage en phrases, des dictionnaires et du modèle [spaCy](https://github.com/explosion/spacy).
+- [Morphalou](https://repository.ortolang.fr/api/content/morphalou/2/LISEZ_MOI.html) analyse les formes hors contexte et peut conserver des ambiguïtés.
 - Les ellipses, incises, phrases nominales et constructions littéraires peuvent dégrader l’analyse spaCy.
 - Une mesure très dispersée dans le corpus actuel ne le sera pas nécessairement dans un autre corpus.
 - Les graphiques du site résument les mesures choisies ; ils ne calculent pas une probabilité d’origine IA.

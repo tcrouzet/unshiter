@@ -759,22 +759,6 @@ def lexical_lemmas(words: list[str]) -> tuple[list[str], float]:
     return lemmas, coverage
 
 
-def lemma_richness_distribution(words: list[str], window: int, step: int | None = None) -> dict[str, float | int]:
-    """Distribution déterministe de richesse sur fenêtres lexicales contiguës."""
-    lemmas, _ = lexical_lemmas(words)
-    if not lemmas or window <= 0 or len(lemmas) < window:
-        return {"window": window, "count": 0, "mean": 0, "median": 0, "p10": 0, "p90": 0}
-    step = step or max(1, window // 4)
-    starts = list(range(0, len(lemmas) - window + 1, step))
-    if starts[-1] != len(lemmas) - window:
-        starts.append(len(lemmas) - window)
-    values = [len(set(lemmas[start:start + window])) / window for start in starts]
-    return {
-        "window": window, "count": len(values), "mean": sum(values) / len(values),
-        "median": _percentile(values, .5), "p10": _percentile(values, .1), "p90": _percentile(values, .9),
-    }
-
-
 def vocabulary_richness(words: list[str], window: int = LEXICAL_WINDOW_SIZE) -> tuple[float, float, float, int, int]:
     """Richesses globale/mobile des lemmes lexicaux et couverture de Morphalou."""
     lemmas, coverage = lexical_lemmas(words)
@@ -1246,24 +1230,6 @@ def structural_rhythm(signatures: list[str]) -> float:
         return 0
     distances = [_sequence_distance(left, right) for left, right in zip(eligible, eligible[1:])]
     return sum(distances) / len(distances)
-
-
-def repetition_distribution(words: list[str], window: int, step: int | None = None) -> dict[str, float | int]:
-    if not words or window <= 0 or len(words) < window:
-        return {"window": window, "count": 0, "absolute": 0, "filtered": 0, "family": 0, "phonetic": 0}
-    step = step or window
-    starts = list(range(0, len(words) - window + 1, step))
-    if starts[-1] != len(words) - window:
-        starts.append(len(words) - window)
-    absolute_values, filtered_values, family_values, phonetic_values = [], [], [], []
-    for start in starts:
-        sample = words[start:start + window]
-        absolute_values.append(local_repetition_rate(sample, filtered=False, mode="lexical"))
-        filtered_values.append(local_repetition_rate(sample, filtered=True, mode="lexical"))
-        family_values.append(local_repetition_rate(sample, filtered=True, mode="family"))
-        phonetic_values.append(local_repetition_rate(sample, filtered=True, mode="phonetic"))
-    average = lambda values: sum(values) / len(values)
-    return {"window": window, "count": len(starts), "absolute": average(absolute_values), "filtered": average(filtered_values), "family": average(family_values), "phonetic": average(phonetic_values)}
 
 
 def _compute_all_stats(text: str, progress=None, context: Metrics | None = None) -> TextStats:

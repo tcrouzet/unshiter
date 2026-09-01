@@ -47,7 +47,7 @@ from .config import (
     STRUCTURE_REPORT_SUFFIX,
     TEXT_ENCODING,
 )
-from .stats import TextStats, WORD_RE, _moving_trigram_repetition, _trigram_lemmas, _trigram_repetition, compute_stats, repetition_distribution, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
+from .stats import TextStats, WORD_RE, _moving_trigram_repetition, _trigram_lemmas, _trigram_repetition, compute_stats, repetition_lemma_annotations, sentence_structure_signatures, split_sentences, split_structure_units, structure_is_eligible, tokenize, tokenize_repetitions
 from .syntax_depth import analyze_syntax
 from .metrics import cached_metric_values
 

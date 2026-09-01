@@ -427,10 +427,4 @@ class DetectorTests(unittest.TestCase):
         self.assertEqual(family, 0)
         self.assertGreater(phonetic, 0)
 
-    def test_dynamic_lemma_windows_cover_the_end(self):
-        from detector.stats import lemma_richness_distribution
-        distribution = lemma_richness_distribution(["fleur", "fleurs", "maison", "maisons"] * 100, 200, 50)
-        self.assertEqual(distribution["count"], 5)
-
-
 if __name__ == "__main__": unittest.main()
