@@ -1,39 +1,40 @@
 const RADAR = [
-  ["classicism_score", "Classique ↔ Contemporain"],
-  ["baroque_score", "Maximaliste ↔ Minimaliste"],
-  ["narrativity_score", "Narratif ↔ Descriptif"],
-  ["emotionality_score", "Émotionnel ↔ Neutre"],
-  ["discursivite_score", "Discursif ↔ Immersif"],
+  ["classicism_score", null],
+  ["baroque_score", null],
+  ["narrativity_score", null],
+  ["emotionality_score", null],
+  ["discursivite_score", null],
 ];
 const SUMMARY = [
-  ["punctuation_per_300_words", "Densité de ponctuations"], ["punctuation_diversity", "Diversité de ponctuation"],
-  ["structural_diversity", "Diversité des structures"], ["structural_rhythm", "Rythme des structures"],
-  ["average_syntactic_depth", "Profondeur syntaxique"], ["sentence_start_diversity", "Diversité des débuts de phrase"],
-  ["burstiness", "Burstiness"], ["noun_verb_ratio", "Ratio noms/verbes"], ["filtered_repetition_rate", "Répétitions lexicales"],
+  ["punctuation_ratio", null], ["punctuation_diversity", null],
+  ["structural_diversity", null], ["structural_rhythm", null],
+  ["average_syntactic_depth", null], ["sentence_start_diversity", null],
+  ["sentence_start_recurrence_distance", null],
+  ["burstiness", null], ["noun_verb_ratio", null], ["local_repetition_ratio", null],
 ];
 const DETAILS = [
-  ["action_verb_ratio", "Verbes d’action", true], ["temporal_connector_ratio", "Connecteurs temporels", true], ["personal_subject_ratio", "Sujets personnels", true], ["narrative_past_ratio", "Passé narratif", true],
-  ["emotion_word_ratio", "Mots émotionnels", true], ["emotion_sentence_ratio", "Phrases à caractère émotionnel", true],
-  ["interjection_density", "Densité d’interjections émotionnelles", true], ["intensifier_adjective_ratio", "Intensificateurs devant adjectif", true],
-  ["emotion_intensification_ratio", "Intensification émotionnelle", true],
-  ["joy_emotion_ratio", "Part émotionnelle de la joie", true], ["sadness_emotion_ratio", "Part émotionnelle de la tristesse", true],
-  ["fear_emotion_ratio", "Part émotionnelle de la peur", true], ["anger_emotion_ratio", "Part émotionnelle de la colère", true],
-  ["surprise_emotion_ratio", "Part émotionnelle de la surprise", true], ["disgust_emotion_ratio", "Part émotionnelle du dégoût", true],
-  ["contempt_emotion_ratio", "Part émotionnelle du mépris", true], ["somatic_emotion_ratio", "Part des manifestations somatiques", true],
-  ["emotional_category_entropy", "Entropie des catégories émotionnelles", true],
-  ["ellipsis_ratio", "Densité de points de suspension", true],
-  ["question_mark_ratio", "Points d’interrogation", true],
-  ["exclamation_ratio", "Exclamations", true], ["exclamative_construction_ratio", "Constructions exclamatives", true],
-  ["logical_connector_ratio", "Connecteurs logiques", true], ["abstract_noun_ratio", "Noms abstraits", true], ["gnomic_present_ratio", "Présent gnomique", true],
-  ["proper_noun_density", "Densité de noms propres", true],
-  ["concrete_noun_ratio", "Noms concrets", true],
-  ["tense_shift_rate", "Ruptures temporelles", true],
-  ["scene_summary_ratio", "Sommaire narratif", true], ["incise_density", "Densité d’incises", true], ["coordination_accumulation_ratio", "Accumulation coordonnée", true], ["right_branching_depth", "Profondeur d’expansion finale", true], ["punctuation_variety_score", "Densité de ponctuation savante", true], ["modal_generalization_ratio", "Modalité généralisante", true],
-  ["stylistic_repetition_rate", "Diversité stylistique", true], ["family_repetition_rate", "Répétitions familiales", true], ["phonetic_repetition_rate", "Répétitions sonores", true], ["absolute_repetition_rate", "Répétitions non filtrées", true],
-  ["present_participle_ratio", "Participes présents", true], ["past_participle_ratio", "Participes passés", true],
-  ["simple_past_ratio", "Passé simple", true], ["literary_subjunctive_ratio", "Subjonctif littéraire", true], ["negation_completeness_ratio", "Négations complètes", true], ["negation_ratio", "Négativité / Positivité", true], ["periphrastic_future_ratio", "Futur périphrastique", true], ["oral_familiarity_ratio", "Familiarité orale", true], ["dialogue_ratio", "Dialogue", true], ["avg_modifiers_per_noun", "Modificateurs par nom", true], ["heavily_modified_noun_ratio", "Noms fortement modifiés", true], ["lexical_rarity_score", "Rareté lexicale", true], ["adjective_chain_ratio", "Chaînes adjectivales", true], ["avg_adjective_chain_length", "Longueur des chaînes adjectivales", true],
-  ["trigram_repetition", "Répétition globale des trigrammes", true], ["moving_trigram_repetition", "Répétition locale des trigrammes", true], ["function_word_ratio", "Mots-outils", true], ["noun_ratio", "Noms", true], ["verb_ratio", "Verbes", true], ["adjective_ratio", "Adjectifs", true], ["adverb_ratio", "Adverbes", true], ["common_noun_ratio", "Part de noms communs", true], ["proper_noun_ratio", "Part des noms propres", true], ["sentence_word_std_dev", "Diversité de longueurs de phrase (mots)", false], ["gzip_compression_ratio", "Compression gzip", true], ["relative_clause_ratio", "Relatives", true], ["nominal_sentence_ratio", "Phrases nominales", true], ["active_voice_ratio", "Voix active", true], ["metaphorical_comme_ratio", "Comparaisons métaphoriques", true], ["form_lemma_ratio", "Formes par lemme", false], ["hapax_ratio", "Mots employés une seule fois", true],
-  ["word_count", "Mots", false], ["sentence_count", "Phrases", false], ["paragraph_count", "Paragraphes", false], ["avg_word_length", "Longueur moyenne des mots (caractères)", false], ["avg_sentence_length", "Longueur moyenne des phrases (caractères)", false], ["avg_sentence_word_count", "Longueur moyenne des phrases (mots)", false], ["median_sentence_length", "Longueur médiane des phrases (caractères)", false], ["sentence_length_p10", "Longueur P10 des phrases (caractères)", false], ["sentence_length_p90", "Longueur P90 des phrases (caractères)", false], ["paragraph_length_std_dev", "Écart-type des paragraphes (mots)", false], ["document_char_count", "Signes (caractères)", false], ["relative_clause_count", "Propositions relatives", false], ["subordinate_clause_count", "Propositions subordonnées", false], ["nominal_sentence_count", "Phrases nominales", false], ["common_noun_count", "Noms communs", false], ["proper_noun_count", "Noms propres", false],
+  ["action_verb_ratio", null, true], ["temporal_connector_ratio", null, true], ["personal_subject_ratio", null, true], ["narrative_past_ratio", null, true],
+  ["emotion_word_ratio", null, true], ["emotion_sentence_ratio", null, true],
+  ["intensifier_adjective_ratio", null, true],
+  ["emotion_intensification_ratio", null, true],
+  ["joy_emotion_ratio", null, true], ["sadness_emotion_ratio", null, true],
+  ["fear_emotion_ratio", null, true], ["anger_emotion_ratio", null, true],
+  ["surprise_emotion_ratio", null, true], ["disgust_emotion_ratio", null, true],
+  ["contempt_emotion_ratio", null, true], ["somatic_emotion_ratio", null, true],
+  ["emotional_category_entropy", null, true],
+  ["ellipsis_ratio", null, true],
+  ["question_mark_ratio", null, true],
+  ["exclamation_ratio", null, true], ["exclamative_construction_ratio", null, true],
+  ["logical_connector_ratio", null, true], ["abstract_noun_ratio", null, true], ["gnomic_present_ratio", null, true],
+  ["proper_noun_density", null, true],
+  ["concrete_noun_ratio", null, true],
+  ["tense_shift_rate", null, true],
+  ["scene_summary_ratio", null, true], ["incise_density", null, true], ["coordination_accumulation_ratio", null, true], ["right_branching_depth", null, true], ["punctuation_variety_score", null, true], ["modal_generalization_ratio", null, true],
+  ["global_repetition_ratio", null, true], ["local_phonetic_repetition_ratio", null, true], ["global_phonetic_repetition_ratio", null, true], ["absolute_repetition_rate", null, true],
+  ["present_participle_ratio", null, true], ["past_participle_ratio", null, true],
+  ["simple_past_ratio", null, true], ["literary_subjunctive_ratio", null, true], ["negation_completeness_ratio", null, true], ["negation_ratio", null, true], ["periphrastic_future_ratio", null, true], ["oral_familiarity_ratio", null, true], ["dialogue_ratio", null, true], ["avg_modifiers_per_noun", null, true], ["heavily_modified_noun_ratio", null, true], ["lexical_rarity_score", null, true], ["adjective_chain_ratio", null, true], ["avg_adjective_chain_length", null, true],
+  ["trigram_repetition", null, true], ["function_word_ratio", null, true], ["noun_ratio", null, true], ["verb_ratio", null, true], ["adjective_ratio", null, true], ["adverb_ratio", null, true], ["common_noun_ratio", null, true], ["proper_noun_ratio", null, true], ["sentence_length_std_dev", null, false], ["gzip_compression_ratio", null, true], ["relative_clause_ratio", null, true], ["nominal_sentence_ratio", null, true], ["active_voice_ratio", null, true], ["metaphorical_comme_ratio", null, true], ["hapax_ratio", null, true],
+  ["word_count", null, false], ["sentence_count", null, false], ["paragraph_count", null, false], ["avg_word_length", null, false], ["avg_sentence_length", null, false], ["median_sentence_length", null, false], ["sentence_length_p10", null, false], ["sentence_length_p90", null, false], ["paragraph_length_std_dev", null, false], ["document_char_count", null, false], ["relative_clause_count", null, false], ["subordinate_clause_count", null, false], ["nominal_sentence_count", null, false], ["common_noun_count", null, false], ["proper_noun_count", null, false], ["repetition_word_count", null, false], ["local_repetition_count", null, false], ["global_repetition_count", null, false],
 ];
 // Ensemble unique des champs pouvant être agrégés pour un profil d’auteur.
 // SUMMARY était auparavant absent : le tableau 2 devenait donc vide en mode
@@ -42,7 +43,7 @@ const ALL_METRICS = [...RADAR, ...SUMMARY, ...DETAILS.map(([key, label]) => [key
   .filter((item, index, all) => all.findIndex(other => other[0] === item[0]) === index);
 // Les comptes bruts restent dans le tableau 3 et ne participent pas à la
 // dispersion ni aux distances stylistiques. Leurs ratios dérivés restent des mesures.
-const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count"]);
+const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_count", "paragraph_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count", "repetition_word_count", "local_repetition_count", "global_repetition_count"]);
 // La distance stylistique utilise toutes les mesures individuelles, mais
 // exclut les cinq scores BigFive (composites) et les données objectives.
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
@@ -55,7 +56,28 @@ const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.h
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
 let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
-let evolutionOrder = "values", evolutionHighlight = localStorage.getItem("unshiter-evolution-highlight") || "";
+const CONFIG_STORAGE_KEYS = [
+  "unshiter-evolution-highlight", "unshiter-secondary-table-order",
+  "unshiter-neighborhood", "unshiter-books", "unshiter-metrics",
+  "unshiter-authors-open", "unshiter-metrics-open", "unshiter-presets",
+  "unshiter-flipped", "unshiter-view-mode",
+];
+let storageCorpus = "";
+function storageKey(key) { return storageCorpus ? `${key}:${storageCorpus}` : key; }
+function storageGet(key) { return localStorage.getItem(storageKey(key)); }
+function storageSet(key, value) { localStorage.setItem(storageKey(key), value); }
+function storageRemove(key) { localStorage.removeItem(storageKey(key)); }
+function activateCorpusStorage(corpusId) {
+  storageCorpus = corpusId;
+  // Les anciennes configurations globales sont incompatibles avec plusieurs
+  // corpus et ne doivent être attribuées arbitrairement à aucun d'eux.
+  CONFIG_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+}
+function clearCorpusStorage({ keepPresets = true } = {}) {
+  CONFIG_STORAGE_KEYS.filter(key => !keepPresets || key !== "unshiter-presets").forEach(storageRemove);
+}
+let evolutionOrder = "values", evolutionHighlight = "";
+let secondaryTableOrder = "delta";
 const flippedAxes = new Set();
 function publicMetricId(key) { return key; }
 function metricKey(ref) { return ref; }
@@ -67,10 +89,10 @@ function isEvolutionHighlighted(entity) {
 }
 function noteEntry(key) {
   const id = key;
-  const title = data?.note_titles?.[key] || `Mesure ${key}`;
+  const title = data?.note_titles?.[key] || key;
   const aliases = title.replace(/\*\*/g, "").split("/").map(alias => alias.trim());
-  const bold = title.match(/\*\*([^*]+)\*\*/)?.[1]?.trim();
-  return { id, title, aliases, preferred: bold || aliases[0] };
+  const boldDefault = title.match(/\*\*([^*]+)\*\*/)?.[1]?.trim() || aliases[0];
+  return { id, title, aliases, preferred: aliases[0], boldDefault };
 }
 function metricLabel(key) { const entry = noteEntry(key); if (!flippedAxes.has(key)) return entry.preferred; const alternate = entry.aliases.find(alias => alias !== entry.preferred); return alternate || entry.preferred; }
 function metricNote(key) {
@@ -117,7 +139,6 @@ let corpusValues = new Map();
 const value = (book, key) => {
   const stats = book.analyses[0]?.stats || {};
   const read = field => stats[publicMetricId(field)] ?? stats[field];
-  if (key === "stylistic_repetition_rate") return 1 - Number(read(key) || 0);
   return read(key) == null ? null : Number(read(key));
 };
 function burrowsContext(entities) {
@@ -144,7 +165,7 @@ function neighborhoodState() {
     count: count?.value || "5",
   };
 }
-function saveNeighborhoodState() { localStorage.setItem("unshiter-neighborhood", JSON.stringify(neighborhoodState())); }
+function saveNeighborhoodState() { storageSet("unshiter-neighborhood", JSON.stringify(neighborhoodState())); }
 function radarTitle(books) {
   const authors = [...new Set(books.map(book => (book.author || "Auteur inconnu").trim()).filter(Boolean))];
   if (authors.length === 1) return authors[0];
@@ -167,8 +188,8 @@ function authorCompare(left, right) {
   if (b.toLocaleLowerCase() === "ia") return 1;
   return authorSortKey(a).localeCompare(authorSortKey(b), "fr", { sensitivity: "base" });
 }
-const INVERSE = new Set(["noun_verb_ratio", "filtered_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio", "sentence_start_diversity", "burstiness"]);
-const DISPLAY_INVERTED = new Set(["sentence_start_diversity", "burstiness"]);
+const INVERSE = new Set(["noun_verb_ratio", "local_repetition_ratio", "global_repetition_ratio", "local_phonetic_repetition_ratio", "global_phonetic_repetition_ratio", "absolute_repetition_rate", "trigram_repetition", "adjective_ratio", "adverb_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "metaphorical_comme_ratio", "sentence_start_diversity", "burstiness"]);
+const DISPLAY_INVERTED = new Set(["burstiness"]);
 function scale(key, n) {
   if (n == null) return null;
   // Important : la référence est l'ensemble des livres exportés, pas la
@@ -181,9 +202,7 @@ function scale(key, n) {
   // jamais artificiellement ramenée à 0 %.
   let relative = Math.max(0, Math.min(1, maximum ? n / maximum : 0));
   const entry = noteEntry(key);
-  const preferredIsSecond = ["punctuation_per_300_words", "sentence_word_std_dev"].includes(key)
-    ? false
-    : entry.aliases.indexOf(entry.preferred) === 1;
+  const preferredIsSecond = entry.aliases.indexOf(entry.boldDefault) === 1;
   if (preferredIsSecond !== flippedAxes.has(key)) relative = 1 - relative;
   // Courbe logarithmique continue : elle étale les valeurs basses puis ralentit
   // progressivement vers le bord, sans seuil ni saturation artificielle.
@@ -483,7 +502,7 @@ function drawNeighborhood(books) {
         return `<optgroup label="${escape(author)}">${rows.map(({ entity, index }) => `<option value="${index}">${escape(entity.title || `Œuvre ${index + 1}`)}${entity.publication_date ? ` (${String(entity.publication_date).slice(0, 4)})` : ""}</option>`).join("")}</optgroup>`;
       }).join("");
     }
-    const saved = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+    const saved = JSON.parse(storageGet("unshiter-neighborhood") || "null");
     const restored = entities.findIndex(entity => entityKey(entity) === (saved?.reference || oldKey));
     select.value = String(restored >= 0 ? restored : 0);
     select.dataset.signature = referenceSignature;
@@ -515,7 +534,7 @@ function drawNeighborhood(books) {
       }).join("");
     }
     pinnedSelect.innerHTML = `<option value="">Aucune œuvre épinglée</option>${pinnedOptions}`;
-    const saved = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+    const saved = JSON.parse(storageGet("unshiter-neighborhood") || "null");
     const pinnedKey = saved && Object.hasOwn(saved, "pinned") ? saved.pinned : oldPinnedKey;
     const restoredPinned = pinnedKey ? entities.findIndex(entity => entityKey(entity) === pinnedKey) : -1;
     pinnedSelect.value = restoredPinned >= 0 ? String(restoredPinned) : "";
@@ -596,8 +615,8 @@ function drawEvolution(selectedBooks) {
   }));
   container.querySelector(".evolution-highlight").addEventListener("change", event => {
     evolutionHighlight = event.target.value;
-    if (evolutionHighlight) localStorage.setItem("unshiter-evolution-highlight", evolutionHighlight);
-    else localStorage.removeItem("unshiter-evolution-highlight");
+    if (evolutionHighlight) storageSet("unshiter-evolution-highlight", evolutionHighlight);
+    else storageRemove("unshiter-evolution-highlight");
     drawEvolution(selectedBooks);
     renderTables(selectedBooks);
   });
@@ -771,6 +790,10 @@ function renderTables(books) {
   // Les mesures secondaires sont réunies dans un seul tableau et classées
   // par dispersion décroissante sur la sélection affichée.
   const secondaryDefinitions = [...summaryDefinitions, ...details].sort((a, b) => {
+    if (secondaryTableOrder === "notes") {
+      const order = new Map((data?.metric_order || []).map((key, index) => [key, index]));
+      return (order.get(a[0]) ?? Number.MAX_SAFE_INTEGER) - (order.get(b[0]) ?? Number.MAX_SAFE_INTEGER);
+    }
     const values = definition => tableBooks.map(book => value(book, definition[0])).filter(Number.isFinite);
     return (dispersion(values(b), b[0]) ?? -1) - (dispersion(values(a), a[0]) ?? -1);
   });
@@ -784,11 +807,14 @@ function renderTables(books) {
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
   const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions)}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  const orderLabel = secondaryTableOrder === "delta" ? "Ordre des notes" : "Ordre par delta";
+  const orderButton = `<button id="secondary-table-order" class="table-order" type="button">${orderLabel}</button>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
 }
 function downloadRenderedTable(container, name, format) {
   const table = container?.querySelector("table"); if (!table) return;
-  const rows = [...table.rows].map(row => [...row.cells].map(cell => cell.textContent.trim()));
+  const sourceRows = format === "csv" ? [...table.rows].filter(row => !row.classList.contains("metric-section")) : [...table.rows];
+  const rows = sourceRows.map(row => [...row.cells].map(cell => cell.textContent.trim()));
   const link = document.createElement("a");
   if (format === "csv") {
     const csv = rows.map(row => row.map(cell => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\n");
@@ -802,20 +828,20 @@ function downloadRenderedTable(container, name, format) {
   }
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
-const INTEGER_DISPLAY_METRICS = new Set(["word_count", "sentence_count", "paragraph_count", "document_char_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count"]);
+const INTEGER_DISPLAY_METRICS = new Set(["word_count", "sentence_count", "paragraph_count", "document_char_count", "relative_clause_count", "subordinate_clause_count", "nominal_sentence_count", "common_noun_count", "proper_noun_count", "repetition_word_count", "local_repetition_count", "global_repetition_count"]);
 const RAW_DISPLAY_METRICS = new Set([
-  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
-  "noun_verb_ratio", "form_lemma_ratio", "avg_word_length", "avg_sentence_length",
-  "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10",
-  "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev",
+  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_ratio",
+  "noun_verb_ratio", "avg_word_length", "avg_sentence_length",
+  "median_sentence_length", "sentence_length_p10",
+  "sentence_length_p90", "paragraph_length_std_dev", "sentence_length_std_dev",
   "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
   "avg_adjective_chain_length", "right_branching_depth", "emotional_category_entropy",
+  "sentence_start_recurrence_distance",
 ]);
 const NATIVE_PERCENT_METRICS = new Set([
-  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_per_300_words",
+  "logical_connector_ratio", "temporal_connector_ratio", "punctuation_ratio",
 ]);
 const PERCENT_DECIMALS = new Map([
-  ["interjection_density", 2],
   ["intensifier_adjective_ratio", 1],
   ["emotion_intensification_ratio", 1],
   ["joy_emotion_ratio", 1], ["sadness_emotion_ratio", 1], ["fear_emotion_ratio", 1], ["anger_emotion_ratio", 1],
@@ -842,9 +868,15 @@ function dispersion(values, key) {
   return Math.sqrt(percentages.reduce((sum, value) => sum + (value - mean) ** 2, 0) / percentages.length);
 }
 const DISPERSION_SIGNIFICANCE_POINTS = 5;
-function table(books, definitions) {
+function table(books, definitions, withSections = false) {
+  const escapeHtml = text => String(text).replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
   const header = `<th>Mesure</th><th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}`;
+  let previousSection = null;
   const rows = definitions.map(([key, label]) => {
+    const section = withSections ? data?.metric_sections?.[key] : null;
+    const intertitle = section && section !== previousSection
+      ? `<tr class="metric-section"><th colspan="${books.length + 2}">${escapeHtml(section)}</th></tr>` : "";
+    if (section) previousSection = section;
     const rawValues = books.map(book => value(book, key));
     const displayed = rawValues.map(n => DISPLAY_INVERTED.has(key) && n != null ? 1 - n : n);
     const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(rawValues, key);
@@ -853,11 +885,11 @@ function table(books, definitions) {
     const significant = sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS;
     const dispersionClass = sigma == null ? "" : significant ? "dispersion-usable" : "dispersion-low";
     const dispersionCell = sigma == null ? "—" : `${sigma.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
-    return `<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td><td class="${dispersionClass}">${dispersionCell}</td>${displayed.map((n, i) => `<td class="${[isAI(books[i]) ? "ai-value" : "", isEvolutionHighlighted(books[i]) ? "highlighted-entity" : ""].filter(Boolean).join(" ")}">${format(n, key)}</td>`).join("")}</tr>`;
+    return `${intertitle}<tr data-dispersion-significant="${significant}"><td>${metricLabel(key)}${note}</td><td class="${dispersionClass}">${dispersionCell}</td>${displayed.map((n, i) => `<td class="${[isAI(books[i]) ? "ai-value" : "", isEvolutionHighlighted(books[i]) ? "highlighted-entity" : ""].filter(Boolean).join(" ")}">${format(n, key)}</td>`).join("")}</tr>`;
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" || key === "form_lemma_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(PERCENT_DECIMALS.get(key) ?? 0)} %`; }
+function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(PERCENT_DECIMALS.get(key) ?? 0)} %`; }
 function downloadSvg() {
   if (!chart) return;
   const w = 1000, h = 760, cx = 500, cy = 350, radius = 260, count = chart.data.labels.length;
@@ -885,9 +917,9 @@ function exportPromptAndData() {
   }
   const tableOrder = [
     ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
-    ["punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate"],
-    ["stylistic_repetition_rate", "family_repetition_rate", "phonetic_repetition_rate", "absolute_repetition_rate", "trigram_repetition", "moving_trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "interjection_density", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "form_lemma_ratio", "hapax_ratio"],
-    ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_word_std_dev", "avg_paragraph_length"],
+    ["punctuation_ratio", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "sentence_start_recurrence_distance", "burstiness", "noun_verb_ratio", "local_repetition_ratio"],
+    ["local_phonetic_repetition_ratio", "global_phonetic_repetition_ratio", "absolute_repetition_rate", "trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "hapax_ratio"],
+    ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_length_std_dev", "avg_paragraph_length"],
   ];
   // L’export reprend toutes les mesures affichées dans les tableaux, quelle
   // que soit la sélection courante à gauche.
@@ -950,42 +982,42 @@ function controls() {
   document.getElementById("mds-reset")?.addEventListener("click", mdsReset);
   const neighborhoodCount = document.getElementById("neighborhood-count");
   if (neighborhoodCount) neighborhoodCount.innerHTML = [5, 10, 15, 20, 25, 30, 35, 40, 45].map(value => `<option value="${value}"${value === 5 ? " selected" : ""}>${value}</option>`).join("") + '<option value="all">Tous</option>';
-  const savedNeighborhood = JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null");
+  const savedNeighborhood = JSON.parse(storageGet("unshiter-neighborhood") || "null");
   if (savedNeighborhood?.count && neighborhoodCount.querySelector(`option[value="${savedNeighborhood.count}"]`)) neighborhoodCount.value = savedNeighborhood.count;
   document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
-  const savedBookIds = JSON.parse(localStorage.getItem("unshiter-books") || JSON.stringify(savedNeighborhood?.book_ids || [])).map(Number);
+  const savedBookIds = JSON.parse(storageGet("unshiter-books") || JSON.stringify(savedNeighborhood?.book_ids || [])).map(Number);
   // Après une resynchronisation SQLite, les identifiants peuvent changer.
   // Une ancienne sélection qui ne contient plus aucun livre ne doit pas
   // laisser l'interface et les tableaux avec zéro colonne d'œuvre.
   const currentBookIds = new Set(data.books.map(book => book.id));
   const validSavedBookIds = savedBookIds.filter(id => currentBookIds.has(id));
   const savedBooks = new Set(validSavedBookIds.length ? validSavedBookIds : []);
-  if (savedBookIds.length && !validSavedBookIds.length) localStorage.removeItem("unshiter-books");
-  const rawSavedMetrics = JSON.parse(localStorage.getItem("unshiter-metrics") || "[]").map(metricKey);
+  if (savedBookIds.length && !validSavedBookIds.length) storageRemove("unshiter-books");
+  const rawSavedMetrics = JSON.parse(storageGet("unshiter-metrics") || "[]").map(metricKey);
   const availableMetricKeys = new Set(MENU_METRICS.map(([key]) => key));
   const validSavedMetrics = rawSavedMetrics.filter(key => availableMetricKeys.has(key));
   const savedMetrics = new Set(validSavedMetrics);
-  if (rawSavedMetrics.length && !validSavedMetrics.length) localStorage.removeItem("unshiter-metrics");
+  if (rawSavedMetrics.length && !validSavedMetrics.length) storageRemove("unshiter-metrics");
   const groups = Object.groupBy ? Object.groupBy(data.books, b => b.author || "Auteur inconnu") : data.books.reduce((a, b) => ((a[b.author || "Auteur inconnu"] ||= []).push(b), a), {});
   const authorsPanel = document.getElementById("authors-panel");
   if (authorsPanel) {
-    authorsPanel.open = localStorage.getItem("unshiter-authors-open") !== "0";
-    authorsPanel.addEventListener("toggle", () => localStorage.setItem("unshiter-authors-open", authorsPanel.open ? "1" : "0"));
+    authorsPanel.open = storageGet("unshiter-authors-open") !== "0";
+    authorsPanel.addEventListener("toggle", () => storageSet("unshiter-authors-open", authorsPanel.open ? "1" : "0"));
   }
   const metrics = document.getElementById("metrics");
   const metricsTitle = metrics?.previousElementSibling;
   if (metrics && metricsTitle?.tagName === "H2") {
     const panel = document.createElement("details");
     panel.id = "metrics-panel";
-    panel.open = localStorage.getItem("unshiter-metrics-open") !== "0";
+    panel.open = storageGet("unshiter-metrics-open") !== "0";
     const summary = document.createElement("summary");
     summary.textContent = "Mesures du radar";
     panel.appendChild(summary);
     metricsTitle.replaceWith(panel);
     panel.appendChild(metrics);
-    panel.addEventListener("toggle", () => localStorage.setItem("unshiter-metrics-open", panel.open ? "1" : "0"));
+    panel.addEventListener("toggle", () => storageSet("unshiter-metrics-open", panel.open ? "1" : "0"));
   }
   for (const [author, books] of Object.entries(groups).sort(([a], [b]) => (a === "IA" ? -1 : b === "IA" ? 1 : a.localeCompare(b)))) { const id = `a${Math.random().toString(36).slice(2)}`; const all = books.every(b => savedBooks.size ? savedBooks.has(b.id) : true); document.getElementById("authors").insertAdjacentHTML("beforeend", `<details open><summary><input class="author-toggle" data-target="${id}" type="checkbox" ${all ? "checked" : ""}> ${author} (${books.length})</summary><div id="${id}">${books.map(b => `<label class="book"><input type="checkbox" value="${b.id}" ${savedBooks.size ? (savedBooks.has(b.id) ? "checked" : "") : "checked"}> ${b.title}</label>`).join("")}</div></details>`); }
   const clearBooks = document.createElement("button");
@@ -1002,19 +1034,19 @@ function controls() {
     const check = booksInputs.every(input => !input.checked);
     booksInputs.forEach(input => { input.checked = check; });
     document.querySelectorAll(".author-toggle").forEach(toggle => { toggle.checked = check; });
-    localStorage.setItem("unshiter-books", JSON.stringify(check ? data.books.map(book => book.id) : []));
+    storageSet("unshiter-books", JSON.stringify(check ? data.books.map(book => book.id) : []));
     updateClearBooksLabel();
     draw();
     saveNeighborhoodState();
   });
   MENU_METRICS.forEach(([key]) => { const id = publicMetricId(key); const defaultChecked = RADAR.some(([radarKey]) => radarKey === key); document.getElementById("metrics").insertAdjacentHTML("beforeend", `<label class="metric-row"><input type="checkbox" value="${id}" ${savedMetrics.size ? (savedMetrics.has(key) ? "checked" : "") : (defaultChecked ? "checked" : "")}> <span>${metricLabel(key)}</span><button class="metric-flip" data-key="${id}" type="button" title="Inverser le sens">↔</button><button class="metric-help" data-key="${id}" type="button">?</button></label>`); });
   const reset = document.createElement("button"); reset.id = "metrics-reset"; reset.type = "button"; reset.textContent = "Réinitialiser"; (document.getElementById("metrics-panel") || document.getElementById("metrics")).after(reset);
-  reset.addEventListener("click", () => { Object.keys(localStorage).filter(key => key.startsWith("unshiter-") && key !== "unshiter-presets").forEach(key => localStorage.removeItem(key)); flippedAxes.clear(); location.reload(); });
+  reset.addEventListener("click", () => { clearCorpusStorage(); flippedAxes.clear(); location.reload(); });
   const presetBox = document.createElement("div");
   presetBox.className = "config-actions";
   presetBox.innerHTML = '<button type="button" id="config-save">Sauvegarder la configuration</button><div id="config-presets"></div>';
   reset.after(presetBox);
-  const storedPresets = JSON.parse(localStorage.getItem("unshiter-presets") || "{}");
+  const storedPresets = JSON.parse(storageGet("unshiter-presets") || "{}");
   const presets = Array.isArray(storedPresets)
     ? Object.fromEntries(storedPresets.filter(item => item && item.name).map(item => [String(item.name).trim(), item]))
     : (storedPresets && typeof storedPresets === "object" ? storedPresets : {});
@@ -1024,33 +1056,34 @@ function controls() {
     const button = document.createElement("button"); button.type = "button"; button.dataset.name = name;
     const label = document.createElement("span"); label.textContent = name; button.appendChild(label);
     const remove = document.createElement("span"); remove.className = "preset-remove"; remove.textContent = "×"; remove.title = "Supprimer cette configuration"; remove.setAttribute("role", "button");
-    remove.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); delete presets[name]; localStorage.setItem("unshiter-presets", JSON.stringify(presets)); button.remove(); });
+    remove.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); delete presets[name]; storageSet("unshiter-presets", JSON.stringify(presets)); button.remove(); });
     button.appendChild(remove);
-    button.addEventListener("click", () => { const preset = presets[name]; localStorage.setItem("unshiter-books", JSON.stringify(preset.books)); localStorage.setItem("unshiter-metrics", JSON.stringify(preset.metrics)); localStorage.setItem("unshiter-flipped", JSON.stringify(preset.flipped || [])); localStorage.setItem("unshiter-neighborhood", JSON.stringify(preset.neighborhood || {})); localStorage.setItem("unshiter-view-mode", preset.view_mode || "works"); location.reload(); }); presetList.appendChild(button);
+    button.addEventListener("click", () => { const preset = presets[name]; storageSet("unshiter-books", JSON.stringify(preset.books)); storageSet("unshiter-metrics", JSON.stringify(preset.metrics)); storageSet("unshiter-flipped", JSON.stringify(preset.flipped || [])); storageSet("unshiter-neighborhood", JSON.stringify(preset.neighborhood || {})); storageSet("unshiter-view-mode", preset.view_mode || "works"); location.reload(); }); presetList.appendChild(button);
   });
   presetBox.querySelector("#config-save").addEventListener("click", () => {
     const name = window.prompt("Nom de la configuration :")?.trim();
     if (!name) return;
     Object.keys(presets).filter(existing => existing.toLocaleLowerCase() === name.toLocaleLowerCase()).forEach(existing => delete presets[existing]);
     saveNeighborhoodState();
-    presets[name] = { books: selected().map(book => book.id), metrics: checkedMetrics().map(publicMetricId), flipped: [...flippedAxes].map(publicMetricId), neighborhood: JSON.parse(localStorage.getItem("unshiter-neighborhood") || "null"), view_mode: authorProfile ? "authors" : authorLimits ? "author-limits" : corpusProfile ? "limits" : "works" };
-    localStorage.setItem("unshiter-presets", JSON.stringify(presets));
+    presets[name] = { books: selected().map(book => book.id), metrics: checkedMetrics().map(publicMetricId), flipped: [...flippedAxes].map(publicMetricId), neighborhood: JSON.parse(storageGet("unshiter-neighborhood") || "null"), view_mode: authorProfile ? "authors" : authorLimits ? "author-limits" : corpusProfile ? "limits" : "works" };
+    storageSet("unshiter-presets", JSON.stringify(presets));
     location.reload();
   });
-  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); localStorage.setItem("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
-  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); localStorage.setItem("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
+  document.querySelectorAll("#authors input, #metrics input").forEach(x => x.addEventListener("change", () => { storageSet("unshiter-books", JSON.stringify(selected().map(b => b.id))); storageSet("unshiter-metrics", JSON.stringify(checkedMetrics().map(publicMetricId))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
+  document.querySelectorAll(".author-toggle").forEach(x => x.addEventListener("change", () => { document.querySelectorAll(`#${x.dataset.target} input`).forEach(b => b.checked = x.checked); storageSet("unshiter-books", JSON.stringify(selected().map(b => b.id))); updateClearBooksLabel(); draw(); saveNeighborhoodState(); }));
   updateClearBooksLabel();
   document.addEventListener("change", event => { const select = event.target.closest(".chart-download, .table-download"); if (select) { if (select.dataset.table) downloadNeighborhoodTable(select.value); else if (select.dataset.tableId) downloadRenderedTable(document.getElementById(select.dataset.tableId), select.dataset.tableId, select.value); else downloadCanvas(document.getElementById(select.dataset.canvas), select.dataset.canvas, select.value); select.selectedIndex = -1; } });
+  document.addEventListener("click", event => { if (!event.target.closest("#secondary-table-order")) return; secondaryTableOrder = secondaryTableOrder === "delta" ? "notes" : "delta"; storageSet("unshiter-secondary-table-order", secondaryTableOrder); renderTables(selected()); });
   const noteClose = document.getElementById("metric-note-close");
   if (noteClose) noteClose.addEventListener("click", () => { document.getElementById("metric-note").hidden = true; });
   document.addEventListener("click", event => { if (event.target.closest(".open-app-help")) { event.preventDefault(); showApplicationHelp(); } });
-  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help, .note-link"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("note-link")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); localStorage.setItem("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
+  document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help, .note-link"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("note-link")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); storageSet("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
   document.querySelector("aside")?.appendChild(exportBox);
-  const savedViewMode = localStorage.getItem("unshiter-view-mode") || savedNeighborhood?.mode || "works";
+  const savedViewMode = storageGet("unshiter-view-mode") || savedNeighborhood?.mode || "works";
   if (savedViewMode === "authors") { authorProfile = true; corpusProfile = false; authorLimits = false; }
   else if (savedViewMode === "author-limits") { authorProfile = false; corpusProfile = true; authorLimits = true; }
   else if (savedViewMode === "limits") { authorProfile = false; corpusProfile = true; authorLimits = false; }
@@ -1060,18 +1093,22 @@ function controls() {
   if (authorProfile) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; }
   else if (authorLimits) { limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = true; worksButton.hidden = false; }
   else if (corpusProfile) showLimitsMode();
-  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "limits"); showLimitsMode(); draw(); saveNeighborhoodState(); });
-  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "authors"); limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); saveNeighborhoodState(); });
-  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; localStorage.setItem("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
-  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; localStorage.setItem("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
+  limitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "limits"); showLimitsMode(); draw(); saveNeighborhoodState(); });
+  authorsButton.addEventListener("click", () => { authorProfile = true; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "authors"); limitsButton.hidden = true; authorsButton.hidden = true; authorLimitsButton.hidden = false; worksButton.hidden = false; draw(); saveNeighborhoodState(); });
+  authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
+  worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260901151458492286000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260909073236518967000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
   const requestedCorpus = new URLSearchParams(location.search).get("corpus");
   const defaultCorpus = availableCorpora.some(corpus => corpus.id === "bigcorpus") ? "bigcorpus" : availableCorpora[0]?.id;
   const activeCorpus = availableCorpora.some(corpus => corpus.id === requestedCorpus) ? requestedCorpus : defaultCorpus;
+  activateCorpusStorage(activeCorpus);
+  evolutionHighlight = storageGet("unshiter-evolution-highlight") || "";
+  const savedSecondaryTableOrder = storageGet("unshiter-secondary-table-order");
+  secondaryTableOrder = ["delta", "notes"].includes(savedSecondaryTableOrder) ? savedSecondaryTableOrder : "delta";
   if (corpusSelect) {
     corpusSelect.replaceChildren(...availableCorpora.map(corpus => {
       const option = document.createElement("option");
@@ -1099,6 +1136,15 @@ fetch("data.json?v=20260901151458492286000").then(r => r.json()).then(json => {
       }, 0);
     }
   }
+  // Les mesures quasi constantes ne doivent pas être amplifiées par leur
+  // centrage-réduction. Le même seuil que dans les tableaux définit l'espace
+  // utilisé par Burrows, la singularité, la MDS et le voisinage.
+  const significantBurrowsFields = BURROWS_FIELDS.filter(field => {
+    const values = data.books.map(book => value(book, field)).filter(Number.isFinite);
+    return (dispersion(values, field) ?? 0) >= DISPERSION_SIGNIFICANCE_POINTS;
+  });
+  BURROWS_FIELDS.splice(0, BURROWS_FIELDS.length, ...significantBurrowsFields);
+  console.info(`[voisinage] ${BURROWS_FIELDS.length} mesures conservées avec une dispersion ≥ ${DISPERSION_SIGNIFICANCE_POINTS} %`);
   for (const key of data.raw_metrics || []) {
     if (!DETAILS.some(([field]) => field === key)) DETAILS.push([key, data.metric_labels?.[key] || key, false]);
     TECHNICAL_KEYS.add(key);
@@ -1120,11 +1166,11 @@ fetch("data.json?v=20260901151458492286000").then(r => r.json()).then(json => {
   IA_COLOR = data.palette?.ia || IA_COLOR;
   // Les inversions d'axes font partie de la configuration persistante, au
   // même titre que les œuvres et les mesures cochées.
-  const savedFlips = JSON.parse(localStorage.getItem("unshiter-flipped") || "[]").map(metricKey);
+  const savedFlips = JSON.parse(storageGet("unshiter-flipped") || "[]").map(metricKey);
   const availableMetricKeys = new Set(MENU_METRICS.map(([key]) => key));
   const validSavedFlips = savedFlips.filter(key => availableMetricKeys.has(key));
   validSavedFlips.forEach(key => flippedAxes.add(key));
-  if (savedFlips.length !== validSavedFlips.length) localStorage.setItem("unshiter-flipped", JSON.stringify(validSavedFlips));
+  if (savedFlips.length !== validSavedFlips.length) storageSet("unshiter-flipped", JSON.stringify(validSavedFlips));
   // L’ordre et la sélection par défaut viennent exclusivement des marqueurs
   // #tab1_N des notes, jamais d’une liste parallèle dans le JavaScript.
   if (Array.isArray(data.default_radar) && data.default_radar.length) {

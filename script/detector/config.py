@@ -9,7 +9,9 @@ README_FILE = PROJECT_ROOT / "README.md"
 
 SCRIPT_DIR = PROJECT_ROOT / "script"
 CORPUS_DIR = PROJECT_ROOT / "corpus"
-DEFAULT_CORPUS_ID = os.environ.get("UNSHITER_CORPUS", "bigcorpus")
+# Les calculs de développement restent confinés au petit corpus. Le site
+# choisit indépendamment ``bigcorpus`` comme corpus d'affichage initial.
+DEFAULT_CORPUS_ID = os.environ.get("UNSHITER_CORPUS", "crouzet")
 ACTIVE_CORPUS_DIR = CORPUS_DIR / DEFAULT_CORPUS_ID
 SOURCE_DIR = ACTIVE_CORPUS_DIR / "sources"
 EPUB_DIR = ACTIVE_CORPUS_DIR / "_epub"
@@ -24,8 +26,9 @@ CHART_PALETTE_FILE = ASSETS_DIR / "chart-palette.yml"
 PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
-EPUB_ANALYSIS_WINDOW_SIZE = 20_000
-EPUB_ANALYSIS_VERSION = "first-window-clean-body-v64-modal-generalization-optimized"
+ANALYSIS_WINDOW_WORDS = 1_000
+EPUB_MIN_TEXT_CHARS = 5_000
+EPUB_ANALYSIS_VERSION = "first-window-clean-body-v65-markdown-normalization-punctuation-count"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOC_DIR = PROJECT_ROOT / "_doc"
 TEMP_DIR = PROJECT_ROOT / "_temp"
@@ -37,7 +40,6 @@ STATS_FILENAME_SUFFIX = "_stats"
 SOURCE_MARKDOWN_PATTERN = "*.md"
 MARKDOWN_EXTENSION = ".md"
 JSON_EXTENSION = ".json"
-STATS_COMPARISON_FILE = OUTPUT_DIR / "stats_comparison.md"
 MORPHALOU_DIR = DICTIONARIES_DIR / "morphalou"
 MORPHALOU_ARCHIVE = MORPHALOU_DIR / "Morphalou3.1_formatCSV_toutEnUn.zip"
 MORPHALOU_CSV_MEMBER = "Morphalou3.1_formatCSV_toutEnUn/Morphalou3.1_CSV.csv"
@@ -50,29 +52,17 @@ ABSTRACT_NOUN_SUFFIXES_FILE = DICTIONARIES_DIR / "abstract-noun-suffixes.txt"
 CONCRETE_NOUN_EXCEPTIONS_FILE = DICTIONARIES_DIR / "concrete-noun-exceptions.txt"
 DURATION_MARKERS_FILE = DICTIONARIES_DIR / "duration-markers.txt"
 MODAL_VERBS_FILE = DICTIONARIES_DIR / "modal_verbs.txt"
+GENERIC_SUBJECT_PRONOUNS_FILE = DICTIONARIES_DIR / "generic-subject-pronouns.txt"
 LEXIQUE_DIR = DICTIONARIES_DIR / "lexique"
 LEXIQUE_ARCHIVE = LEXIQUE_DIR / "Lexique383.tsv"
 LEXIQUE_INDEX = LEXIQUE_DIR / "lexique.sqlite3"
 STATIVE_VERBS_FILE = DICTIONARIES_DIR / "stative-verbs.txt"
 TEMPORAL_CONNECTORS_FILE = DICTIONARIES_DIR / "temporal-connectors.txt"
 LOGICAL_CONNECTORS_FILE = DICTIONARIES_DIR / "logical-connectors.txt"
-EMOTIONAL_INTERJECTIONS_FILE = DICTIONARIES_DIR / "emotional-interjections.txt"
 EMOTIONS_FILE = DICTIONARIES_DIR / "emotions.txt"
 STATS_NOTES_FILE = ASSETS_DIR / "stats-notes.md"
-STRUCTURE_REPORT_SUFFIX = "_structure"
-LEMMA_REPORT_SUFFIX = "_lemmes"
-GRAMMATICAL_DISTRIBUTION_CHART = OUTPUT_DIR / "grammatical_distribution.svg"
-KIVIAT_CHART = OUTPUT_DIR / "kiviat.svg"
-KIVIAT_DETAIL_CHART = OUTPUT_DIR / "kiviat_details.svg"
-README_KIVIAT_DETAIL_CHART = ASSETS_DIR / "readme" / "kiviat-details-github.png"
-README_KIVIAT_CHART = ASSETS_DIR / "readme" / "kiviat-github.png"
-README_KIVIAT_AREA_CHART = ASSETS_DIR / "readme" / "kiviat-areas-github.png"
-README_GRAMMATICAL_CHART = ASSETS_DIR / "readme" / "grammatical-distribution-github.png"
-KIVIAT_AREA_CHART = OUTPUT_DIR / "kiviat_areas.svg"
-STATS_CACHE_MANIFEST = TEMP_DIR / "stats-cache.json"
 METRIC_CACHE_VERSIONS = {
     "trigram_repetition": "2-lemmas-contextual-morphalou",
-    "moving_trigram_repetition": "2-lemmas-contextual-morphalou",
 }
 README_STATS_START = "<!-- STATS:START -->"
 README_STATS_END = "<!-- STATS:END -->"
@@ -84,21 +74,17 @@ DEMONETTE_INDEX = DEMONETTE_DIR / "demonette.sqlite3"
 DEMONETTE_SCHEMA_VERSION = "2"
 PHONETIC_MIN_SEQUENCE = 3
 PHONETIC_MIN_RATIO = 0.6
-REPETITION_PROXIMITY_WORDS = 300
-STYLISTIC_EXACT_WEIGHT = 1.0
-STYLISTIC_LEMMA_WEIGHT = 0.25
-STYLISTIC_FAMILY_WEIGHT = 0.25
 SPACY_FRENCH_MODEL = "fr_core_news_lg"
 SPACY_RELATIVE_DEPENDENCIES = {"acl:relcl"}
 SPACY_SUBORDINATE_DEPENDENCIES = {"acl", "advcl", "ccomp", "csubj", "xcomp"}
-LEXICAL_WINDOW_SIZE = 300
 MIN_COMPARISON_LEXICAL_WORDS = 200
 COMPARISON_WINDOW_STEP_DIVISOR = 4
 
-def _metrics_from_notes() -> tuple[str, ...]:
-    """Construit le registre depuis les titres de ``stats-notes.md``."""
-    heading = re.compile(r"^#{1,6} .+? \(([a-z][a-z0-9_]*)\)\s*$")
+def _metrics_from_notes() -> tuple[tuple[str, ...], frozenset[str]]:
+    """Construit le registre et les exclusions SQLite depuis les notes."""
+    heading = re.compile(r"^#{1,6} .+? \(([a-z][a-z0-9_]*)\)(?:\s+(#[a-z0-9_-]+))?\s*$")
     metrics: list[str] = []
+    non_persisted: set[str] = set()
     malformed: list[str] = []
     for line_number, line in enumerate(STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines(), 1):
         if not re.match(r"^#{1,6}\s", line):
@@ -107,12 +93,14 @@ def _metrics_from_notes() -> tuple[str, ...]:
         if not match:
             # Titre de section sans identifiant de fonction.
             continue
-        field = match.group(1)
+        field, flag = match.groups()
         if field.startswith("note_"):
             continue
         if field in metrics:
             raise ValueError(f"Fonction métrique dupliquée dans {STATS_NOTES_FILE}: {field}")
         metrics.append(field)
+        if flag == "#web":
+            non_persisted.add(field)
     if malformed:
         raise ValueError(
             f"Chaque note doit finir par '(nom_de_fonction)' dans {STATS_NOTES_FILE}:\n"
@@ -120,21 +108,12 @@ def _metrics_from_notes() -> tuple[str, ...]:
         )
     if not metrics:
         raise ValueError(f"Aucune mesure définie dans {STATS_NOTES_FILE}")
-    return tuple(metrics)
+    return tuple(metrics), frozenset(non_persisted)
 
 
-# Source de vérité unique : titre, identifiant et fonction vivent dans les notes.
-METRICS = _metrics_from_notes()
-
-# Ces mesures sont des vues calculées à partir de comptes persistés. Elles
-# restent dans METRICS et disposent d'une méthode Metrics, mais SQLite ne
-# conserve pas une seconde copie de la même information.
-DERIVED_METRICS = {
-    "common_noun_ratio", "proper_noun_ratio", "nominal_sentence_ratio",
-    "relative_clause_ratio", "subordinate_clause_ratio", "lexical_word_count",
-    "question_mark_ratio",
-}
-PERSISTED_METRICS = tuple(field for field in METRICS if field not in DERIVED_METRICS)
+# Source de vérité unique : identifiant, ordre et persistance vivent dans les notes.
+METRICS, NON_PERSISTED_METRICS = _metrics_from_notes()
+PERSISTED_METRICS = tuple(field for field in METRICS if field not in NON_PERSISTED_METRICS)
 
 
 def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
@@ -142,7 +121,7 @@ def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
     axes: list[tuple[str, str]] = []
     section_level: int | None = None
     expected_title = section_title.strip().casefold()
-    heading = re.compile(r"^#{1,6}\s+(.+?) \(([a-z][a-z0-9_]*)\)\s*$")
+    heading = re.compile(r"^#{1,6}\s+(.+?) \(([a-z][a-z0-9_]*)\)(?:\s+#[a-z0-9_-]+)?\s*$")
     for line in STATS_NOTES_FILE.read_text(encoding="utf-8").splitlines():
         section = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
         if not section:
@@ -162,8 +141,7 @@ def _metric_axes_from_notes(section_title: str) -> tuple[tuple[str, str], ...]:
         title, field = match.groups()
         if field not in METRICS:
             raise ValueError(f"Axe de la section {section_title!r} absent de METRICS: {field}")
-        bold = re.findall(r"\*\*([^*]+)\*\*", title)
-        label = bold[0].strip() if bold else title.replace("**", "").split("/", 1)[0].strip()
+        label = title.split("/", 1)[0].replace("**", "").strip()
         axes.append((label, field))
     if not axes:
         raise ValueError(f"Section {section_title!r} vide ou absente dans {STATS_NOTES_FILE}")
@@ -197,10 +175,10 @@ ORNATENESS_WEIGHTS = {
     "heavily_modified_noun_ratio": 0.20,
     "metaphorical_comme_ratio": 0.15,
     "adjective_chain_ratio": 0.15,
-    "avg_sentence_length": 0.10,
+    "sentence_start_recurrence_distance": 0.11,
     "right_branching_depth": 0.20,
-    "incise_density": 0.10,
-    "coordination_accumulation_ratio": 0.10,
+    "incise_density": 0.095,
+    "coordination_accumulation_ratio": 0.095,
 }
 
 NARRATIVITY_WEIGHTS = {

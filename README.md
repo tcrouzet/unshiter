@@ -19,13 +19,17 @@ La base SQLite `assets/unshiter.sqlite3` est la source de vérité. Les scripts 
 
 ### Ajouter ou actualiser des EPUB
 
-Les EPUB peuvent être déposés n’importe où sous `corpus/<id>/`, avec autant de sous-dossiers que souhaité. L’extraction produit un Markdown normalisé à côté de chaque EPUB ; les préliminaires, titres, citations et paragraphes sont convertis selon son balisage. `bigcorpus` est le corpus par défaut ; un autre corpus peut être choisi avec `UNSHITER_CORPUS=<id>` ou l’option `--corpus <id>` de l’indexeur.
+Les EPUB peuvent être déposés n’importe où sous `corpus/<id>/`, avec autant de sous-dossiers que souhaité. L’extraction produit un Markdown normalisé à côté de chaque EPUB ; les préliminaires, titres, citations et paragraphes sont convertis selon son balisage. L’application web affiche `bigcorpus` par défaut.
 
 ```bash
 ./epubs.sh
+./epubs.sh crouzet
+./epubs.sh --reset
 ```
 
-La commande met à jour la base, supprime les livres disparus et signale les publications sans date. Les corrections éditoriales (titre ou année) se font dans `assets/publication.yml` ; les entrées sont conservées lors des actualisations.
+Sans argument, la commande parcourt tous les dossiers directs de `corpus/`. Avec un identifiant, elle ne traite que ce corpus. Dans les deux cas, elle conserve les mesures présentes et ne calcule que les fichiers modifiés ou les mesures manquantes. Elle supprime aussi les appartenances disparues et signale les publications sans date. Les corrections éditoriales (titre ou année) se font dans `assets/publication.yml` ; les entrées sont conservées lors des actualisations.
+
+Avec `--reset`, la commande vide entièrement les tables SQLite d’analyse et de cache, recalcule tous les corpus, Big Five compris, puis régénère `web/data.json`. Les EPUB, les Markdown et `assets/publication.yml` sont conservés.
 
 Tous les Markdown trouvés récursivement sous `corpus/<id>/` sont indexés. C’est le champ `author` de leur en-tête YAML qui détermine le classement : `author: "IA"` les place dans le groupe IA, quel que soit le nom du fichier ; toute autre valeur les classe parmi les textes humains. Une œuvre présente dans plusieurs corpus conserve une seule analyse, reconnue par son empreinte SHA-256.
 
@@ -76,6 +80,29 @@ Puis ouvrir <http://localhost:8000/>.
 - `web/` : application statique et données exportées ;
 - `_temp/` : cache et fichiers temporaires.
 
+
+## Ressources linguistiques
+
+<a id="note_spacy"></a>
+### spaCy (note_spacy)
+Le modèle français `fr_core_news_lg` de [spaCy](https://spacy.io/models/fr) segmente le texte et fournit en contexte les lemmes, catégories grammaticales, traits morphologiques et dépendances syntaxiques. Il alimente notamment les comptes de propositions, verbes, participes, sujets, voix et modificateurs. Cette analyse est probabiliste : les phrases longues, elliptiques ou littéraires peuvent être mal segmentées ou mal étiquetées.
+
+<a id="note_morphalou"></a>
+##### Morphalou (note_morphalou)
+[Morphalou 3.1](https://repository.ortolang.fr/api/content/morphalou/2/LISEZ_MOI.html) est un lexique morphologique du français utilisé pour relier les formes fléchies à leurs lemmes et catégories grammaticales. Il sert de repli ou de contrôle lorsque l’analyse contextuelle ne suffit pas. Comme il décrit des formes hors contexte, une graphie ambiguë peut correspondre à plusieurs analyses possibles.
+
+<a id="note_lexique383"></a>
+##### Lexique 3.83 (note_lexique383)
+[Lexique 3.83](http://www.lexique.org/) fournit les fréquences d’usage qui alimentent la mesure de rareté lexicale. Une fréquence issue de ce corpus lexical ne représente pas nécessairement l’usage propre à une époque, un genre ou un auteur.
+
+<a id="note_demonette"></a>
+##### Démonette (note_demonette)
+[Démonette](https://demonette.fr/) décrit les familles dérivationnelles du français, par exemple les relations entre « écrire », « écrivain » et « écriture ». Le projet l’utilise pour étendre les entrées du dictionnaire émotionnel à leurs lexèmes apparentés. Ses données phonétiques servent également au repérage des répétitions sonores. Ces rapprochements sont lexicaux et non contextuels : appartenir à une même famille ne garantit ni un sens identique dans la phrase ni une même valeur émotionnelle.
+
+<a id="note_custom_lexicons"></a>
+##### Dictionnaires maison (note_custom_lexicons)
+Les fichiers texte de `assets/dictionnaires/` complètent les ressources générales par des listes adaptées aux mesures du projet : émotions, mots-outils, connecteurs temporels et logiques, verbes statifs ou modaux, pronoms génériques, marqueurs de durée, de comparaison, de familiarité et de négation, suffixes abstraits et exceptions concrètes. Chaque mesure indique le fichier précis qu’elle emploie. Ces listes sont explicites et modifiables, mais leur couverture reste artisanale : une absence n’implique pas l’absence linguistique du phénomène, et une présence ne résout ni la polysémie ni le contexte.
+
 <!-- STATS:START -->
 ## Métriques
 
@@ -95,35 +122,30 @@ Les BigFive synthétisent des familles de mesures complémentaires. Ils servent 
 
 <a id="classicism_score"></a>
 ##### **Classique** / Contemporain (classicism_score)
-
 Score qui agrège l’usage des [subjonctifs imparfaits ou plus-que-parfaits](#literary_subjunctive_ratio), l’absence de [futur périphrastique](#periphrastic_future_ratio), l’absence de [familiarité orale](#oral_familiarity_ratio) en dehors des [dialogues](#dialogue_ratio), la [diversité syntaxique](#structural_diversity), un [style verbal](#noun_verb_ratio), une [voix active](#active_voice_ratio) et l'emploi des [points-virgules et deux-points](#punctuation_variety_score). Le [passé simple](#simple_past_ratio) reste une mesure indépendante et n’entre pas dans ce score.
 
 **Limite :** le score mesure un registre narratif littéraire formel (grammaire et registre écrits, absence d'oralité), pas une esthétique historique précise. Un texte contemporain narré au [passé simple](#simple_past_ratio) ou au subjonctif littéraire peut afficher un registre écrit soigné sans rien partager avec l'esthétique du XVII<sup>e</sup> siècle.
 
 <a id="baroque_score"></a>
 ##### **Maximaliste** / Minimaliste (baroque_score)
+Score composite : proche de 0, minimalisme ; proche de 100, maximalisme. Il combine l'[enrichissement des groupes nominaux](#heavily_modified_noun_ratio), les [comparaisons](#metaphorical_comme_ratio), les [chaînes adjectivales](#adjective_chain_ratio), la [distance de répétition des débuts de phrase](#sentence_start_recurrence_distance), la [profondeur d'expansion en fin de phrase](#right_branching_depth), la [densité d'incises](#incise_density) et l'[accumulation de coordinations](#coordination_accumulation_ratio). La longueur moyenne des phrases reste une mesure indépendante afin de ne pas renforcer une seconde fois la complexité syntaxique.
 
-Score composite : proche de 0, minimalisme ; proche de 100, maximalisme. Il combine l'[enrichissement des groupes nominaux](#heavily_modified_noun_ratio), les [comparaisons](#metaphorical_comme_ratio), les [chaînes adjectivales](#adjective_chain_ratio), la [longueur des phrases](#avg_sentence_length), la [profondeur d'expansion en fin de phrase](#right_branching_depth), la [densité d'incises](#incise_density), l'[accumulation de coordinations](#coordination_accumulation_ratio) et la [densité de ponctuation savante](#punctuation_variety_score).
-
-**Limite :** plusieurs composantes (profondeur d'expansion, ponctuation savante, longueur de phrase) sont sensibles à la qualité de l'analyse syntaxique de spaCy et peuvent être gonflées par une prose générée artificiellement qui empile des subordonnées sans réelle cohérence rhétorique — un pastiche peut ainsi obtenir un score élevé sans être « maximaliste » au sens littéraire du terme.
+**Limite :** plusieurs composantes sont sensibles à la qualité de l'analyse syntaxique et à la segmentation des phrases. Une prose générée artificiellement peut empiler des expansions ou espacer mécaniquement ses patrons sans réelle cohérence rhétorique — un pastiche peut ainsi obtenir un score élevé sans être « maximaliste » au sens littéraire du terme.
 
 <a id="narrativity_score"></a>
 ##### **Narratif** / Descriptif (narrativity_score)
-
 Proche de 100 %, récit d'action ; proche de 0, peinture descriptive. Le score combine les [verbes d'action](#action_verb_ratio), les [connecteurs temporels](#temporal_connector_ratio), les [dialogues](#dialogue_ratio), la [voix active](#active_voice_ratio), le [taux de rupture temporelle](#tense_shift_rate) entre paragraphes et la [densité de noms propres](#proper_noun_density), en retirant les [phrases nominales](#nominal_sentence_ratio) et la [densité d'adjectifs](#adjective_ratio). Le [passé narratif](#narrative_past_ratio) et le [taux de marqueurs de sommaire](#scene_summary_ratio) restent des mesures informatives séparées et n'entrent pas dans ce score.
 
 **Limite :** un texte à phrases très courtes et fragmentées (écriture pour réseaux sociaux, par exemple) peut afficher un [taux de dialogue](#dialogue_ratio) et une accumulation d'adjectifs artificiellement bas faute de matière suffisante, ce qui peut gonfler le score sans que le texte soit réellement orienté vers l'action narrative.
 
 <a id="emotionality_score"></a>
 ##### **Émotionnel** / Neutre (emotionality_score)
-
 Score composite à trois composantes : la [part de phrases à caractère émotionnel](#emotion_sentence_ratio), l'[intensification émotionnelle](#emotion_intensification_ratio) et L'[entropie des registres émotionnels](#emotional_category_entropy). Il décrit une densité et une gradation d'expression affective explicite détectée par lexique, pas la qualité ni la valence positive ou négative du texte, ni une charge émotionnelle exprimée par litote ou par déplacement narratif.
 
 **Limite :** ce score ne peut détecter que la présence et l'intensité de vocabulaire émotionnel explicite. Une prose qui déplace délibérément la charge affective sur un détail concret sans jamais nommer l'émotion (procédé fréquent dans les récits de deuil ou de violence retenue) obtiendra un score bas, quelle que soit la charge réelle du texte — ce n'est pas un défaut de calibrage mais une limite structurelle d'une détection lexicale sans compréhension sémantique. Même un LLM aurait du mal à détecter ce genre de décallage.
 
 <a id="discursivite_score"></a>
 ##### **Discursif** / Immersif (discursivite_score)
-
 Score fondé sur la densité des [connecteurs logiques](#logical_connector_ratio) et argumentatifs, la part de [noms abstraits](#abstract_noun_ratio) et le [présent gnomique](#gnomic_present_ratio). Une valeur élevée indique davantage de commentaire, de généralisation ou d'argumentation ; une valeur faible correspond à une scène plus directement vécue ou décrite.
 
 **Limite :** les trois composantes reposent sur des lexiques et des patrons syntaxiques fixes ; un texte qui argumente sans connecteurs explicites (par juxtaposition, par exemple) ou qui généralise sans passer par le présent gnomique passera sous le radar de cette mesure.
@@ -148,35 +170,39 @@ Ce tassemment modère l'influence des choix stylistiques extrêmes, comme les ph
 
 <a id="note_singularity"></a>
 ##### Singularité (note_singularity)
-Distance de Burrows calculée sur les mesures stylistiques sélectionnées. Chaque mesure est d’abord centrée et réduite sur l’ensemble du corpus ; la distance entre deux œuvres est la moyenne des écarts absolus entre leurs z-scores. Le graphique affiche, pour chaque œuvre ou auteur sélectionné, la distance à son voisin le plus proche. Une valeur faible indique une proximité statistique, pas une identité d’auteur ni une preuve d’influence.
+Distance de Burrows calculée uniquement sur les mesures stylistiques dont la [dispersion](#note_dispersion) atteint au moins 5 % parmi toutes les œuvres du corpus choisi. Ce filtrage porte sur le corpus complet et ne dépend jamais des œuvres ou auteurs sélectionnés dans l’interface. Chaque mesure retenue est d’abord centrée et réduite sur l’ensemble du corpus ; la distance entre deux œuvres est la moyenne des écarts absolus entre leurs z-scores. Le graphique affiche, pour chaque œuvre ou auteur sélectionné, la distance à son voisin le plus proche. Une valeur faible indique une proximité statistique, pas une identité d’auteur ni une preuve d’influence.
 
 <a id="note_mds"></a>
 ##### Carte stylistique MDS (note_mds)
-Projection en deux dimensions des distances de Burrows. Les œuvres proches dans la carte sont proches dans l’espace multidimensionnel ; les axes de la projection n’ont pas de signification littéraire propre. Le stress indique la déformation introduite par la réduction à deux dimensions : plus il est faible, plus la carte respecte les distances originales.
+Projection en deux dimensions des distances de Burrows calculées sur les seules mesures dont la [dispersion](#note_dispersion) atteint au moins 5 % parmi toutes les œuvres du corpus choisi, indépendamment de la sélection affichée. Les œuvres proches dans la carte sont proches dans cet espace multidimensionnel ; les axes de la projection n’ont pas de signification littéraire propre. Le stress indique la déformation introduite par la réduction à deux dimensions : plus il est faible, plus la carte respecte les distances originales.
 
 <a id="note_neighborhood"></a>
 ##### Voisinage stylistique (note_neighborhood)
 Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
 
-Mathématiquement, chaque œuvre est représentée par le vecteur de ses mesures sélectionnées. Pour chaque mesure `j`, on calcule sur tout le corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
+Mathématiquement, chaque œuvre est représentée par le vecteur des mesures dont la [dispersion](#note_dispersion) atteint au moins 5 % sur le corpus complet, jamais sur la seule sélection affichée. Pour chaque mesure retenue `j`, on calcule sur toutes les œuvres du corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
 
 ### Mesures
 
 Tentent de capturer les diverses caractéristiques d'un texte.
 
+
+
 #### Ponctuation
 
-<a id="punctuation_per_300_words"></a>
-##### **Densité de ponctuations** / Sparsité de ponctuations (punctuation_per_300_words)
-Pourcentage de signes de ponctuation par mots sur tout le document. Un style très ponctué est plus haché, plus mitraillé ; un style moins ponctué implique un flot continu.
+<a id="punctuation_ratio"></a>
+##### **Densité de ponctuations** / Sparsité de ponctuations (punctuation_ratio)
+[Nombre total de signes de ponctuation](#punctuation_mark_count) divisé par le [nombre de mots](#word_count).
 
 <a id="punctuation_diversity"></a>
 ##### **Complexité de ponctuation** / Simplicité de ponctuation (punctuation_diversity)
-Répartition des signes de ponctuation en dix familles : point, virgule, point-virgule, deux-points, interrogation, exclamation, tiret, parenthèses, guillemets et points de suspension. Le calcul utilise l’entropie de cette répartition, divisée par `log₂(10)` puis ramenée entre 0 et 100 %. Le dénominateur reste donc celui de la palette complète : un texte qui emploie trois familles équilibrées n’atteint pas 100 %, car il n’utilise pas tout l’arsenal disponible. Une faible entropie indique l'usage de peu de ponctuation différente, par exemple seulement des points et virgules, alors qu'une grande entropie implique un usage équilibré de nombreuses familles.
+Entropie de Shannon de la répartition entre les dix comptages élémentaires : [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count). L’entropie est divisée par `log₂(10)`. Une valeur faible indique qu’un petit nombre de familles domine ; 100 % implique un emploi parfaitement équilibré des dix familles.
 
 <a id="punctuation_variety_score"></a>
 ##### Densité de ponctuation savante (punctuation_variety_score)
-Nombre de points-virgules et de deux-points rapporté au [nombre de phrases](#sentence_count). Ces signes explicitent ou déploient une articulation logique ou énumérative à l'intérieur de la phrase ; une valeur élevée indique une syntaxe plus élaborée.
+Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-points](#colon_count) et du [nombre de tirets](#dash_count), divisée par le [nombre de phrases](#sentence_count).
+
+
 
 #### Syntaxe et grammaire
 
@@ -186,48 +212,61 @@ Chaque phrase est d’abord transformée en propositions simplifiées, par exemp
 
 Deux phrases sont comparées en combinant deux distances : 75 % pour la différence entre les proportions de leurs constructions et 25 % pour la différence entre leurs nombres d’occurrences. Cette distance est ensuite pondérée par la quantité d’information disponible : le poids augmente avec le nombre cumulé de propositions et atteint son maximum à douze. Deux phrases très courtes ne peuvent donc pas créer seules une opposition maximale. À l’inverse, cinq subordonnées identiques apportent moins de diversité que cinq constructions différentes. La valeur finale est la moyenne des distances entre toutes les paires de phrases, de 0 à 100 %.
 
+<a id="sentence_start_diversity"></a>
+##### **Diversité des débuts de phrase** / Régularité des débuts de phrase (sentence_start_diversity)
+Utilise exactement les signatures déjà produites pour la [diversité syntaxique](#structural_diversity), puis ne conserve que leur première unité. Cette unité s’arrête à la première ponctuation conservée dans la signature ou à l’ouverture d’une proposition subordonnée.
+
+La dispersion est calculée avec l’indice de Gini-Simpson corrigé pour un échantillon fini : `1 − nombre de paires identiques / nombre total de paires`. Elle représente donc la probabilité que deux phrases distinctes choisies au hasard commencent par deux structures différentes. Une valeur de 85 % signifie que 85 % des paires ont des débuts différents et que 15 % ont le même début ; elle ne signifie pas que 85 % des phrases possèdent un début unique.
+
+Pour donner un ordre de grandeur plus intuitif, `1 / (1 − dispersion)` fournit le nombre effectif de structures également fréquentes qui produirait la même dispersion : 85 % équivaut ainsi à environ 6,7 structures équilibrées. Cela ne signifie pas qu’un début se répète toutes les sept phrases, car cette mesure ne tient pas compte de leur ordre dans le texte. 0 % signifie que toutes les phrases commencent de la même manière ; une valeur proche de 100 % indique des débuts très dispersés. Le nombre de structures possibles n’est pas fixé à l’avance.
+
+<a id="sentence_start_recurrence_distance"></a>
+##### **Distance de répétition des débuts de phrase** / Proximité des répétitions de débuts (sentence_start_recurrence_distance)
+Pour chaque structure de début déjà rencontrée, compte le nombre de phrases écoulées depuis son occurrence précédente, puis calcule la moyenne de ces écarts sur tout le document. L’unité est la **phrase** : une valeur de 7 signifie qu’en moyenne une structure récurrente réapparaît sept phrases après son emploi précédent. Les structures employées une seule fois n’entrent pas dans cette moyenne. Contrairement à la [diversité des débuts de phrase](#sentence_start_diversity), cette mesure tient donc compte de l’ordre du texte et distingue les répétitions rapprochées des reprises espacées.
+
 <a id="structural_rhythm"></a>
 ##### **Alternance structurelle** / Régularité structurelle (structural_rhythm)
 Compare chaque structure de phrase à la suivante dans l’ordre du texte. La distance d’édition compte les rôles qu’il faudrait ajouter, supprimer ou remplacer pour passer d’un patron à l’autre, puis divise ce nombre par la longueur du patron le plus long. Le résultat final est la moyenne de ces distances. 0 % signifie que les mêmes patrons se succèdent ; une valeur élevée indique des changements structurels fréquents.
 
 <a id="noun_verb_ratio"></a>
 ##### Style nominal / **Style verbal** (noun_verb_ratio)
-Nombre de noms reconnu par [Morphalou](https://www.ortolang.fr/market/lexicons/morphalou/v3.1) divisé par le nombre de verbes reconnu par Morphalou. Une valeur de 2 signifie que le texte contient deux noms pour un verbe.
+[Nombre de noms communs](#common_noun_count) et de [noms propres](#proper_noun_count), divisé par le [nombre de verbes du profil grammatical](#grammatical_verb_count). Une valeur de 2 indique deux noms pour un verbe.
 
 Un ratio élevé traduit un style nominal : le texte s'appuie sur des substantifs plutôt que sur des actions, souvent au prix d'une syntaxe plus statique — descriptions, énumérations, écriture administrative ou théorique, phrases qui exposent plutôt qu'elles ne racontent. À l'inverse, un ratio bas traduit un style verbal : le texte progresse par l'action, les procès, les enchaînements d'événements — un rythme plus narratif et dynamique, où les choses se passent plutôt qu'elles ne sont.
 
 <a id="function_word_ratio"></a>
 ##### Densité grammaticale / **Densité lexicale** (function_word_ratio)
-Part des mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections. Les adverbes ne sont pas inclus. La liste éditable se trouve dans `assets/dictionnaires/function-words.txt` et complète les catégories de Morphalou. Cette mesure décrit la place du matériel grammatical dans le texte ; elle ne constitue pas à elle seule un jugement de qualité.
+[Nombre de mots grammaticaux](#function_word_count) divisé par le [nombre de mots](#word_count).
 
 Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel grammatical (déterminants, pronoms, prépositions, conjonctions, interjections) — souvent des phrases courtes, un style oral ou fluide. Une valeur basse signifie que le texte est porté par les mots pleins (noms, verbes, adjectifs, adverbes) — style plus dense, informatif ou nominal.
 
 <a id="noun_ratio"></a>
 ##### Densité des noms / Sparcité des noms (noun_ratio)
-Nombre de mots classés comme noms par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale. Les quatre lignes noms, verbes, adjectifs et adverbes ne totalisent pas nécessairement 100 %, car le dénominateur comprend aussi d’autres catégories.
+Somme des [noms communs](#common_noun_count) et [noms propres](#proper_noun_count), divisée par le [total du profil grammatical](#grammatical_token_count).
 
 <a id="verb_ratio"></a>
 ##### Densité des Verbes / Sparcité des verbes (verb_ratio)
-Nombre de mots classés comme verbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[Nombre de verbes du profil grammatical](#grammatical_verb_count) divisé par le [total du profil grammatical](#grammatical_token_count).
 
 <a id="adjective_ratio"></a>
 ##### Densité des adjectifs / Sparcité des adjectifs (adjective_ratio)
-Nombre de mots classés comme adjectifs par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[Nombre d’adjectifs](#adjective_count) divisé par le [total du profil grammatical](#grammatical_token_count).
 
 <a id="adverb_ratio"></a>
 ##### Densité des adverbes / Sparcité des adverbes (adverb_ratio)
-Nombre de mots classés comme adverbes par Morphalou, divisé par le nombre total de mots auxquels Morphalou attribue une catégorie grammaticale.
+[Nombre d’adverbes](#adverb_count) divisé par le [total du profil grammatical](#grammatical_token_count).
 
 <a id="relative_clause_ratio"></a>
 ##### **Densité de relatives** / Sparcité de relatives (relative_clause_ratio)
 Nombre de dépendances de proposition relative (`acl:relcl`) reconnues par spaCy, divisé par le [nombre de phrases](#sentence_count). Une phrase peut contenir plusieurs relatives, la valeur peut donc dépasser 100 %. Les autres subordonnées sont mesurées séparément par `subordinate_clause_ratio`.
 
-##### Densité de phrases nominales / Sparcité de phrases nominales (./)
+<a id="nominal_sentence_ratio"></a>
+##### Densité de phrases nominales / Sparcité de phrases nominales (nominal_sentence_ratio)
 Part des [phrases nominales](#nominal_sentence_count) / [nombre de phrases](#sentence_count). Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. ».
 
 <a id="active_voice_ratio"></a>
 ##### **Densité de voix active** / Densité de voix passive (active_voice_ratio)
-Pourcentage des phrases du document contenant une construction verbale active et aucune construction passive. Le passif est reconnu par une dépendance `aux:pass`, un sujet `nsubj:pass` ou la marque morphologique `Voice=Pass`. La présence de l’auxiliaire « être » ne suffit pas : dans « il était allé », « était » construit un temps composé actif. 100 % signifie que toutes les phrases sont verbales et actives. Cette mesure est calculée sur le document entier, sans fenêtre.
+[Nombre de phrases actives](#active_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="average_syntactic_depth"></a>
 ##### **Complexité syntaxique** / Minimalisme syntaxique (average_syntactic_depth)
@@ -241,7 +280,7 @@ Part des signatures syntaxiques de phrases déjà rencontrées dans le texte.
 
 <a id="subordinate_clause_ratio"></a>
 ##### Densité de subordonnées (subordinate_clause_ratio)
-Nombre moyen de propositions subordonnées par phrase.
+[Nombre de propositions subordonnées](#subordinate_clause_count) divisé par le [nombre de phrases](#sentence_count). Une phrase contenant plusieurs subordonnées contribue plusieurs fois au numérateur ; la valeur peut donc dépasser 100 %.
 
 <a id="common_noun_ratio"></a>
 ##### Part de noms communs (common_noun_ratio)
@@ -253,245 +292,225 @@ Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
 
 <a id="avg_modifiers_per_noun"></a>
 ##### **Modificateurs par nom** (avg_modifiers_per_noun)
-Nombre moyen de modificateurs directement rattachés aux noms (adjectif qualificatif : « une maison blanche » ; complément du nom : « une maison de pierre » ; proposition relative : « une maison qui domine la vallée »).
+[Nombre de modificateurs nominaux](#noun_modifier_count) divisé par le [nombre de noms analysés](#analyzed_noun_count).
 
 <a id="heavily_modified_noun_ratio"></a>
 ##### **Noms fortement modifiés** (heavily_modified_noun_ratio)
-Part des noms portant au moins deux modificateurs directs (voir modificateurs par nom).
+[Nombre de noms fortement modifiés](#heavily_modified_noun_count) divisé par le [nombre de noms analysés](#analyzed_noun_count).
 
 <a id="adjective_chain_ratio"></a>
 ##### **Chaînes adjectivales** (adjective_chain_ratio)
-Nombre de chaînes d’adjectifs coordonnés rapporté au [nombre de phrases](#sentence_count).
+[Nombre de chaînes d’adjectifs coordonnées](#adjective_chain_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="avg_adjective_chain_length"></a>
 ##### **Longueur des chaînes adjectivales** (avg_adjective_chain_length)
-Nombre moyen d’adjectifs dans les chaînes coordonnées détectées.
+[Nombre d’adjectifs appartenant aux chaînes](#adjective_in_chain_count) divisé par le [nombre de chaînes adjectivales](#adjective_chain_count).
 
 <a id="incise_density"></a>
 ##### Densité d'incises (incise_density)
-Proportion de phrases contenant au moins une proposition ou un groupe encadré par des virgules, des parenthèses ou des tirets cadratin ou demi-cadratin, inséré dans le fil syntaxique principal sans en être le sujet ou l'objet direct. La détection s'appuie sur les dépendances spaCy (`appos`, `acl:relcl`, `advcl` ou `parataxis`) lorsqu'une virgule précède le groupe. Une valeur élevée indique une phrase plus interrompue et enrichie ; une valeur faible, une phrase plus nue.
+[Nombre de phrases contenant une incise](#incise_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="coordination_accumulation_ratio"></a>
 ##### Taux d'accumulation coordonnée (coordination_accumulation_ratio)
-Proportion de phrases comportant plus de deux coordinations syntaxiques (`dep_ == "cc"`), par exemple des enchaînements avec « et » ou « puis ». Seules les coordinations identifiées par spaCy sont comptées, pas les virgules seules. Une valeur élevée capte une écriture par énumération ou accumulation ; une valeur faible correspond à des phrases qui tranchent davantage.
+[Nombre de phrases contenant une accumulation coordonnée](#coordination_accumulation_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="right_branching_depth"></a>
 ##### Profondeur d'expansion finale (right_branching_depth)
-Profondeur syntaxique moyenne du sous-arbre dont la tête est le dernier mot de chaque phrase. La mesure suit les liens de dépendance de ce dernier mot vers la racine, en restant dans la phrase. Une valeur élevée indique que la phrase continue à se ramifier vers sa fin ; elle complète la profondeur syntaxique moyenne, qui porte sur toute la phrase.
+Pour chaque phrase, le dernier mot non ponctué est repéré, puis le programme compte le nombre de liens de dépendance syntaxique à remonter pour atteindre la racine de la phrase. Le résultat est la moyenne de ces nombres sur toutes les phrases. Son unité est donc le **nombre moyen de liens syntaxiques**, et non un pourcentage. Par exemple, si le dernier mot dépend directement du verbe principal, sa profondeur vaut 1 ; s’il dépend d’un mot qui dépend lui-même du verbe principal, elle vaut 2. Une valeur élevée indique que les fins de phrase sont souvent intégrées à des constructions syntaxiques emboîtées.
+
+
 
 #### Lexique et répétitions
 
-<a id="filtered_repetition_rate"></a>
-##### Redondance lexicale / **Renouvellement lexical** (filtered_repetition_rate)
-Mesures les répétitions sur une fenêtre de {windows}. Pour chaque mot, cherche le même lemme parmi les 300 mots précédents. Les flexions sont donc regroupées : `marche`, `marches` et `marchaient` peuvent renvoyer au même lemme. Le pourcentage est le nombre de mots ayant un antécédent divisé par le nombre total de mots analysés. Les mots-outils et les graphies de moins de deux caractères ne peuvent pas être signalés, mais le dénominateur reste l’ensemble des mots retenus. La lemmatisation contextuelle vient de spaCy, avec Morphalou comme repli.
+<a id="local_repetition_ratio"></a>
+##### Répétion locale / **Renouvellement lexical local** (local_repetition_ratio)
+[Nombre local de répétitions](#local_repetition_count) divisé par le [nombre de mots analysés pour les répétitions](#repetition_word_count). Tout le document est parcouru par blocs successifs de 1 000 mots, y compris le dernier bloc incomplet ; le calcul ne s’arrête pas aux 1 000 premiers mots.
 
-<a id="stylistic_repetition_rate"></a>
-##### Redondance lexicale locale / Renouvellement lexical local (stylistic_repetition_rate)
-Dans une fenêtre de {windows}, le programme parcourt les mots dans l’ordre. Pour chaque mot, il cherche une occurrence précédente située au plus à 300 mots de distance. Si une telle occurrence existe, une seule pression est retenue selon la correspondance la plus forte : 1 pour une graphie identique ; sinon 0,25 pour le même lemme ; sinon 0,25 pour la même famille morphologique. Les pressions ne sont donc pas cumulatives : un même lemme n’ajoute pas aussi une pression de famille. Les mots-outils et noms propres sont écartés. La pression totale est divisée par le nombre de mots puis plafonnée à 100 %. Une diversité stylistique élevée signifie donc une faible pression de ces répétitions locales.
+<a id="global_repetition_ratio"></a>
+##### Répétition globale / **Renouvellement lexical global** (global_repetition_ratio)
+[Nombre global de répétitions lexicales](#global_repetition_count) divisé par le [nombre de mots analysés pour les répétitions](#repetition_word_count). L’historique couvre ici le document entier : toute nouvelle occurrence d’un lemme déjà rencontré est comptée, quelle que soit la distance qui les sépare.
 
-<a id="family_repetition_rate"></a>
-##### Répétition de familles de mots / Diversité des familles de mots (family_repetition_rate)
-Dans une fenêtre de {windows}, même calcul local que les redondances lexicales, mais deux mots sont aussi rapprochés lorsqu’ils appartiennent à une même famille morphologique dans [Démonette](https://demonette.fr/demonext/vues/front_page.php), par exemple `écrire`, `écrivain` et `écriture`. Pour chaque mot, une ou plusieurs correspondances dans les 300 mots précédents comptent comme une seule répétition.
+<a id="local_phonetic_repetition_ratio"></a>
+##### Répétition sonore locale / Diversité sonore locale (local_phonetic_repetition_ratio)
+[Nombre local de répétitions sonores](#local_phonetic_repetition_count) divisé par le [nombre de mots analysés pour les répétitions](#repetition_word_count). Tout le document est parcouru par blocs successifs de 1 000 mots, y compris le dernier bloc incomplet ; le calcul ne s’arrête pas aux 1 000 premiers mots.
 
-<a id="phonetic_repetition_rate"></a>
-##### Répétition sonore / Diversité sonore (phonetic_repetition_rate)
-Pour chaque mot dans une fenêtre de {windows}, le programme cherche dans les 300 mots précédents une prononciation partageant une suite continue d’au moins trois phonèmes. Cette suite doit couvrir au moins 60 % de la prononciation la plus courte. Le pourcentage indique la part des mots pour lesquels un tel écho a été trouvé. Cette approximation phonétique ne remplace pas une lecture à voix haute.
+<a id="global_phonetic_repetition_ratio"></a>
+##### Répétition sonore globale / Diversité sonore globale (global_phonetic_repetition_ratio)
+[Nombre global de répétitions sonores](#global_phonetic_repetition_count) divisé par le [nombre de mots analysés pour les répétitions](#repetition_word_count).
 
 <a id="absolute_repetition_rate"></a>
 ##### Redondance lexicale brute / Renouvellement lexical brut (absolute_repetition_rate)
-Même calcul que les répétitions lexicales, mais en conservant les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée que la version filtrée.
+[Nombre de répétitions lexicales brutes](#absolute_repetition_count) divisé par le [nombre de mots analysés pour les répétitions](#repetition_word_count). Contrairement aux répétitions lexicales locales et globales filtrées, le numérateur conserve les mots-outils. La mesure inclut donc les répétitions grammaticales ordinaires du français et sera naturellement beaucoup plus élevée.
 
 <a id="trigram_repetition"></a>
-##### Redondance globale des trigrammes / Renouvellement global des trigrammes (trigram_repetition)
-Un trigramme est une suite de trois lemmes consécutifs. Dans une fenêtre de {windows}, chaque mot est d’abord remplacé par son lemme contextuel : `marche`, `marches` et `marchent` employés comme verbes deviennent ainsi `marcher`, tandis que le nom dans `la marche` reste `marche`. spaCy désambiguïse la catégorie grâce à la phrase ; Morphalou sert de repli lorsque cette analyse contextuelle est indisponible. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, et non de toutes les occurrences répétées.
-
-<a id="moving_trigram_repetition"></a>
-##### Redondance locale des trigrammes / Renouvellement local des trigrammes (moving_trigram_repetition)
-Même proportion de trigrammes de lemmes distincts répétés, calculée dans des fenêtres glissantes de 300 mots espacées de 50 mots, puis moyennée. Cette version privilégie les formulations qui reviennent à proximité dans une fenêtre de {windows}, .
-
-<a id="form_lemma_ratio"></a>
-##### Minimalisme flexionnel / Variation flexionnelle (form_lemma_ratio)
-Dans chaque fenêtre mobile de 300 mots, la diversité des formes graphiques est divisée par la diversité des lemmes. Un ratio proche de 1 signifie que chaque lemme n'apparaît quasiment que sous une seule forme (peu de variation flexionnelle : toujours "marche", jamais "marchait" ou "marchions"). Un ratio élevé signifie qu'un même lemme revient sous de nombreuses formes différentes (le texte varie les temps, les nombres, les genres pour une même racine).
+##### Redondance des trigrammes / Renouvellement des trigrammes (trigram_repetition)
+Un trigramme est une suite de trois lemmes consécutifs. Sur le document total, chaque mot est d’abord remplacé par son lemme contextuel : `marche`, `marches` et `marchent` employés comme verbes deviennent ainsi `marcher`, tandis que le nom dans `la marche` reste `marche`. spaCy désambiguïse la catégorie grâce à la phrase ; Morphalou sert de repli lorsque cette analyse contextuelle est indisponible. Le programme compte les trigrammes distincts présents plus d’une fois, puis divise ce nombre par le nombre total de trigrammes distincts. Il s’agit donc d’une proportion de types répétés, calculée d’un seul bloc sur toute l’œuvre.
 
 <a id="hapax_ratio"></a>
 ##### **Taux d'hapax** / Taux de récurrence (hapax_ratio)
-Nombre de lemmes lexicaux Morphalou apparaissant exactement une fois, divisé par le nombre de lemmes lexicaux distincts.
+[Nombre de lemmes hapax](#hapax_count) divisé par le [nombre de lemmes lexicaux distincts](#unique_lemma_count).
 
 Un taux élevé signifie que le texte introduit beaucoup de mots qu'il n'utilise ensuite plus jamais (vocabulaire riche et non répété, parfois signe d'un style très varié ou au contraire de rareté statistique) ; un taux bas signifie que le vocabulaire lexical est concentré sur peu de lemmes, réemployés souvent.
 
-<a id="unique_word_count"></a>
-##### Diversité des lemmes (unique_word_count)
-Nombre de lemmes distincts divisé par le nombre total de mots du document. Les flexions d’un même lemme sont regroupées. La valeur est comprise entre 0 et 1.
+<a id="lemma_diversity_ratio"></a>
+##### Diversité des lemmes (lemma_diversity_ratio)
+[Nombre de lemmes distincts](#unique_lemma_count) divisé par le [nombre total de mots](#word_count) du document. Les flexions d’un même lemme sont regroupées. La valeur est comprise entre 0 et 1.
 
 <a id="type_token_ratio"></a>
 ##### Diversité lexicale globale (type_token_ratio)
-Nombre de formes graphiques distinctes divisé par le nombre total de mots du document. Une valeur élevée indique un vocabulaire peu répété ; elle dépend fortement de la longueur du texte et sert ici comme mesure lexicale brute.
+[Nombre de formes graphiques distinctes](#distinct_form_count) divisé par le [nombre total de mots](#word_count) du document. Une valeur élevée indique un vocabulaire peu répété ; elle dépend fortement de la longueur du texte.
 
 <a id="moving_type_token_ratio"></a>
 ##### Diversité lexicale mobile (moving_type_token_ratio)
-Moyenne du rapport entre formes distinctes et mots dans les fenêtres lexicales du texte.
+Dans chaque bloc successif de 1 000 mots, le nombre de formes graphiques distinctes est divisé par le nombre de mots du bloc. La valeur du document est la moyenne des résultats de tous les blocs, y compris le dernier bloc incomplet ; le calcul ne s’arrête jamais au premier bloc.
 
 <a id="global_lemma_richness"></a>
 ##### Richesse globale des lemmes (global_lemma_richness)
-Nombre de lemmes lexicaux distincts divisé par le nombre total de mots lexicaux du document.
+[Nombre de lemmes distincts](#unique_lemma_count) divisé par le [nombre de mots lexicaux](#lexical_word_count) du document.
 
 <a id="lemma_richness"></a>
 ##### Richesse locale des lemmes (lemma_richness)
-Moyenne du rapport entre lemmes distincts et mots lexicaux dans les fenêtres du texte.
+Dans chaque bloc successif de 1 000 mots, le nombre de lemmes distincts est divisé par le nombre de mots lexicaux du bloc. La valeur du document est la moyenne des résultats de tous les blocs, y compris le dernier bloc incomplet ; le calcul ne s’arrête jamais au premier bloc.
 
 <a id="morphalou_coverage"></a>
 ##### Couverture Morphalou (morphalou_coverage)
-Part des formes lexicales reconnues et lemmatisées par Morphalou.
-
-<a id="lexical_word_count"></a>
-##### Mots lexicaux (lexical_word_count)
-Nombre de mots lexicaux retenus après exclusion des mots-outils.
+[Nombre de formes lexicales reconnues par Morphalou](#morphalou_recognized_count) divisé par le [nombre de mots lexicaux](#lexical_word_count).
 
 <a id="lexical_rarity_score"></a>
 ##### **Rareté lexicale** (lexical_rarity_score)
 Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un vocabulaire moins fréquent ; Lexique383 ne distingue pas le vocabulaire littéraire du vocabulaire technique.
 
-#### Rythme, longueurs et lisibilité
 
-<a id="sentence_start_diversity"></a>
-##### **Diversité des débuts de phrase** / Régularité des débuts de phrase (sentence_start_diversity)
-Pour chaque phrase, le premier mot est relevé après tokenisation. Le calcul examine des fenêtres glissantes de vingt phrases et mesure, dans chacune, le nombre de premiers mots différents divisé par vingt. Le rapport affiche la moyenne de ces fenêtres. Si le texte compte moins de vingt phrases, le calcul porte sur toutes ses phrases. 100 % signifie qu’aucun début ne se répète dans la fenêtre considérée.
+
+#### Rythme, longueurs et lisibilité
 
 <a id="burstiness"></a>
 ##### **Diversité locale de longueur de phrase** / Uniformité locale de longueur de phrase (burstiness)
-Pour chaque paire de phrases consécutives, le calcul prend la différence absolue de longueur en caractères. La moyenne de ces différences est divisée par la longueur moyenne des phrases. Une valeur de 0 indique des phrases successives de même longueur. La division par la moyenne permet de comparer des textes composés de phrases globalement courtes ou longues. Cette mesure est traditionnellement nommée burstiness (par rafales, par à-coups).
+Moyenne des différences absolues de longueur en mots entre chaque paire de phrases consécutives, divisée par la longueur moyenne des phrases. Cette normalisation rend comparables les textes aux phrases globalement courtes ou longues.
 
 <a id="gzip_compression_ratio"></a>
 ##### **Compressibilité gzip** / Incompressibilité gzip (gzip_compression_ratio)
-Le texte UTF-8 est compressé avec gzip. La taille compressée est divisée par la taille originale et affichée en pourcentage. Une valeur basse signifie que les octets du texte sont plus prévisibles et se compressent mieux. Pour comparer les documents, le programme utilise des blocs non chevauchants ayant exactement {window}.
-
-<a id="sentence_word_std_dev"></a>
-##### **Diversité de longueurs de phrase** / Uniformité des longueur de phrase  (sentence_word_std_dev)
-Dans la fenêtre {windows}, écart-type du nombre de mots par phrase. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues. La diversité des structures intègre déjà une partie de cette information en accordant progressivement davantage de poids aux phrases contenant plusieurs propositions.
+[Nombre d’octets après compression gzip](#gzip_byte_count) divisé par le [nombre d’octets UTF-8](#utf8_byte_count). Une valeur basse indique un texte plus prévisible et plus compressible.
 
 <a id="avg_word_length"></a>
 ##### Longueur moyenne des mots (caractères) (avg_word_length)
-Nombre moyen de caractères par mot dans le document analysé.
+Somme des longueurs des mots en caractères divisée par le [nombre de mots](#word_count). La somme est un intermédiaire de calcul, pas une mesure exposée.
 
 <a id="avg_sentence_length"></a>
-##### Longueur moyenne des phrases (caractères) (avg_sentence_length)
-Nombre moyen de caractères par phrase dans le document analysé.
-
-<a id="avg_sentence_word_count"></a>
-##### Longueur moyenne des phrases (mots) (avg_sentence_word_count)
-Nombre moyen de mots par phrase dans le document analysé.
+##### Longueur moyenne des phrases (mots) (avg_sentence_length)
+Somme des nombres de mots relevés phrase par phrase, divisée par le [nombre de phrases](#sentence_count).
 
 <a id="median_sentence_length"></a>
-##### Longueur médiane des phrases (caractères) (median_sentence_length)
-Longueur en caractères qui partage les phrases en deux groupes de même effectif.
+##### Longueur médiane des phrases (mots) (median_sentence_length)
+Médiane de la distribution ordonnée du nombre de mots par [phrase](#sentence_count). Cette statistique de rang ne peut pas être reconstruite à partir d’une simple somme.
 
 <a id="sentence_length_p10"></a>
-##### Longueur P10 des phrases (caractères) (sentence_length_p10)
-Longueur en caractères sous laquelle se trouvent 10 % des phrases.
+##### Longueur P10 des phrases (mots) (sentence_length_p10)
+Interpolation au rang 10 % de la distribution ordonnée du nombre de mots par phrase.
 
 <a id="sentence_length_p90"></a>
-##### Longueur P90 des phrases (sentence_length_p90)
-Longueur en caractères sous laquelle se trouvent 90 % des phrases.
+##### Longueur P90 des phrases (mots) (sentence_length_p90)
+Interpolation au rang 90 % de la distribution ordonnée du nombre de mots par phrase.
 
 <a id="paragraph_length_std_dev"></a>
 ##### Écart-type des paragraphes (paragraph_length_std_dev)
-Écart-type du nombre de mots par paragraphe. Il mesure la dispersion des longueurs de paragraphes autour de leur moyenne.
+Écart-type du nombre de mots par [paragraphe](#paragraph_count) sur l’ensemble du document.
 
 <a id="sentence_length_amplitude"></a>
 ##### Amplitude des longueurs de phrase (sentence_length_amplitude)
-Différence, en caractères, entre la longueur P90 et la longueur P10 des phrases. Elle décrit l’amplitude centrale des longueurs en laissant de côté les 10 % de phrases les plus courtes et les 10 % les plus longues.
+Différence entre la [longueur P90](#sentence_length_p90) et la [longueur P10](#sentence_length_p10). Cette statistique dérive de deux mesures d’analyse, pas de comptages bruts supplémentaires.
 
 <a id="sentence_length_std_dev"></a>
-##### Écart-type des longueurs de phrase (caractères) (sentence_length_std_dev)
-Écart-type de la longueur des phrases en caractères. Une valeur élevée indique que les phrases s’écartent davantage de leur longueur moyenne.
+##### **Diversité de longueurs de phrase** / Uniformité des longueurs de phrase (sentence_length_std_dev)
+Écart-type du nombre de mots par [phrase](#sentence_count) sur l’ensemble du document. Une valeur élevée indique une alternance plus forte entre phrases courtes et longues.
 
 <a id="avg_paragraph_length"></a>
 ##### Longueur moyenne des paragraphes (avg_paragraph_length)
-Nombre moyen de mots par paragraphe.
+Somme des nombres de mots relevés paragraphe par paragraphe, divisée par le [nombre de paragraphes](#paragraph_count).
 
 <a id="flesch"></a>
 ##### Lisibilité de Flesch (flesch)
-Indice de lisibilité adapté au français à partir de la longueur des phrases et du nombre de syllabes par mot.
+Indice français calculé avec le [nombre de mots](#word_count), le [nombre de phrases](#sentence_count) et le [nombre de syllabes](#syllable_count) : `207 − 1,015 × mots/phrases − 73,6 × syllabes/mots`.
 
 #### Narration, temps et registre
 
 <a id="metaphorical_comme_ratio"></a>
 ##### Densité de métaphores / Sparcité de métaphores (metaphorical_comme_ratio)
-Pourcentage des phrases du document contenant au moins une comparaison détectée. Le programme reconnaît les « comme » comparatifs ainsi que les locutions inscrites dans `assets/dictionnaires/comparison-markers.txt`. « Il courait comme un chien enragé » et « Il courait comme Charlot courait » sont comptés ; « Comme il pleuvait, il restait chez lui » ne l’est pas. 100 % signifie que chaque phrase contient au moins une comparaison. Cette mesure est calculée sur le document entier, sans fenêtre. Elle repère une forme comparative, sans pouvoir garantir que l’image soit sémantiquement une métaphore.
+[Nombre de phrases contenant une comparaison](#methaphore_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="present_participle_ratio"></a>
 ##### **Densité de participes présents** / Sparcité de participes présents (present_participle_ratio)
-Part des formes verbales identifiées comme participes présents (`VerbForm=Part`, `Tense=Pres`) parmi les mots analysés. Elles sont séparées des verbes conjugués.
+[Nombre de participes présents](#present_participe_count) divisé par le [nombre de mots](#word_count).
 
 <a id="past_participle_ratio"></a>
 ##### **Densité de participes passés** / Sparcité de participes passés (past_participle_ratio)
-Part des formes verbales identifiées comme participes passés (`VerbForm=Part`, `Tense=Past`) parmi les mots analysés. Un participe employé comme adjectif est compté dans les adjectifs, pas ici.
+[Nombre de participes passés](#past_participe_count) divisé par le [nombre de mots](#word_count).
 
 <a id="simple_past_ratio"></a>
 ##### **Passé simple** / Présence du passé simple (simple_past_ratio)
-Part des verbes finis à l’indicatif passé, sans auxiliaire, parmi les verbes finis. Elle mesure l’emploi d’une forme narrative classique, indépendamment de l’âge du texte.
+[Nombre de passés simples](#simple_past_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
 
 <a id="literary_subjunctive_ratio"></a>
 ##### **Subjonctif imparfait ou plus-que-parfait** / Subjonctif littéraire (literary_subjunctive_ratio)
-Part des verbes finis au subjonctif imparfait ou plus-que-parfait parmi les verbes finis. Le subjonctif présent n’est pas compté.
+[Nombre de subjonctifs littéraires](#subjonctive_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
 
 <a id="negation_completeness_ratio"></a>
 ##### **Négations complètes** / Négations sans « ne » (negation_completeness_ratio)
-Part des marqueurs négatifs détectés qui sont précédés d’un « ne » dans la même phrase. La mesure porte uniquement sur les négations repérées, et « ne...que » est exclu.
+[Nombre de négations avec « ne »](#verb_negation_count) divisé par le [nombre de négations](#negation_count).
 
 <a id="periphrastic_future_ratio"></a>
 ##### **Futur périphrastique** / Futur simple (periphrastic_future_ratio)
-Part des futurs employés qui sont construits avec « aller » au présent suivi d’un infinitif. Elle est calculée parmi les futurs détectés, pas sur l’ensemble du texte.
+[Nombre de futurs périphrastiques](#va_count) divisé par la somme des [futurs périphrastiques](#va_count) et des [futurs simples](#future_count).
 
 <a id="oral_familiarity_ratio"></a>
 ##### **Familiarité orale** / Registre soutenu (oral_familiarity_ratio)
-Occurrences de mots et expression fammilières. La liste est modifiable dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels ne comptent qu’en incise ou en fin de proposition.
+[Nombre de marqueurs de familiarité orale](#familiarity_marker_count) rapporté au [nombre de mots](#word_count), pour 100 mots.
 
 <a id="action_verb_ratio"></a>
 ##### **Verbes d’action** (action_verb_ratio)
-Part des verbes finis qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Certains verbes de cognition peuvent avoir un emploi événementiel ponctuel.
+[Nombre de verbes d’action](#active_verb_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
 
 <a id="temporal_connector_ratio"></a>
 ##### **Connecteurs temporels** (temporal_connector_ratio)
-Occurrences de connecteurs temporels ou séquentiels par phrases.
+[Nombre de connecteurs temporels](#temporal_connector_count) rapporté au [nombre de phrases](#sentence_count), pour 100 phrases.
 
 <a id="personal_subject_ratio"></a>
 ##### **Sujets personnels** (personal_subject_ratio)
-Part des sujets grammaticaux identifiables comme personnels. `on` et les noms communs animés ambigus sont exclus.
+[Nombre de sujets personnels](#personal_subject_count) divisé par le [nombre de sujets classables](#classifiable_subject_count).
 
 <!-- Note conservée pour référence historique : la mesure n’est plus calculée ni exposée. -->
 
 <a id="narrative_past_ratio"></a>
 ##### **Passé narratif** (narrative_past_ratio)
-Part des verbes finis narratifs au passé, hors dialogues.
+[Nombre de verbes narratifs au passé](#narrative_past_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
 
 <a id="dialogue_ratio"></a>
 ##### **Dialogue** (dialogue_ratio)
-Part des mots appartenant aux paragraphes dont le premier caractère (hors espaces) est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Ces paragraphes sont pris comme un seul bloc, sans découpage des répliques internes. Les mesures de temps, de négation et de futur de Classicism excluent ces phrases ; la familiarité orale les conserve.
+[Nombre de mots en dialogue](#dialog_word_count) divisé par le [nombre de mots](#word_count).
 
 <a id="proper_noun_density"></a>
 ##### Densité de noms propres (proper_noun_density)
-Part des tokens non ponctuels et non espacés étiquetés `PROPN` par spaCy. Elle indique la place des personnes, lieux, marques et autres noms propres dans le texte.
+[Nombre de noms propres](#proper_noun_count) divisé par le [nombre de tokens lexicaux spaCy](#lexical_token_count).
 
 <a id="concrete_noun_ratio"></a>
 ##### Noms concrets (concrete_noun_ratio)
-Part des noms communs qui ne portent pas un suffixe de nominalisation abstraite. Les exceptions lexicales de `assets/dictionnaires/concrete-noun-exceptions.txt` sont retirées du calcul ; la liste est issue de Lexique383 et peut être enrichie manuellement.
+[Nombre de noms concrets](#concrate_noun_count) divisé par le [nombre de noms communs](#common_noun_count).
 
 <a id="tense_shift_rate"></a>
 ##### Taux de rupture temporelle (tense_shift_rate)
-Proportion de transitions entre paragraphes consécutifs où le temps verbal dominant change. Les paragraphes sans verbe ne sont pas pris en compte ; une valeur élevée indique davantage d’alternance entre régimes temporels.
+[Nombre de ruptures temporelles](#tense_shift_count) divisé par le [nombre de transitions temporelles analysables](#tense_transition_count).
 
 <a id="scene_summary_ratio"></a>
 ##### Taux de marqueurs de sommaire (scene_summary_ratio)
-Score moyen, calculé phrase par phrase, qui ne monte que si une phrase contient un mot ou une expression d'une liste fixe (« souvent », « chaque jour », « pendant des années », « avait l'habitude de »… définie dans `assets/dictionnaires/duration-markers.txt`) tout en étant nettement plus courte que la phrase la plus longue du corpus. Signale un sommaire narratif selon Genette : le récit qui condense une longue durée en peu de mots — par opposition à la scène, qui déploie un moment précis en détail.
+[Nombre de phrases contenant un marqueur de sommaire](#summary_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="negation_ratio"></a>
 ##### **Négativité** / Positivité (negation_ratio)
- Pourcentage de phrases contenant au moins un marqueur de négation (`ne`, `pas`, `plus`, `jamais`, etc.) : phrases négatives divisées par le nombre total de phrases. Cette mesure décrit le rapport négativité/positivité ; les dialogues sont inclus.
+[Nombre de phrases négatives](#negative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="ellipsis_ratio"></a>
 ##### Densité de points de suspension (ellipsis_ratio)
-Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Les trois points consécutifs forment une seule occurrence.
+[Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="question_mark_ratio"></a>
 ##### Points d'interrogation (question_mark_ratio)
@@ -503,91 +522,99 @@ Occurrences de « … » ou « ... » rapportées au nombre total de phrases. Le
 
 <a id="exclamative_construction_ratio"></a>
 ##### Constructions exclamatives (exclamative_construction_ratio)
-Part des phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée. Elle cible les tournures exclamatives littéraires ; les autres exclamations restent comptées par la mesure précédente.
+[Nombre de constructions exclamatives](#exclamative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
 #### Émotions
 
 <a id="emotion_word_ratio"></a>
 ##### Mots émotionnels (emotion_word_ratio)
-Part des mots lexicaux dont le lemme ou la famille lexicale figure dans `assets/dictionnaires/emotions.txt`, divisée par le nombre total de mots lexicaux. Les formes sont ramenées à leur lemme avec Morphalou. La mesure ne tient compte ni de la négation ni du contexte.
+[Nombre de marqueurs émotionnels](#emotion_word_count) divisé par le [nombre de lemmes](#lemma_count).
 
 <a id="emotion_sentence_ratio"></a>
 ##### Phrases à caractère émotionnel (emotion_sentence_ratio)
-Part des phrases contenant au moins un lemme, une famille lexicale ou une expression composée de `assets/dictionnaires/emotions.txt`. Le document est lemmatisé en une seule passe par Morphalou ; une phrase n’est comptée qu’une fois même si elle contient plusieurs marqueurs. La mesure ne tient compte ni de la négation ni du contexte.
-
-<a id="interjection_density"></a>
-##### Densité d'interjections émotionnelles (interjection_density)
-Occurrences des interjections définies dans `assets/dictionnaires/emotional-interjections.txt`, divisées par le nombre total de mots. Les expressions les plus longues sont reconnues en premier afin qu'une occurrence de « mon Dieu » ne compte pas aussi « Dieu » séparément.
+[Nombre de phrases émotionnelles](#emotion_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
 <a id="intensifier_adjective_ratio"></a>
 ##### Intensificateurs devant adjectif (intensifier_adjective_ratio)
-Part des adjectifs immédiatement précédés ou syntaxiquement modifiés (`advmod`) par un adverbe d'intensité tel que « si », « tellement », « extrêmement » ou « terriblement ».
+[Nombre d’adjectifs intensifiés](#intensified_adjective_count) divisé par le [nombre d’adjectifs](#adjective_count).
 
 <a id="emotion_intensification_ratio"></a>
 ##### Intensification émotionnelle (emotion_intensification_ratio)
-Part des occurrences de lemmes, familles lexicales ou expressions composées de `assets/dictionnaires/emotions.txt` qui sont intensifiées ou qualifiées, divisée par leur nombre total d’occurrences. Une occurrence compte lorsqu’elle est précédée par un intensificateur tel que « très », « tellement » ou « terriblement », ou lorsque spaCy lui rattache un modificateur adjectival (`amod`) ou adverbial (`advmod`).
+Somme des huit comptages d’occurrences émotionnelles intensifiées — de la [joie intensifiée](#joy_intensified_emotion_count) aux [manifestations somatiques intensifiées](#somatic_intensified_emotion_count) — divisée par la somme des huit [comptages émotionnels](#joy_emotion_count).
 
 <a id="joy_emotion_ratio"></a>
 ##### Joie (joy_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Joie » de `assets/dictionnaires/emotions.txt`, parmi toutes les occurrences des huit catégories. Les lemmes, familles lexicales et expressions composées sont reconnus.
+[Nombre d’occurrences de joie](#joy_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="sadness_emotion_ratio"></a>
 ##### Tristesse (sadness_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Tristesse » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de tristesse](#sadness_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="fear_emotion_ratio"></a>
 ##### Peur (fear_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Peur » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de peur](#fear_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="anger_emotion_ratio"></a>
 ##### Colère (anger_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Colère » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de colère](#anger_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="surprise_emotion_ratio"></a>
 ##### Surprise (surprise_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Surprise » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de surprise](#surprise_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="disgust_emotion_ratio"></a>
 ##### Dégoût (disgust_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Dégoût » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de dégoût](#disgust_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="contempt_emotion_ratio"></a>
 ##### Mépris (contempt_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Mépris » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre d’occurrences de mépris](#contempt_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="somatic_emotion_ratio"></a>
 ##### Manifestations somatiques (somatic_emotion_ratio)
-Part des occurrences émotionnelles rattachées à la section « Manifestations somatiques » du dictionnaire, parmi toutes les occurrences des huit catégories.
+[Nombre de manifestations somatiques](#somatic_emotion_count) divisé par la somme des huit comptages émotionnels.
 
 <a id="emotional_category_entropy"></a>
 ##### Entropie émotionnelle (emotional_category_entropy)
-Entropie de Shannon brute, en bits, de la répartition des occurrences entre les huit sections du dictionnaire. Une valeur proche de 0 indique qu’un seul registre émotionnel domine ; le maximum théorique de 3 bits correspond à huit registres mobilisés de façon équilibrée. La mesure décrit la diversité et l’équilibre émotionnels, indépendamment de la quantité totale de marqueurs.
+Entropie de Shannon brute, en bits, calculée sur les huit comptages allant de la [joie](#joy_emotion_count) aux [manifestations somatiques](#somatic_emotion_count). Une valeur proche de 0 indique qu’un seul registre domine ; le maximum théorique de 3 bits correspond à huit registres mobilisés de façon équilibrée. La mesure est indépendante du nombre total d’occurrences.
 
 #### Discours et modalité
 
 <a id="logical_connector_ratio"></a>
 ##### Connecteurs logiques (logical_connector_ratio)
-Occurrences de connecteurs logiques ou argumentatifs rapportées au [nombre de phrases]((#sentence_count)). Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
+[Nombre de connecteurs logiques ou argumentatifs](#logical_connector_count) rapporté au [nombre de phrases](#sentence_count). Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
 
 <a id="abstract_noun_ratio"></a>
 ##### Noms abstraits (abstract_noun_ratio)
-Part des noms communs dont la forme se termine par un suffixe fréquent de nominalisation abstraite (`-tion`, `-isme`, `-ité`, etc.). Il s’agit d’une approximation orthographique : elle peut classer à tort des noms concrets comme « voiture ».
+[Nombre de noms abstraits](#abstract_noun_count) divisé par le [nombre de noms communs](#common_noun_count).
 
 <a id="gnomic_present_ratio"></a>
-##### Présent gnomique (gnomic_present_ratio)
-Part des verbes finis au présent de l’indicatif dont le sujet est générique ou abstrait, hors dialogues. Le calcul utilise le type de sujet, et non le seul temps verbal ; un présent de narration avec « il » n’est donc pas compté comme gnomique.
+##### Ratio de présents gnomiques (gnomic_present_ratio)
+[Nombre de présents gnomiques](#gnomic_present_count) divisé par le [nombre de verbes conjugués](#conjugue_verb_count).
 
 <a id="modal_generalization_ratio"></a>
 ##### Taux de modalité généralisante (modal_generalization_ratio)
-Part des verbes qui sont des modaux (`devoir`, `pouvoir`, `falloir`) dont le sujet est générique ou impersonnel, notamment « on » ou « il » impersonnel. La liste des verbes est définie dans `assets/dictionnaires/modal_verbs.txt`. Une valeur élevée signale un discours qui énonce des règles ou des vérités générales, plutôt qu'un récit d'événements situés.
+[Nombre de modaux généralisants](#modal_generalization_count) divisé par le [nombre total de verbes](#verb_count).
 
 ### Données brutes
 
-Ces comptages décrivent directement le volume ou les éléments linguistiques du document. Ils sont affichés à part et ne participent pas au calcul de dispersion stylistique.
+Ces mesures, indiquées en valeurs absolus, décrivent les éléments linguistiques élémentaires des documents.
 
 <a id="word_count"></a>
 ##### Mots (word_count)
 Nombre total de mots relevés dans le document analysé.
+
+<a id="lexical_word_count"></a>
+##### Mots lexicaux (lexical_word_count)
+Nombre de mots lexicaux retenus après exclusion des mots-outils.
+
+<a id="distinct_form_count"></a>
+##### Formes graphiques distinctes (distinct_form_count)
+Nombre de graphies différentes parmi tous les [mots](#word_count) du document, sans regroupement de leurs flexions.
+
+<a id="morphalou_recognized_count"></a>
+##### Formes reconnues par Morphalou (morphalou_recognized_count)
+Nombre de mots lexicaux dont la forme possède une entrée dans Morphalou.
 
 <a id="sentence_count"></a>
 ##### Phrases (sentence_count)
@@ -600,6 +627,18 @@ Nombre total de paragraphes relevés dans le document analysé.
 <a id="document_char_count"></a>
 ##### Caractères (document_char_count)
 Nombre total de caractères du document analysé, espaces et retours à la ligne compris.
+
+<a id="utf8_byte_count"></a>
+##### Octets UTF-8 (utf8_byte_count)
+Taille brute du document en octets après encodage UTF-8. Elle peut dépasser le nombre de caractères, notamment pour les lettres accentuées.
+
+<a id="gzip_byte_count"></a>
+##### Octets gzip (gzip_byte_count)
+Taille brute en octets du même document compressé avec gzip. L’horodatage de l’archive est fixé à zéro afin que le comptage soit reproductible.
+
+<a id="syllable_count"></a>
+##### Syllabes (syllable_count)
+Nombre total de syllabes estimées par groupes de voyelles. Chaque mot compte au minimum une syllabe ; ce comptage orthographique est une approximation destinée au calcul de Flesch.
 
 <a id="relative_clause_count"></a>
 ##### Propositions relatives (relative_clause_count)
@@ -617,11 +656,13 @@ Nombre de phrases dans lesquelles spaCy ne trouve aucun verbe conjugué.
 ##### Noms communs (common_noun_count)
 Nombre de noms communs dans la distribution grammaticale calculée par spaCy.
 
+<a id="abstract_noun_count"></a>
+##### Noms abstraits (abstract_noun_count)
+Un nom est considéré abstrait lorsque sa forme se termine par un suffixe fréquent de nominalisation (`-tion`, `-isme`, `-ité`… voir `assets/dictionnaires/abstract-noun-suffixes.txt`). Il s’agit d’une approximation orthographique : elle peut classer à tort des noms concrets comme « voiture ».
+
 <a id="proper_noun_count"></a>
 ##### Noms propres (proper_noun_count)
 Nombre de noms propres dans la distribution grammaticale calculée par spaCy.
-
-
 
 <a id="lemma_count"></a>
 ##### Lemmes (lemma_count)
@@ -631,17 +672,65 @@ Nombre total d’occurrences lexicales après lemmatisation. Chaque occurrence r
 ##### Lemmes distincts (unique_lemma_count)
 Nombre de lemmes lexicaux différents, sans compter plusieurs fois leurs occurrences ou leurs variantes conjuguées. Par exemple, dans « il marche et elles marchent », « marche » et « marchent » correspondent toutes deux au lemme « marcher » et produisent donc **1 seul lemme distinct**.
 
+<a id="hapax_count"></a>
+##### Lemmes hapax (hapax_count)
+Nombre de lemmes lexicaux apparaissant exactement une fois dans le document. Les flexions regroupées sous un même lemme ne constituent pas des hapax différents.
+
+<a id="repetition_word_count"></a>
+##### Mots analysés pour les répétitions (repetition_word_count)
+Nombre d’occurrences d’au moins deux caractères soumises aux calculs de répétition. Ce total commun sert de dénominateur aux ratios locaux et globaux ; les mots-outils restent dans ce dénominateur, mais ne peuvent pas produire une répétition.
+
+<a id="local_repetition_count"></a>
+##### Répétitions locales (local_repetition_count)
+Somme des répétitions relevées dans tous les blocs successifs de 1 000 mots du document, y compris le dernier bloc incomplet. Une occurrence est comptée lorsque son lemme a déjà été rencontré dans le même bloc. L’historique est remis à zéro entre deux blocs, mais aucun bloc n’est ignoré. Les flexions d’un même lemme sont regroupées ; les mots-outils sont exclus des répétitions.
+
+<a id="global_repetition_count"></a>
+##### Répétitions globales (global_repetition_count)
+Nombre d’occurrences dont le lemme a déjà été rencontré plus tôt dans le document entier. Les flexions d’un même lemme sont regroupées ; les mots-outils sont exclus des répétitions. Ce compte est toujours supérieur ou égal au compte local.
+
+<a id="absolute_repetition_count"></a>
+##### Répétitions lexicales brutes (absolute_repetition_count)
+Nombre d’occurrences dont le lemme a déjà été rencontré plus tôt dans le document entier, mots-outils compris. Les flexions d’un même lemme sont regroupées. Cette donnée est le numérateur brut de la [redondance lexicale brute](#absolute_repetition_rate).
+
+<a id="local_phonetic_repetition_count"></a>
+##### Répétitions sonores locales (local_phonetic_repetition_count)
+Somme obtenue après parcours de tous les blocs successifs de 1 000 mots du document, y compris le dernier bloc incomplet. Dans chaque bloc, le programme compte les occurrences dont une prononciation partage avec un mot antérieur du même bloc une suite continue d’au moins trois phonèmes couvrant au moins 60 % de la prononciation la plus courte. L’historique est remis à zéro au changement de bloc, mais aucun bloc n’est ignoré. Les mots-outils sont exclus.
+
+<a id="global_phonetic_repetition_count"></a>
+##### Répétitions sonores globales (global_phonetic_repetition_count)
+Même comptage phonétique sur le document entier : toute occurrence possédant un écho antérieur est comptée, quelle que soit leur distance. Ce compte est toujours supérieur ou égal au compte local.
+
 <a id="verb_count"></a>
 ##### Verbes (verb_count)
 Nombre de tokens reconnus comme verbes ou auxiliaires par spaCy.
 
+<a id="grammatical_verb_count"></a>
+##### Verbes du profil grammatical (grammatical_verb_count)
+Nombre de verbes finis retenus dans le profil grammatical spaCy.
+
+<a id="grammatical_token_count"></a>
+##### Total du profil grammatical (grammatical_token_count)
+Somme des noms communs, noms propres, verbes finis, adjectifs et adverbes utilisée comme dénominateur commun des quatre densités grammaticales.
+
+<a id="function_word_count"></a>
+##### Mots grammaticaux (function_word_count)
+Nombre de mots classés comme déterminants, pronoms, prépositions, conjonctions ou interjections par Morphalou ou par `assets/dictionnaires/function-words.txt`. Les adverbes ne sont pas inclus.
+
+<a id="modal_generalization_count"></a>
+##### Modaux généralisants (modal_generalization_count)
+Compte les occurrences des verbes de `assets/dictionnaires/modal_verbs.txt` (`devoir`, `pouvoir`, `falloir`) lorsque leur sujet est l’un des pronoms génériques de `assets/dictionnaires/generic-subject-pronouns.txt`. `Falloir` est toujours compté, car ce verbe est impersonnel par construction (« il faut »). La mesure ne tente pas de décider si le pronom « il » d’un autre verbe est impersonnel.
+
 <a id="conjugue_verb_count"></a>
 ##### Verbes conjugués (conjugue_verb_count)
-Nombre de verbes ou auxiliaires portant la marque morphologique d’une forme finie.
+Nombre de verbes ou auxiliaires portant la marque morphologique d’une forme finie dans tout le document, dialogues compris.
 
 <a id="adjective_count"></a>
 ##### Adjectifs (adjective_count)
 Nombre d’adjectifs reconnus par spaCy.
+
+<a id="intensified_adjective_count"></a>
+##### Adjectifs intensifiés (intensified_adjective_count)
+Nombre d’adjectifs immédiatement précédés ou syntaxiquement modifiés (`advmod`) par un adverbe d’intensité tel que « si », « tellement », « très », « extrêmement » ou « terriblement ». Un adjectif n’est compté qu’une fois lorsque les deux critères sont satisfaits.
 
 <a id="adverb_count"></a>
 ##### Adverbes (adverb_count)
@@ -649,15 +738,15 @@ Nombre d’adverbes reconnus par spaCy.
 
 <a id="present_participe_count"></a>
 ##### Participes présents (present_participe_count)
-Nombre de participes présents reconnus par spaCy.
+Nombre de formes verbales identifiées par spaCy comme participes présents (`VerbForm=Part`, `Tense=Pres`).
 
 <a id="past_participe_count"></a>
 ##### Participes passés (past_participe_count)
-Nombre de participes passés reconnus par spaCy.
+Nombre de formes verbales identifiées par spaCy comme participes passés (`VerbForm=Part`, `Tense=Past`). Un participe étiqueté comme adjectif n’est pas compté ici.
 
 <a id="simple_past_count"></a>
 ##### Passés simples (simple_past_count)
-Nombre de verbes au passé simple reconnus dans la narration.
+Nombre de verbes au passé simple reconnus hors dialogues. Le filtrage des formes ambiguës exige un contexte verbal passé dans la phrase afin de limiter les faux positifs homographes du présent.
 
 <a id="va_count"></a>
 ##### Futurs périphrastiques (va_count)
@@ -673,7 +762,7 @@ Nombre de subjonctifs imparfaits ou plus-que-parfaits reconnus dans la narration
 
 <a id="negation_count"></a>
 ##### Négations (negation_count)
-Nombre de négations reconnues dans la narration.
+Nombre de marqueurs négatifs reconnus hors dialogues. « ne… que » est exclu.
 
 <a id="verb_negation_count"></a>
 ##### Négations avec « ne » (verb_negation_count)
@@ -681,7 +770,11 @@ Nombre de négations complètes comportant « ne » dans la narration.
 
 <a id="dialog_word_count"></a>
 ##### Mots en dialogue (dialog_word_count)
-Nombre de mots situés dans les plages reconnues comme dialogues.
+Nombre de mots appartenant aux paragraphes dont le premier caractère hors espaces est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Le paragraphe entier est alors considéré comme dialogué.
+
+<a id="familiarity_marker_count"></a>
+##### Marqueurs de familiarité orale (familiarity_marker_count)
+Nombre d’occurrences reconnues dans `assets/dictionnaires/familiarity-markers.txt`. Les marqueurs directs comptent partout ; les marqueurs positionnels seulement avant une ponctuation de fin de proposition.
 
 <a id="active_sentence_count"></a>
 ##### Phrases actives (active_sentence_count)
@@ -693,31 +786,67 @@ Nombre de phrases contenant une construction passive.
 
 <a id="methaphore_count"></a>
 ##### Métaphores (methaphore_count)
-Nombre de phrases contenant une comparaison reconnue.
+Nombre de phrases contenant au moins une comparaison reconnue. Le programme distingue les « comme » comparatifs des emplois conjonctifs et utilise aussi `assets/dictionnaires/comparison-markers.txt`. Il repère une forme comparative sans garantir qu’elle constitue sémantiquement une métaphore.
 
 <a id="concrate_noun_count"></a>
 ##### Noms concrets (concrate_noun_count)
-Nombre de noms communs non reconnus comme abstraits.
+Nombre de noms communs sans suffixe de nominalisation abstraite. Les exceptions de `assets/dictionnaires/concrete-noun-exceptions.txt` sont retirées.
 
 <a id="active_verb_count"></a>
 ##### Verbes d’action (active_verb_count)
-Nombre de verbes narratifs qui ne figurent pas dans le lexique des verbes statifs.
+Nombre de verbes narratifs qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Cette opposition lexicale ne tient pas compte du sens contextuel du verbe.
 
 <a id="narrative_verb_count"></a>
 ##### Verbes narratifs (narrative_verb_count)
 Nombre de verbes conjugués situés hors dialogue.
 
+<a id="narrative_past_count"></a>
+##### Verbes narratifs au passé (narrative_past_count)
+Nombre de verbes narratifs dont spaCy indique le temps morphologique `Past`.
+
 <a id="gnomic_present_count"></a>
 ##### Présents gnomiques (gnomic_present_count)
-Nombre de verbes au présent reconnus dans une phrase à sujet générique.
+Nombre de verbes finis au présent de l’indicatif dont le sujet grammatical est interprété comme générique, dans tout le document, dialogues compris. Le repérage est heuristique : sont considérés comme génériques les sujets exprimés par un nom commun (« les hommes vieillissent ») ou par l’un des pronoms de `assets/dictionnaires/generic-subject-pronouns.txt`. Les sujets personnels « je », « tu », « il »… ne sont pas comptés. La fonction ne sait toutefois pas distinguer avec certitude un nom commun générique d’un individu situé : « le chien aboie toujours » et « le chien aboie dans la cour » peuvent tous deux être retenus.
 
 <a id="personal_subject_count"></a>
 ##### Sujets personnels (personal_subject_count)
 Nombre de sujets personnels reconnus parmi les sujets classables.
 
+<a id="classifiable_subject_count"></a>
+##### Sujets classables (classifiable_subject_count)
+Nombre de sujets que l’heuristique peut classer comme personnels ou non personnels. Les noms propres et les pronoms personnels sont classés ; les noms communs et les pronoms ambigus sont laissés de côté. `Il` est considéré non personnel seulement avec une liste restreinte de constructions impersonnelles.
+
+<a id="lexical_token_count"></a>
+##### Tokens lexicaux spaCy (lexical_token_count)
+Nombre de tokens qui ne sont ni des espaces ni des signes de ponctuation selon spaCy. Ce dénominateur inclut donc davantage d’éléments que le seul nombre de mots alphabétiques.
+
+<a id="tense_shift_count"></a>
+##### Ruptures temporelles (tense_shift_count)
+Nombre de transitions entre deux paragraphes analysables consécutifs pour lesquelles le temps verbal dominant change. Le temps dominant est celui que spaCy attribue au plus grand nombre de verbes du paragraphe.
+
+<a id="tense_transition_count"></a>
+##### Transitions temporelles analysables (tense_transition_count)
+Nombre de transitions entre paragraphes consécutifs contenant au moins un verbe porteur d’une indication de temps. Les paragraphes sans temps verbal reconnu sont ignorés.
+
+<a id="summary_sentence_count"></a>
+##### Phrases contenant un marqueur de sommaire (summary_sentence_count)
+Nombre de phrases contenant au moins un mot ou une expression de `assets/dictionnaires/duration-markers.txt`, par exemple « souvent », « chaque jour » ou « pendant des années ». Ce repérage lexical signale une condensation temporelle possible sans prétendre l’interpréter.
+
+<a id="negative_sentence_count"></a>
+##### Phrases négatives (negative_sentence_count)
+Nombre de phrases contenant au moins un marqueur de négation, dialogues compris. Une phrase n’est comptée qu’une fois, quel que soit le nombre de marqueurs.
+
+<a id="exclamative_sentence_count"></a>
+##### Constructions exclamatives (exclamative_sentence_count)
+Nombre de phrases terminées par un point d’exclamation et commençant par « que », « comme », « quel » ou une forme apparentée.
+
 <a id="analyzed_noun_count"></a>
 ##### Noms analysés pour leurs modificateurs (analyzed_noun_count)
 Nombre de noms pour lesquels les modificateurs directs sont comptés.
+
+<a id="noun_modifier_count"></a>
+##### Modificateurs nominaux (noun_modifier_count)
+Nombre total de modificateurs directement rattachés aux noms : adjectifs, compléments nominaux et propositions relatives selon les dépendances spaCy.
 
 <a id="heavily_modified_noun_count"></a>
 ##### Noms fortement modifiés (heavily_modified_noun_count)
@@ -727,13 +856,41 @@ Nombre de noms portant au moins deux modificateurs directs.
 ##### Chaînes adjectivales (adjective_chain_count)
 Nombre de chaînes d’adjectifs coordonnées.
 
-<a id="interjection_count"></a>
-##### Interjections (interjection_count)
-Nombre d’interjections émotionnelles reconnues.
+<a id="adjective_in_chain_count"></a>
+##### Adjectifs dans les chaînes (adjective_in_chain_count)
+Nombre total d’adjectifs appartenant aux chaînes adjectivales coordonnées.
+
+<a id="incise_count"></a>
+##### Phrases avec incise (incise_count)
+Nombre de phrases contenant au moins une insertion qui interrompt la construction principale. Le programme reconnaît notamment une précision détachée (« Paul, mon voisin, arrive »), une relative explicative (« Paul, qui habite ici, arrive »), une proposition circonstancielle détachée (« Paul, sachant cela, partit ») ou une remarque autonome insérée dans la phrase. Ces constructions sont retenues lorsque spaCy les identifie et qu’une virgule les introduit. Le programme compte aussi les passages encadrés par des parenthèses ou par deux tirets cadratins ou demi-cadratins.
+
+Une phrase ne compte qu’une fois si elle contient plusieurs incises. Un tiret isolé, notamment le tiret initial d’un dialogue, ne suffit pas. Les catégories techniques spaCy correspondantes sont `appos`, `acl:relcl`, `advcl` et `parataxis`.
+
+<a id="coordination_accumulation_count"></a>
+##### Phrases avec accumulation coordonnée (coordination_accumulation_count)
+Nombre de phrases comportant plus de deux coordinations reconnues par spaCy (`dep_ == "cc"`). Les virgules seules ne sont pas comptées.
+
+
+
+<a id="punctuation_mark_count"></a>
+##### Signes de ponctuation (punctuation_mark_count)
+Somme des nombres de [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count).
+
+<a id="period_count"></a>
+##### Points (period_count)
+Nombre de caractères `.`.
 
 <a id="suspention_point_count"></a>
 ##### Points de suspension (suspention_point_count)
-Nombre de points de suspension, en comptant `...` et `…` comme une occurrence.
+Nombre de caractères `…`. La normalisation transforme auparavant les suites `...` en un caractère unique `…`.
+
+<a id="comma_count"></a>
+##### Virgules (comma_count)
+Nombre de virgules.
+
+<a id="colon_count"></a>
+##### Deux-points (colon_count)
+Nombre de deux-points.
 
 <a id="exclamation_point_count"></a>
 ##### Points d’exclamation (exclamation_point_count)
@@ -747,21 +904,43 @@ Nombre total de points d’interrogation dans le document.
 ##### Points-virgules (semicolons_count)
 Nombre de points-virgules.
 
+<a id="dash_count"></a>
+##### Tirets (dash_count)
+Nombre de tirets demi-cadratins (–) et cadratins (—).
+
+<a id="parenthesis_count"></a>
+##### Parenthèses (parenthesis_count)
+Nombre de signes ouvrants ou fermants de parenthèse.
+
+<a id="quote_mark_count"></a>
+##### Guillemets (quote_mark_count)
+Nombre de guillemets français (« ou »), anglais (“ ou ”) ou droits (").
+
+
+
 <a id="temporal_connector_count"></a>
 ##### Connecteurs temporels (temporal_connector_count)
-Nombre d’occurrences de connecteurs temporels, utilisées pour calculer la densité de connecteurs temporels.
+Nombre d’occurrences de connecteurs temporels ou séquentiels définis dans `assets/dictionnaires/temporal-connectors.txt`.
 
 <a id="logical_connector_count"></a>
 ##### Connecteurs logiques (logical_connector_count)
-Nombre d’occurrences de connecteurs logiques, utilisées pour calculer la densité de connecteurs logiques.
+Nombre d’occurrences de connecteurs logiques ou argumentatifs définis dans `assets/dictionnaires/logical-connectors.txt`.
+
+<a id="emotion_word_count"></a>
+##### Marqueurs émotionnels (emotion_word_count)
+Nombre d’occurrences dont le lemme, la famille lexicale ou l’expression composée figure dans `assets/dictionnaires/emotions.txt`. Les formes sont ramenées à leur lemme avec Morphalou. Une occurrence reconnue dans plusieurs catégories n’est comptée qu’une fois ici : c’est pourquoi ce total ne peut pas être obtenu en additionnant les huit comptages par émotion. Le calcul ne tient compte ni de la négation ni du contexte.
+
+<a id="emotion_sentence_count"></a>
+##### Phrases émotionnelles (emotion_sentence_count)
+Nombre de phrases contenant au moins un [marqueur émotionnel](#emotion_word_count). Une phrase n’est comptée qu’une fois, même si elle contient plusieurs occurrences ou plusieurs catégories.
 
 <a id="joy_emotion_count"></a>
 ##### Joie (joy_emotion_count)
-Nombre d’occurrences rattachées à la catégorie « Joie » du dictionnaire émotionnel.
+Nombre d’occurrences rattachées à la catégorie « Joie » de `assets/dictionnaires/emotions.txt`. Pour les huit catégories, les mots du document sont ramenés à leur lemme avec Morphalou ; le calcul reconnaît les lemmes, leurs familles lexicales et les expressions composées. Il ne tient compte ni de la négation ni du contexte. Une même occurrence peut appartenir à plusieurs catégories si leurs familles lexicales se recouvrent.
 
 <a id="joy_intensified_emotion_count"></a>
 ##### Joie intensifiée (joy_intensified_emotion_count)
-Nombre d’occurrences de joie intensifiées ou qualifiées.
+Nombre d’occurrences de joie intensifiées ou qualifiées. Pour les huit catégories, une occurrence est retenue lorsqu’elle est précédée par un intensificateur tel que « très », « tellement » ou « terriblement », ou lorsque spaCy lui rattache un modificateur adjectival (`amod`) ou adverbial (`advmod`).
 
 <a id="sadness_emotion_count"></a>
 ##### Tristesse (sadness_emotion_count)

@@ -2,19 +2,22 @@
 
 import re
 
-from .config import README_FILE, README_STATS_END, README_STATS_START, STATS_NOTES_FILE, TEXT_ENCODING
+from .config import ANALYSIS_WINDOW_WORDS, README_FILE, README_STATS_END, README_STATS_START, STATS_NOTES_FILE, TEXT_ENCODING
 
 
 def documented_metrics() -> str:
     """Retourne toutes les notes, enrichies d’ancres pour les liens internes."""
     kept = []
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        heading = re.match(r"^(#{1,6})\s+(.+)$", line)
+    window_label = f"{ANALYSIS_WINDOW_WORDS:,} mots".replace(",", " ")
+    notes = STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label)
+    for line in notes.splitlines():
+        public_line = re.sub(r"\s+#web\s*$", "", line)
+        heading = re.match(r"^(#{1,6})\s+(.+)$", public_line)
         if heading:
             identifier = re.search(r"\(([a-z][a-z0-9_]*)\)\s*$", heading.group(2))
             if identifier:
                 kept.append(f'<a id="{identifier.group(1)}"></a>')
-        kept.append(line)
+        kept.append(public_line)
     return "\n".join(kept).strip()
 
 

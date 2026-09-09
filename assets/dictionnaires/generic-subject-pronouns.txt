@@ -1,0 +1,9 @@
+# Pronoms sujets interprétés comme génériques.
+# Liste commune aux présents gnomiques et aux modaux généralisants.
+on
+chacun
+quiconque
+nul
+tout
+certains
+beaucoup

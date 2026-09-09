@@ -9,7 +9,7 @@ from .config import (
     NEGATION_COMPLETE_MARKERS_FILE,
     ABSTRACT_NOUN_SUFFIXES_FILE, CONCRETE_NOUN_EXCEPTIONS_FILE,
     STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE,
-    MODAL_VERBS_FILE,
+    MODAL_VERBS_FILE, GENERIC_SUBJECT_PRONOUNS_FILE,
     SPACY_FRENCH_MODEL,
     SPACY_RELATIVE_DEPENDENCIES,
     SPACY_SUBORDINATE_DEPENDENCIES,
@@ -19,9 +19,6 @@ from .morphalou import lexical_map
 NOMINAL_MODIFIER_DEPS = {"amod", "nmod", "acl:relcl", "acl"}
 ALWAYS_PERSONAL_PRONOUNS = {"je", "j", "tu", "nous", "vous", "elle", "elles", "ils"}
 IMPERSONAL_IL_VERBS = {"pleuvoir", "neiger", "falloir", "sembler", "arriver", "suffire", "convenir", "s'agir"}
-GENERIC_SUBJECT_PRONOUNS = {"on", "chacun", "quiconque", "nul", "tout", "certains", "beaucoup"}
-
-
 @lru_cache(maxsize=1)
 def _load_modal_verbs() -> set[str]:
     if not MODAL_VERBS_FILE.exists():
@@ -36,12 +33,31 @@ def _load_modal_verbs() -> set[str]:
     return result
 
 
+@lru_cache(maxsize=1)
+def _load_generic_subject_pronouns() -> set[str]:
+    if not GENERIC_SUBJECT_PRONOUNS_FILE.exists():
+        return set()
+    return {
+        line.split("#", 1)[0].strip().casefold()
+        for line in GENERIC_SUBJECT_PRONOUNS_FILE.read_text(encoding="utf-8").splitlines()
+        if line.split("#", 1)[0].strip()
+    }
+
+
 def modal_generalization_ratio(doc, generic_subjects: set[str] | None = None) -> float:
     """Part des verbes modaux dont le sujet est générique ou impersonnel."""
     verbs = [token for token in doc if token.pos_ in {"VERB", "AUX"}]
     if not verbs:
         return 0.0
-    generic = set(generic_subjects or GENERIC_SUBJECT_PRONOUNS) | {"on"}
+    return modal_generalization_count(doc, generic_subjects) / len(verbs)
+
+
+def modal_generalization_count(doc, generic_subjects: set[str] | None = None) -> int:
+    """Nombre de modaux à sujet générique ou impersonnel."""
+    if doc is None:
+        return 0
+    verbs = [token for token in doc if token.pos_ in {"VERB", "AUX"}]
+    generic = set(generic_subjects) if generic_subjects is not None else _load_generic_subject_pronouns()
     modals = _load_modal_verbs()
     count = 0
     for verb in verbs:
@@ -50,7 +66,7 @@ def modal_generalization_ratio(doc, generic_subjects: set[str] | None = None) ->
         subjects = [child for child in verb.children if child.dep_ in {"nsubj", "nsubj:pass"}]
         if verb.lemma_.casefold() == "falloir" or any(subject.lower_ in generic for subject in subjects):
             count += 1
-    return count / len(verbs)
+    return count
 
 
 def _is_personal_subject(token) -> bool | None:
@@ -67,11 +83,11 @@ def _is_personal_subject(token) -> bool | None:
 
 
 def _is_generic_subject(token) -> bool:
-    return token.pos_ == "NOUN" or (token.pos_ == "PRON" and token.lower_ in GENERIC_SUBJECT_PRONOUNS)
+    return token.pos_ == "NOUN" or (token.pos_ == "PRON" and token.lower_ in _load_generic_subject_pronouns())
 
 
-def _is_gnomic_present_verb(token, is_dialogue: bool = False) -> bool:
-    if is_dialogue or "Fin" not in token.morph.get("VerbForm") or "Pres" not in token.morph.get("Tense") or "Ind" not in token.morph.get("Mood"):
+def _is_gnomic_present_verb(token) -> bool:
+    if "Fin" not in token.morph.get("VerbForm") or "Pres" not in token.morph.get("Tense") or "Ind" not in token.morph.get("Mood"):
         return False
     return any(_is_generic_subject(child) for child in token.children if child.dep_ in {"nsubj", "nsubj:pass"})
 
@@ -82,13 +98,22 @@ def _is_exclamative_sentence(sentence) -> bool:
     return bool(tokens and sentence.text.strip().endswith("!") and tokens[0].lower_ in EXCLAMATIVE_OPENERS)
 
 
-def incise_density(doc) -> float:
-    """Part des phrases contenant une incise repérée dans l'arbre syntaxique."""
+def incise_count(doc) -> int:
+    """Nombre de phrases contenant une incise syntaxique ou typographique."""
     sentences = list(doc.sents)
     if not sentences:
-        return 0.0
+        return 0
     count = 0
     for sentence in sentences:
+        text = sentence.text.strip()
+        # Les parenthèses et les paires de tirets longs délimitent directement
+        # une insertion. Un tiret initial de dialogue n'est jamais suffisant.
+        parenthetical = "(" in text and ")" in text and text.index("(") < text.rindex(")")
+        dash_text = text[1:].lstrip() if text.startswith(("—", "–")) else text
+        long_dash_incise = sum(dash_text.count(mark) for mark in ("—", "–")) >= 2
+        if parenthetical or long_dash_incise:
+            count += 1
+            continue
         for token in sentence:
             if token.dep_ not in {"appos", "acl:relcl", "advcl", "parataxis"} or token.i <= sentence.start:
                 continue
@@ -96,7 +121,11 @@ def incise_density(doc) -> float:
             if before is not None and before.text == ",":
                 count += 1
                 break
-    return count / len(sentences)
+    return count
+
+def incise_density(doc) -> float:
+    sentences = list(doc.sents)
+    return incise_count(doc) / len(sentences) if sentences else 0.0
 
 
 def coordination_accumulation_ratio(doc) -> float:
@@ -104,7 +133,10 @@ def coordination_accumulation_ratio(doc) -> float:
     sentences = list(doc.sents)
     if not sentences:
         return 0.0
-    return sum(sum(token.dep_ == "cc" for token in sentence) > 2 for sentence in sentences) / len(sentences)
+    return coordination_accumulation_count(doc) / len(sentences)
+
+def coordination_accumulation_count(doc) -> int:
+    return sum(sum(token.dep_ == "cc" for token in sentence) > 2 for sentence in doc.sents)
 
 
 def _max_depth_from_last_token(sentence) -> int:
@@ -184,16 +216,39 @@ def tense_shift_rate(paragraphs: list[str], nlp) -> float:
 
 def _tense_shift_rate_doc(text: str, doc) -> float:
     """Même mesure à partir du Doc déjà analysé, sans second appel spaCy."""
-    ranges, offset = [], 0
-    for paragraph in re.split(r"\n\s*\n+", text):
-        if paragraph.strip(): ranges.append((offset, offset + len(paragraph)))
-        offset += len(paragraph) + 1
+    ranges = _paragraph_ranges(text)
     dominant = []
     for start, end in ranges:
         tenses = [token.morph.get("Tense")[0] for token in doc
                   if start <= token.idx < end and token.pos_ == "VERB" and token.morph.get("Tense")]
         if tenses: dominant.append(Counter(tenses).most_common(1)[0][0])
-    return sum(a != b for a, b in zip(dominant, dominant[1:])) / (len(dominant) - 1) if len(dominant) > 1 else 0.0
+    shifts = sum(a != b for a, b in zip(dominant, dominant[1:]))
+    transitions = max(len(dominant) - 1, 0)
+    return shifts / transitions if transitions else 0.0
+
+
+def _tense_shift_counts_doc(text: str, doc) -> tuple[int, int]:
+    ranges = _paragraph_ranges(text)
+    dominant = []
+    for start, end in ranges:
+        tenses = [token.morph.get("Tense")[0] for token in doc
+                  if start <= token.idx < end and token.pos_ == "VERB" and token.morph.get("Tense")]
+        if tenses:
+            dominant.append(Counter(tenses).most_common(1)[0][0])
+    return sum(a != b for a, b in zip(dominant, dominant[1:])), max(len(dominant) - 1, 0)
+
+
+def _paragraph_ranges(text: str) -> list[tuple[int, int]]:
+    """Plages exactes des paragraphes, séparateurs blancs exclus."""
+    ranges = []
+    start = 0
+    for separator in re.finditer(r"\n\s*\n+", text):
+        if text[start:separator.start()].strip():
+            ranges.append((start, separator.start()))
+        start = separator.end()
+    if text[start:].strip():
+        ranges.append((start, len(text)))
+    return ranges
 
 
 DIALOGUE_OPENING_MARKERS = ("—", "–", "«")  # cadratin, demi-cadratin ou guillemet
@@ -463,6 +518,7 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     passive_sentences = sum(any(_is_passive_predicate(token) for token in predicates) for predicates in sentence_predicates)
     comparison_sentences = sum(_contains_comparison(sentence) for sentence in sentences)
     finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in narrative_tokens)
+    all_finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in doc)
     present_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Pres" in token.morph.get("Tense") for token in doc)
     past_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Past" in token.morph.get("Tense") for token in doc)
     # Les formes en -it sont parfois homographes du présent (retentit,
@@ -523,9 +579,13 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     subjects = [_is_personal_subject(t) for t in doc if t.dep_ in {"nsubj", "nsubj:pass"}]
     decided_subjects = [x for x in subjects if x is not None]
     personal_subject_ratio = sum(decided_subjects) / len(decided_subjects) if decided_subjects else 0
-    narrative_past_ratio = sum("Past" in t.morph.get("Tense") for t in finite_narrative) / len(finite_narrative) if finite_narrative else 0
-    gnomic_present_count = sum(_is_gnomic_present_verb(token) for token in narrative_tokens)
-    gnomic_present_ratio = gnomic_present_count / len(finite_narrative) if finite_narrative else 0
+    narrative_past_count = sum("Past" in t.morph.get("Tense") for t in finite_narrative)
+    narrative_past_ratio = narrative_past_count / len(finite_narrative) if finite_narrative else 0
+    tense_shift_count, tense_transition_count = _tense_shift_counts_doc(text, doc)
+    negative_sentence_count = sum(total > 0 for total, _with_ne in all_negation_totals)
+    exclamative_sentence_count = sum(_is_exclamative_sentence(s) for s in sentences)
+    gnomic_present_count = sum(_is_gnomic_present_verb(token) for token in doc)
+    gnomic_present_ratio = gnomic_present_count / all_finite_verbs if all_finite_verbs else 0
     return {
         "average_depth": sum(depths) / len(depths) if depths else 0,
         "sentence_count": len(depths),
@@ -545,7 +605,10 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "proper_noun_density": proper_noun_density(doc),
         "concrete_noun_ratio": concrete_noun_ratio(doc),
         "tense_shift_rate": _tense_shift_rate_doc(text, doc),
+        "tense_shift_count": tense_shift_count,
+        "tense_transition_count": tense_transition_count,
         "finite_verbs": finite_verbs,
+        "all_finite_verbs": all_finite_verbs,
         "present_participles": present_participles,
         "past_participles": past_participles,
         "simple_past": simple_past,
@@ -554,6 +617,7 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "negation_with_ne": negation_with_ne,
         "negation_completeness_ratio": negation_with_ne / negation_total if negation_total else None,
         "negation_ratio": negation_sentence_ratio,
+        "negative_sentence_count": negative_sentence_count,
         "periphrastic_future": periphrastic_future,
         "simple_future": simple_future,
         "future_total": future_total,
@@ -564,10 +628,20 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "narrative_verb_count": len(finite_narrative),
         "action_verb_count": sum(t.lemma_.casefold() not in stative for t in finite_narrative),
         "gnomic_present_count": gnomic_present_count,
+        "modal_generalization_count": modal_generalization_count(doc),
         "personal_subject_count": sum(decided_subjects),
+        "classifiable_subject_count": len(decided_subjects),
+        "narrative_past_count": narrative_past_count,
+        "lexical_token_count": sum(not token.is_space and not token.is_punct for token in doc),
         "analyzed_noun_count": len(modifier_counts),
         "heavily_modified_noun_count": sum(c >= 2 for c in modifier_counts),
         "adjective_chain_count": len(adjective_chains),
+        "adjective_in_chain_count": sum(adjective_chains),
+        "noun_modifier_count": sum(modifier_counts),
+        "grammatical_token_count": pos_total,
+        "grammatical_verb_count": pos_counts["verbs"],
+        "incise_count": incise_count(doc),
+        "coordination_accumulation_count": coordination_accumulation_count(doc),
         "avg_modifiers_per_noun": sum(modifier_counts) / len(modifier_counts) if modifier_counts else 0,
         "heavily_modified_noun_ratio": sum(c >= 2 for c in modifier_counts) / len(modifier_counts) if modifier_counts else 0,
         "adjective_chain_ratio": len(adjective_chains) / len(sentences) if sentences else 0,
@@ -576,7 +650,8 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "personal_subject_ratio": personal_subject_ratio,
         "narrative_past_ratio": narrative_past_ratio,
         "gnomic_present_ratio": gnomic_present_ratio,
-        "exclamative_construction_ratio": sum(_is_exclamative_sentence(s) for s in sentences) / len(sentences) if sentences else 0,
+        "exclamative_construction_ratio": exclamative_sentence_count / len(sentences) if sentences else 0,
+        "exclamative_sentence_count": exclamative_sentence_count,
         "incise_density": incise_density(doc),
         "coordination_accumulation_ratio": coordination_accumulation_ratio(doc),
         "right_branching_depth": right_branching_depth(doc),

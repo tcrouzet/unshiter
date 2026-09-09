@@ -93,6 +93,9 @@ lemme: yeux qui brillent
 lemme: poitrine chaude
 lemme: chaleur qui monte
 lemme: envie de sauter
+lemme: bravo
+lemme: hourra
+lemme: ouf
 
 # --- Tristesse ---
 
@@ -178,6 +181,8 @@ lemme: poids sur la poitrine
 lemme: poitrine comprimée
 lemme: yeux brûlants
 lemme: membres lourds
+lemme: hélas
+lemme: malheur
 
 # --- Peur ---
 
@@ -379,6 +384,8 @@ lemme: sang qui monte à la tête
 lemme: tempes qui battent
 lemme: mâchoires serrées
 
+lemme: zut
+
 # --- Surprise ---
 
 lemme: sursauter
@@ -432,6 +439,12 @@ lemme: bouche ouverte
 lemme: sourcils levés
 lemme: souffle bloqué
 lemme: sang qui reflue
+lemme: ah
+lemme: oh
+lemme: mon dieu
+lemme: bon dieu
+lemme: grand dieu
+lemme: miséricorde
 
 # --- Dégoût ---
 

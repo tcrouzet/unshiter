@@ -4,39 +4,140 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import argparse
+import ast
 from collections import Counter
+from functools import lru_cache
 import hashlib
 import inspect
 import math
 import re
 import json
+import textwrap
 import unicodedata
 from pathlib import Path
 import re
 import sqlite3
 
-from .config import CORPUS_DIR, DEFAULT_CORPUS_ID, EPUB_ANALYSIS_VERSION, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS, PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING, DURATION_MARKERS_FILE
+from .config import (ANALYSIS_WINDOW_WORDS, CORPUS_DIR, DEFAULT_CORPUS_ID,
+                     EPUB_ANALYSIS_VERSION, EPUB_DATABASE, METRICS,
+                     PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING,
+                     DURATION_MARKERS_FILE, METRIC_CACHE_VERSIONS)
 from .metrics import cached_metric_values, windowed_metric_fields
-from .stats import Metrics, compute_stats, punctuation_diversity, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
+from .stats import Metrics, WORD_RE, normalize_markdown_text, punctuation_diversity, punctuation_mark_count, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
 
-_COMPUTE_FUNCTION_HASH = hashlib.sha256(inspect.getsource(compute_stats).encode("utf-8")).hexdigest()
+def _metric_method_source(name: str, visited: set[str]) -> list[str]:
+    """Source d'une méthode Metrics et de ses dépendances Metrics directes."""
+    if name in visited:
+        return []
+    visited.add(name)
+    descriptor = inspect.getattr_static(Metrics, name, None)
+    function = getattr(descriptor, "func", descriptor)
+    if not callable(function):
+        return [f"{name}={function!r}"]
+    source = textwrap.dedent(inspect.getsource(function))
+    parts = [source]
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return parts
+    dependencies = {
+        node.attr for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name) and node.value.id == "self"
+    }
+    for dependency in sorted(dependencies):
+        if inspect.getattr_static(Metrics, dependency, None) is not None:
+            parts.extend(_metric_method_source(dependency, visited))
+    global_names = sorted({node.id for node in ast.walk(tree) if isinstance(node, ast.Name)})
+    for global_name in global_names:
+        value = getattr(function, "__globals__", {}).get(global_name)
+        if isinstance(value, Path):
+            content = value.read_bytes() if value.is_file() else b""
+            parts.append(f"path:{global_name}:{value}:{hashlib.sha256(content).hexdigest()}")
+        elif callable(value) and str(getattr(value, "__module__", "")).startswith("detector."):
+            module = inspect.getmodule(value)
+            module_path = Path(module.__file__) if module and getattr(module, "__file__", None) else None
+            if module_path and module_path.is_file():
+                parts.append(f"module:{module.__name__}:{hashlib.sha256(module_path.read_bytes()).hexdigest()}")
+    return parts
 
+
+@lru_cache(maxsize=None)
 def metric_function_hash(metric_name: str) -> str:
-    """Empreinte stable du calcul associé à une mesure."""
-    return hashlib.sha256(f"{metric_name}:{_COMPUTE_FUNCTION_HASH}".encode("utf-8")).hexdigest()
+    """Empreinte propre au champ et à ses dépendances dans ``Metrics``."""
+    if metric_name not in METRICS:
+        raise ValueError(f"Mesure inconnue : {metric_name}")
+    payload = _metric_method_source(metric_name, set())
+    payload.append(f"version={METRIC_CACHE_VERSIONS.get(metric_name, '')}")
+    return hashlib.sha256("\n".join(payload).encode("utf-8")).hexdigest()
 
 
-def purge_metric(connection: sqlite3.Connection, field: str) -> int:
-    """Supprime du cache toutes les valeurs d'une mesure donnée."""
+def metric_dependency_names(metric_name: str) -> set[str]:
+    """Retourne les champs Metrics dont dépend directement ou indirectement un champ."""
+    dependencies: set[str] = set()
+    _metric_method_source(metric_name, dependencies)
+    return dependencies
+
+
+def metric_cache_is_valid(
+    connection: sqlite3.Connection,
+    book_id: int,
+    field: str,
+    content_sha256: str,
+    window_index: int = 0,
+) -> bool:
+    """Vérifie une mesure précise à partir de son contenu et de son calcul."""
+    row = connection.execute(
+        "SELECT content_sha256,function_hash FROM metric_cache "
+        "WHERE book_id=? AND window_index=? AND metric_name=?",
+        (book_id, window_index, field),
+    ).fetchone()
+    return bool(row and row[0] == content_sha256 and row[1] == metric_function_hash(field))
+
+
+def invalid_metric_names(
+    connection: sqlite3.Connection,
+    book_id: int,
+    fields: set[str],
+    content_sha256: str,
+) -> set[str]:
+    """Retourne les champs absents ou périmés d'un livre."""
+    return {
+        field for field in fields
+        if not metric_cache_is_valid(connection, book_id, field, content_sha256)
+    }
+
+
+def purge_metric(connection: sqlite3.Connection, field: str, corpus_id: str = DEFAULT_CORPUS_ID) -> int:
+    """Supprime une mesure uniquement pour les œuvres du corpus demandé."""
     if field not in METRICS:
         raise ValueError(f"Mesure inconnue : {field}")
-    cursor = connection.execute("DELETE FROM metric_cache WHERE metric_name = ?", (field,))
+    cursor = connection.execute(
+        "DELETE FROM metric_cache WHERE metric_name=? AND book_id IN "
+        "(SELECT book_id FROM corpus_books WHERE corpus_id=?)",
+        (field, corpus_id),
+    )
     return cursor.rowcount
+
+
+def reset_database() -> None:
+    """Vide entièrement l'index et les caches sans supprimer le fichier SQLite."""
+    EPUB_DATABASE.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(EPUB_DATABASE) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        init_database(connection)
+        connection.execute("DELETE FROM metric_cache")
+        connection.execute("DELETE FROM analyses")
+        connection.execute("DELETE FROM corpus_books")
+        connection.execute("DELETE FROM books")
+        connection.execute("DELETE FROM corpora")
+        connection.commit()
+        connection.execute("VACUUM")
 
 FULL_DOCUMENT_FIELDS = {
     "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
-    "avg_sentence_word_count", "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
-    "paragraph_length_std_dev", "punctuation_per_300_words", "punctuation_diversity", "document_char_count",
+    "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
+    "paragraph_length_std_dev", "punctuation_ratio", "punctuation_diversity", "document_char_count",
     "dialogue_ratio", "emotion_sentence_ratio",
     "logical_connector_ratio", "temporal_connector_ratio", "scene_summary_ratio", "punctuation_variety_score", "modal_generalization_ratio",
 }
@@ -47,17 +148,15 @@ def full_document_fields(text: str, max_sentence_length: int | None = None, moda
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n+", text) if part.strip()]
     word_count = len(words)
     sentence_lengths = [len(re.findall(r"[\wÀ-ÿ]+", s, flags=re.UNICODE)) for s in sentences]
-    sentence_chars = [len(s) for s in sentences]
     paragraph_lengths = [len(re.findall(r"[\wÀ-ÿ]+", p, flags=re.UNICODE)) for p in paragraphs]
     markers = {line.strip().casefold() for line in DURATION_MARKERS_FILE.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")} if DURATION_MARKERS_FILE.exists() else set()
-    mean_chars = sum(sentence_chars) / len(sentence_chars) if sentence_chars else 0
     mean_words = sum(sentence_lengths) / len(sentence_lengths) if sentence_lengths else 0
-    sorted_chars = sorted(sentence_chars)
+    sorted_lengths = sorted(sentence_lengths)
     percentile = lambda values, q: values[min(len(values) - 1, int(q * (len(values) - 1)))] if values else 0
     para_mean = sum(paragraph_lengths) / len(paragraph_lengths) if paragraph_lengths else 0
     para_std = math.sqrt(sum((n - para_mean) ** 2 for n in paragraph_lengths) / len(paragraph_lengths)) if paragraph_lengths else 0
     dialogue_words = sum(len(re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", paragraph)) for paragraph in paragraphs if paragraph.lstrip().startswith(("—", "–", "«")))
-    maximum_sentence_length = max_sentence_length or max(sentence_chars, default=0)
+    maximum_sentence_length = max_sentence_length or max((len(sentence) for sentence in sentences), default=0)
     scene_scores = [
         float(any(marker in sentence.casefold() for marker in markers))
         * (1 - len(sentence) / maximum_sentence_length)
@@ -66,10 +165,11 @@ def full_document_fields(text: str, max_sentence_length: int | None = None, moda
     ]
     return {"document_char_count": len(text), "word_count": word_count, "sentence_count": len(sentences), "paragraph_count": len(paragraphs),
             "avg_word_length": sum(map(len, words)) / word_count if word_count else 0,
-            "avg_sentence_length": mean_chars, "avg_sentence_word_count": mean_words,
-            "median_sentence_length": percentile(sorted_chars, .5), "sentence_length_p10": percentile(sorted_chars, .1),
-            "sentence_length_p90": percentile(sorted_chars, .9), "paragraph_length_std_dev": para_std,
-            "punctuation_per_300_words": len(re.findall(r"[.,;:!?…—–\-()\[\]«»\"]", text)) / word_count * 100 if word_count else 0,
+            "avg_sentence_length": mean_words,
+            "median_sentence_length": percentile(sorted_lengths, .5), "sentence_length_p10": percentile(sorted_lengths, .1),
+            "sentence_length_p90": percentile(sorted_lengths, .9), "paragraph_length_std_dev": para_std,
+            "punctuation_mark_count": punctuation_mark_count(text),
+            "punctuation_ratio": punctuation_mark_count(text) / word_count if word_count else 0,
             "punctuation_diversity": punctuation_diversity(text),
             "dialogue_ratio": dialogue_words / word_count if word_count else 0,
             "logical_connector_ratio": logical_connector_ratio(text, len(sentences)),
@@ -94,6 +194,7 @@ def markdown_body(text: str) -> str:
 
 def clean_analysis_body(text: str) -> str:
     """Retire les titres, citations et sections liminaires."""
+    text = normalize_markdown_text(text)
     preliminary = ("préface", "avant-propos", "prologue", "prélude", "introduction", "mentions légales", "dédicace", "exergue")
     result = []
     skip_section = False
@@ -229,23 +330,21 @@ def canonicalize_database_authors(connection: sqlite3.Connection) -> None:
             connection.execute("UPDATE books SET author=? WHERE author=?", (target, source))
 
 
-def character_windows(text: str, size: int = EPUB_ANALYSIS_WINDOW_SIZE) -> list[tuple[int, int, str]]:
-    """Découpe en fenêtres contiguës d'environ *size* signes, finies sur une phrase."""
+def word_windows(text: str, size: int = ANALYSIS_WINDOW_WORDS) -> list[tuple[int, int, str]]:
+    """Découpe le texte en fenêtres contiguës de *size* mots."""
     if not text:
         return []
+    matches = list(WORD_RE.finditer(text))
+    if not matches:
+        return []
     windows = []
-    start = 0
-    while start < len(text):
-        target = min(start + size, len(text))
-        if target == len(text):
-            end = target
-        else:
-            match = SENTENCE_END.search(text, target)
-            end = match.end() if match else len(text)
+    for first in range(0, len(matches), size):
+        start = 0 if first == 0 else matches[first].start()
+        following = first + size
+        end = matches[following].start() if following < len(matches) else len(text)
         fragment = text[start:end].strip()
         if fragment:
             windows.append((start, end, fragment))
-        start = end
     return windows
 
 
@@ -327,8 +426,8 @@ def init_database(connection: sqlite3.Connection) -> None:
                 ],
             )
         connection.execute("ALTER TABLE analyses DROP COLUMN stats_json")
-    # Le registre dérivé des notes est la source de vérité : une mesure
-    # retirée des notes ne doit pas survivre comme colonne fantôme du cache.
+    # SQLite ne conserve que les données élémentaires. Les ratios, densités
+    # et scores composites sont reconstruits depuis ces valeurs persistées.
     placeholders = ",".join("?" for _ in PERSISTED_METRICS)
     connection.execute(
         f"DELETE FROM metric_cache WHERE metric_name NOT IN ({placeholders})",
@@ -344,7 +443,11 @@ def init_database(connection: sqlite3.Connection) -> None:
         "UPDATE books SET path=replace(path, ?, ?) WHERE path LIKE ?",
         (str(project_root / "sources"), str(CORPUS_DIR / "bigcorpus" / "sources"), str(project_root / "sources") + "/%"),
     )
-    connection.execute("INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) SELECT 'bigcorpus',id FROM books")
+    connection.execute(
+        "INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) "
+        "SELECT 'bigcorpus',id FROM books WHERE path LIKE ?",
+        (str(CORPUS_DIR / "bigcorpus") + "/%",),
+    )
 
 
 def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None, progress=None) -> tuple[bool, int, int]:
@@ -364,8 +467,6 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         metadata["author"] = author
     body = clean_analysis_body(markdown_body(text))
     old = connection.execute("SELECT id, sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
-    if old is None:
-        old = connection.execute("SELECT id, sha256, analysis_version FROM books WHERE sha256 = ? ORDER BY id LIMIT 1", (digest,)).fetchone()
     previous_stats = None
     if old is not None and old[1] == digest:
         previous_stats = cached_metric_values(connection, old[0])
@@ -377,7 +478,19 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         if previous and previous[0]:
             metadata["author"] = previous[0]
     required_metric_ids = set(PERSISTED_METRICS)
-    missing_metric_ids = required_metric_ids.difference(previous_stats or {}) if old is not None and old[1] == digest else required_metric_ids
+    if old is not None and old[1] == digest:
+        missing_metric_ids = invalid_metric_names(connection, old[0], required_metric_ids, digest)
+        # Une valeur périmée ne peut pas être réinjectée comme donnée partagée
+        # pendant le recalcul d'un score composite.
+        for field in missing_metric_ids:
+            if previous_stats is not None:
+                previous_stats.pop(field, None)
+        if previous_stats is not None:
+            for field in METRICS:
+                if metric_dependency_names(field) & missing_metric_ids:
+                    previous_stats.pop(field, None)
+    else:
+        missing_metric_ids = required_metric_ids
     full_recompute = old is None or old[1] != digest or old[2] != EPUB_ANALYSIS_VERSION
     changed = full_recompute or bool(missing_metric_ids)
     now = datetime.now(timezone.utc).isoformat()
@@ -398,13 +511,14 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         if full_recompute:
             connection.execute("DELETE FROM analyses WHERE book_id = ?", (book_id,))
             connection.execute("DELETE FROM metric_cache WHERE book_id = ?", (book_id,))
-        windows = character_windows(body)[:1]
+        windows = word_windows(body)[:1]
         for index, (start, end, fragment) in enumerate(windows):
-            if full_recompute:
-                connection.execute(
-                    "INSERT INTO analyses(book_id,window_index,char_start,char_end,char_count) VALUES(?,?,?,?,?)",
-                    (book_id, index, start, end, len(fragment)),
-                )
+            connection.execute(
+                "INSERT INTO analyses(book_id,window_index,char_start,char_end,char_count) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(book_id,window_index) DO UPDATE SET "
+                "char_start=excluded.char_start,char_end=excluded.char_end,char_count=excluded.char_count",
+                (book_id, index, start, end, len(fragment)),
+            )
             windowed = windowed_metric_fields()
             # Les composites peuvent réutiliser leurs composantes déjà
             # persistées sans relancer spaCy ni les calculs structurels.
@@ -488,34 +602,15 @@ def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_COR
             epub_key = path.with_suffix(".epub").name
             correction = overrides.get(epub_key) or overrides.get(path.name, {})
             current_digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            reusable = connection.execute(
-                "SELECT id FROM books WHERE sha256=? AND id NOT IN "
-                "(SELECT book_id FROM corpus_books WHERE corpus_id=?) ORDER BY id LIMIT 1",
-                (current_digest, corpus_id),
-            ).fetchone()
-            if reusable and not complete_existing:
-                book_id = reusable[0]
-                connection.execute("INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) VALUES(?,?)", (corpus_id, book_id))
-                count = connection.execute("SELECT COUNT(*) FROM analyses WHERE book_id=?", (book_id,)).fetchone()[0]
-                connection.commit()
-                print(f"[{index}/{total_paths}] Réutilisé sans recalcul : {path.name}", flush=True)
-                windows += count
-                continue
             previous = connection.execute("SELECT sha256, analysis_version FROM books WHERE path = ?", (str(path),)).fetchone()
-            right_id = "right_branching_depth"
-            right_present = connection.execute(
-                "SELECT 1 FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0 AND metric_name=?",
-                (str(path), right_id),
-            ).fetchone() if right_id else True
-            metric_count = connection.execute(
-                "SELECT COUNT(*) FROM metric_cache WHERE book_id=(SELECT id FROM books WHERE path=?) AND window_index=0",
-                (str(path),),
-            ).fetchone()[0]
-            metrics_present = metric_count >= len(PERSISTED_METRICS)
-            if previous and previous[0] == current_digest and previous[1] == EPUB_ANALYSIS_VERSION and right_present and metrics_present:
+            book_row = connection.execute("SELECT id FROM books WHERE path=?", (str(path),)).fetchone()
+            invalid_fields = invalid_metric_names(
+                connection, book_row[0], set(PERSISTED_METRICS), current_digest,
+            ) if book_row and previous and previous[0] == current_digest else set(PERSISTED_METRICS)
+            if previous and previous[0] == current_digest and previous[1] == EPUB_ANALYSIS_VERSION and not invalid_fields:
                 print(f"[{index}/{total_paths}] Vérification : {path.name} — déjà à jour", flush=True)
             else:
-                reason = "nouveau" if previous is None else ("contenu modifié" if previous[0] != current_digest else ("mesure manquante" if not metrics_present or not right_present else "version d’analyse modifiée"))
+                reason = "nouveau" if previous is None else ("contenu modifié" if previous[0] != current_digest else ("mesure absente ou calcul modifié" if invalid_fields else "version d’analyse modifiée"))
                 print(f"[{index}/{total_paths}] Calcul en cours : {path.name} — {reason}", flush=True)
             def show_analysis_progress(step, total, label, *, _index=index, _path=path):
                 width = 20
@@ -553,19 +648,24 @@ def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_COR
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Indexe les Markdown et calcule leurs statistiques")
+    parser.add_argument("--reset-only", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--purge", action="append", choices=tuple(METRICS), metavar="MESURE",
         help="supprime uniquement cette mesure avant de la recalculer (option répétable)",
     )
-    parser.add_argument("--corpus", default=DEFAULT_CORPUS_ID, help="identifiant du dossier dans corpus/ (bigcorpus par défaut)")
+    parser.add_argument("--corpus", default=DEFAULT_CORPUS_ID, help="identifiant du dossier dans corpus/ (crouzet par défaut en développement)")
     parser.add_argument("--complete", action="store_true", help="calcule les mesures manquantes des œuvres déjà analysées dans un autre corpus")
     parser.add_argument("paths", nargs="*", type=Path, help="Markdown à traiter ; sans argument, ceux de _epub et sources")
     args = parser.parse_args()
+    if args.reset_only:
+        reset_database()
+        print(f"Base entièrement réinitialisée : {EPUB_DATABASE}")
+        return 0
     if args.purge:
         with sqlite3.connect(EPUB_DATABASE) as connection:
             init_database(connection)
             for field in args.purge:
-                purge_metric(connection, field)
+                purge_metric(connection, field, args.corpus)
             connection.commit()
     changed, windows = build_database(args.paths or None, args.corpus, args.complete)
     print(f"Base : {EPUB_DATABASE}")

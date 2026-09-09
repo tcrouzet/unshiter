@@ -1,87 +1,66 @@
 # Dates vérifiées ou complétées depuis Wikipédia/Wikidata.
 # Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
 
-# François Bon
-sortie-dusine-bon-francois.epub: {date: "1982"}
-prison-bon-francois.epub: {date: "1997"}
-autobiographie-des-objets-fiction-et-c-francois-bon.epub: {date: "2012"}
-
-# Gustave Flaubert
+# Auteur inconnu
+la-princesse-de-cleves-madame-de-la-fayette.epub: {date: "1678"}
 madame-bovary-gustave-flaubert.epub: {date: "1857"}
 salammbo-gustave-flaubert.epub: {date: "1862"}
 leducation-sentimentale.epub: {date: "1869"}
 trois-contes-flaubert-gustave.epub: {date: "1877"}
-
-# Jean de La Bruyère
-les-caracteres-jean-de-la-bruyere.epub: {date: "2011"}
-
-# Jean Echenoz
-cherokee-jean-echenoz.epub: {date: "1983"}
-lac-echenoz-jean.epub: {date: "1989"}
-l-equipee-malaise-jean-echenoz.epub: {date: "1997"}
-ravel-jean-echenoz.epub: {date: "2006"}
-courir-jean-echenoz.epub: {date: "2008"}
-des-eclairs-echenoz-jean.epub: {date: "2010"}
-vie-de-gerard-fulmard.epub: {date: "2022"}
-
-# Joëlle Wintrebert
-les-olympiades-truquees.epub: {date: "1980"}
-les-maitres-feu.epub: {date: "1982"}
-le-createur-chimerique.epub: {date: "1988"}
-pollen.epub: {date: "2002"}
-
-# Madame de la Fayette
-la-princesse-de-cleves-madame-de-la-fayette.epub: {date: "1678"}
-
-# Marcel Proust
 a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
 a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
-
-# Marguerite Duras
 un-barrage-contre-le-pacifique-marguerite-duras.epub: {date: "1950"}
 le-ravissement-de-lol-v-stein-marguerite-duras.epub: {date: "1964"}
 l-ete-80-marguerite-duras.epub: {date: "1980"}
+les-olympiades-truquees.epub: {date: "1980"}
+les-maitres-feu.epub: {date: "1982"}
+sortie-dusine-bon-francois.epub: {date: "1982"}
+cherokee-jean-echenoz.epub: {date: "1983"}
 l-amant-duras-marguerite.epub: {date: "1984"}
-
-# Michel Houellebecq
+vies-minuscules-michon-pierre.epub: {date: "1984"}
+le-createur-chimerique.epub: {date: "1988"}
+lac-echenoz-jean.epub: {date: "1989"}
 extension-du-domaine-de-la-lutte-houellebecq-michel.epub: {date: "1994"}
+la-grande-beune-pierre-michon.epub: {date: "1995"}
+l-equipee-malaise-jean-echenoz.epub: {date: "1997"}
+prison-bon-francois.epub: {date: "1997"}
 les-particules-elementaires-michel-houellebecq.epub: {date: "1998"}
 plateforme-houellebecq-michel.epub: {date: "2001"}
+pollen.epub: {date: "2002"}
 la-possibilite-d-une-ile-houellebecq-michel.epub: {date: "2005"}
+ravel-jean-echenoz.epub: {date: "2006"}
+courir-jean-echenoz.epub: {date: "2008"}
+des-eclairs-echenoz-jean.epub: {date: "2010"}
 la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010", title: "La Carte et le Territoire"}
-soumission-houellebecq-michel.epub: {date: "2015"}
-aneantir-michel-houellebecq.epub: {date: "2022"}
-
-# Philippe Castelneau
-motel-valparaiso-philippe-castelneau.epub: {date: "2022"}
-
-# Philippe Caza
+les-caracteres-jean-de-la-bruyere.epub: {date: "2011"}
+autobiographie-des-objets-fiction-et-c-francois-bon.epub: {date: "2012"}
+l-angoisse-du-roi-salomon-emile-ajar-romain-gary.epub: {date: "2013"}
 nouvelles-horroristiques-1-caza.epub: {date: "2014"}
 nouvelles-humouristiques-2-caza.epub: {date: "2014"}
+soumission-houellebecq-michel.epub: {date: "2015"}
+resistants.epub: {date: "2017"}
+comme-elle-limagine-stephanie-dupays-dupays-stephanie.epub: {date: "2019"}
+aneantir-michel-houellebecq.epub: {date: "2022"}
 ginkoo-bilooba-chronique-d-une-utopie-mod-philippe-caza.epub: {date: "2022"}
-les-aventures-g-lactiques-de-lola-lokidor-caza.epub: {date: "2024", author: "Philippe Caza"}
-nouvelles-caza.epub: {date: "2025", author: "Philippe Caza"}
-
-# Pierre Michon
-vies-minuscules-michon-pierre.epub: {date: "1984"}
-la-grande-beune-pierre-michon.epub: {date: "1995"}
+motel-valparaiso-philippe-castelneau.epub: {date: "2022"}
+un-puma-dans-le-coeur-stephanie-dupays.epub: {date: "2022"}
+vie-de-gerard-fulmard.epub: {date: "2022"}
+fourth-wing-tome-1.epub: {date: "2023"}
 les-deux-beune-pierre-michon.epub: {date: "2023"}
 j-ecris-l-iliade-pierre-michon.epub: {date: "2025"}
+rush.epub: {date: "2025"}
+roman-duras.epub: {date: ""}
+roman-FourthWing.epub: {date: ""}
 
-# Rebecca Yarros
-fourth-wing-tome-1.epub: {date: "2023"}
-
-# Stéphanie Dupays
-comme-elle-limagine-stephanie-dupays-dupays-stephanie.epub: {date: "2019"}
-un-puma-dans-le-coeur-stephanie-dupays.epub: {date: "2022"}
+# Philippe Caza
+les-aventures-g-lactiques-de-lola-lokidor-caza.epub: {date: "2024", author: "Philippe Caza"}
+nouvelles-caza.epub: {date: "2025", author: "Philippe Caza"}
 
 # Thierry Crouzet
 4emetheorie.epub: {date: "2013"}
 eratosthene.epub: {date: "2014"}
 legeste.epub: {date: "2014"}
 clitoria.epub: {date: "2016"}
-resistants.epub: {date: "2017"}
 mon-pere-ce-tueur.epub: {date: "2019"}
 codeh.epub: {date: "2024"}
-rush.epub: {date: "2025"}
 isa.epub: {date: "2026"}

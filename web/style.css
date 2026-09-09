@@ -64,6 +64,8 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .table-wrap > .table-download { position: absolute; top: .7rem; right: .7rem; z-index: 5; display: block; opacity: 1; }
 .table-wrap > h2 { position: sticky; left: 0; z-index: 6; display: flex; align-items: center; gap: .6rem; background: white; }
 .table-wrap > h2 .table-download { position: static; display: inline-block; flex: 0 0 auto; }
+.table-order { flex: 0 0 auto; padding: .35rem .65rem; border: 1px solid #c9c1bb; border-radius: .25rem; background: white; color: #514a44; font: inherit; font-size: .8rem; cursor: pointer; }
+.metric-section th { padding: .8rem .5rem .35rem; background: #f1ede9; color: #514a44; text-align: left; font-size: .95rem; }
 .neighborhood-box .table-download { position: static; display: block; margin: .6rem 0 0 auto; }
 .reference-select { display: block; margin: 0 0 .5rem; color: #6f6962; font-size: .9rem; }
 .evolution-box { width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; box-sizing: border-box; overflow: hidden; }

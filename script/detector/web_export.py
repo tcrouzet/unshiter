@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import (BIGFIVE_AXES, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DATABASE, METRICS, RAW_METRICS,
+from .config import (ANALYSIS_WINDOW_WORDS, BIGFIVE_AXES, EPUB_DATABASE, METRICS, RAW_METRICS,
                      SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE,
                      CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
@@ -57,7 +57,7 @@ def notes() -> dict[str, str]:
             if "-->" in line:
                 in_comment = False
             continue
-        metric_heading = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line)
+        metric_heading = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)(?:\s+#web)?\s*$", line)
         if metric_heading:
             if heading:
                 result[heading] = " ".join(body).strip()
@@ -75,11 +75,12 @@ def notes() -> dict[str, str]:
     return result
 
 
-def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
-    """Retourne les notes et titres indexés par leur fonction."""
-    notes, titles = {}, {}
+def notes_by_id() -> tuple[dict[str, str], dict[str, str], list[str], dict[str, str]]:
+    """Retourne notes, titres, ordre et intertitres issus du Markdown."""
+    notes, titles, order, sections = {}, {}, [], {}
     heading = body = identifier = None
     blocks = []
+    current_section = None
     def flush_body():
         nonlocal body, blocks
         if body:
@@ -91,22 +92,37 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str]]:
         if identifier is not None:
             notes[str(identifier)] = "\n\n".join(blocks).strip()
         blocks = []
-    window_label = f"{EPUB_ANALYSIS_WINDOW_SIZE / 1000:g}"
+    window_label = f"{ANALYSIS_WINDOW_WORDS:,} mots".replace(",", " ")
     for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
-        match = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)\s*$", line.strip())
+        stripped = line.strip()
+        match = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)(?:\s+#web)?\s*$", stripped)
         if match:
             save_note()
             heading, identifier, body = match.group(1), match.group(2), []
             titles[identifier] = heading
-        elif identifier is not None and re.match(r"^#{1,6}\s", line.strip()):
+            order.append(identifier)
+            if current_section:
+                sections[identifier] = current_section
+        elif identifier is not None and re.match(r"^#{1,6}\s", stripped):
             save_note()
             heading = body = identifier = None
-        elif identifier is not None and line.strip() and not line.lstrip().startswith("<!--"):
-            body.append(line.strip())
-        elif identifier is not None and not line.strip():
+            section_match = re.match(r"^####\s+(.+?)\s*$", stripped)
+            if section_match:
+                current_section = section_match.group(1)
+            elif re.match(r"^#{1,3}\s", stripped):
+                current_section = None
+        elif identifier is None:
+            section_match = re.match(r"^####\s+(.+?)\s*$", stripped)
+            if section_match:
+                current_section = section_match.group(1)
+            elif re.match(r"^#{1,3}\s", stripped):
+                current_section = None
+        elif stripped and not line.lstrip().startswith("<!--"):
+            body.append(stripped)
+        elif identifier is not None and not stripped:
             flush_body()
     save_note()
-    return notes, titles
+    return notes, titles, order, sections
 
 
 def default_radar_ids() -> list[str]:
@@ -116,14 +132,13 @@ def default_radar_ids() -> list[str]:
 
 def export_json() -> int:
     WEB_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    note_data, note_titles = notes_by_id()
+    note_data, note_titles, metric_order, metric_sections = notes_by_id()
     site = site_config()
     if note_data.get("note_coverage"):
         site["coverage_help"] = note_data["note_coverage"]
     def preferred_label(field: str) -> str:
         title = note_titles.get(field, "")
-        bold = re.findall(r"\*\*([^*]+)\*\*", title)
-        return bold[0].strip() if bold else title.split("/")[0].strip()
+        return title.split("/", 1)[0].replace("**", "").strip()
     metric_labels = {field: preferred_label(field) for field in METRICS}
     radar_ids = default_radar_ids()
     composite_weights = {
@@ -134,7 +149,7 @@ def export_json() -> int:
         "discursivite_score": DISCURSIVITE_WEIGHTS,
     }
     if not EPUB_DATABASE.exists():
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": [], "books": []}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": [], "books": []}
     else:
         with sqlite3.connect(EPUB_DATABASE) as db:
             db.row_factory = sqlite3.Row
@@ -144,7 +159,9 @@ def export_json() -> int:
                 analyses = []
                 for row in db.execute("SELECT window_index,char_start,char_end,char_count FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
                     stats_data = cached_metric_values(db, book["id"], row["window_index"])
-                    required = ("punctuation_per_300_words", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio", "filtered_repetition_rate")
+                    for composite_field in composite_weights:
+                        stats_data.pop(composite_field, None)
+                    required = ("punctuation_ratio", "punctuation_diversity", "structural_diversity", "structural_rhythm", "sentence_start_diversity", "burstiness", "noun_verb_ratio")
                     missing = [field for field in required if field not in stats_data or not isinstance(stats_data[field], (int, float)) or not math.isfinite(stats_data[field])]
                     if missing:
                         raise ValueError(f"Mesures radar absentes pour {book['title']}: {', '.join(missing)}")
@@ -161,41 +178,7 @@ def export_json() -> int:
                     "corpora": [row[0] for row in db.execute("SELECT corpus_id FROM corpus_books WHERE book_id=? ORDER BY corpus_id", (book["id"],))],
                     "analyses": analyses,
                 })
-            # Même échelle pour tout le corpus : l’œuvre au score brut maximal
-            # devient la référence 100 % dans l’interface.
-            # Normalisation des composantes brutes avant pondération. Les
-            # scores composites ne sont jamais normalisés après coup.
-            def component(field, analysis, maxima):
-                value = analysis["stats"].get(field, 0)
-                if not isinstance(value, (int, float)):
-                    return 0.0
-                maximum = maxima.get(field, 0)
-                return value / maximum if maximum else 0.0
-
-            component_weights = composite_weights
-            component_fields = {axis: tuple(weights) for axis, weights in component_weights.items()}
-            maxima = {}
-            for fields_for_axis in component_fields.values():
-                for field in fields_for_axis:
-                    values = [a["stats"].get(field) for b in books for a in b["analyses"] if isinstance(a["stats"].get(field), (int, float))]
-                    maxima[field] = max(values, default=0)
-            for book in books:
-                for analysis in book["analyses"]:
-                    c = lambda field: component(field, analysis, maxima)
-                    # Chaque composante est d'abord divisée par son maximum
-                    # observé dans tout le corpus. Les poids de config.py sont
-                    # ensuite appliqués ; aucun composite brut n'est pondéré.
-                    weighted = lambda weights: sum(weight * c(field) for field, weight in weights.items())
-                    values = {
-                        "classicism_score": weighted(CLASSICISM_WEIGHTS),
-                        "baroque_score": weighted(ORNATENESS_WEIGHTS),
-                        "narrativity_score": weighted(NARRATIVITY_WEIGHTS),
-                        "emotionality_score": weighted(EMOTIONALITY_WEIGHTS),
-                        "discursivite_score": weighted(DISCURSIVITE_WEIGHTS),
-                    }
-                    for field, value in values.items():
-                        analysis["stats"][field] = value
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
 

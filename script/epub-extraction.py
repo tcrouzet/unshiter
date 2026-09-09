@@ -18,7 +18,7 @@ import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 
-from detector.config import ACTIVE_CORPUS_DIR, EPUB_ANALYSIS_WINDOW_SIZE, EPUB_DIR, EPUB_HASH_CACHE_FILE, PUBLICATION_FILE, TEXT_ENCODING
+from detector.config import ACTIVE_CORPUS_DIR, EPUB_DIR, EPUB_HASH_CACHE_FILE, EPUB_MIN_TEXT_CHARS, PUBLICATION_FILE, TEXT_ENCODING
 
 
 SKIP_DOCUMENT_WORDS = ("cover", "titlepage", "toc", "nav", "copyright", "imprint", "colophon")
@@ -592,8 +592,8 @@ def extract_epub(source: Path) -> tuple[Path, None]:
         for attributes in spine:
             attributes["_path"] = str(Path(opf_path).parent / attributes["href"]).replace("\\", "/")
         text = significant_text(archive, package, manifest, spine, info["title"])
-        if len(text) < EPUB_ANALYSIS_WINDOW_SIZE:
-            raise ShortEpubError(source, len(text), EPUB_ANALYSIS_WINDOW_SIZE)
+        if len(text) < EPUB_MIN_TEXT_CHARS:
+            raise ShortEpubError(source, len(text), EPUB_MIN_TEXT_CHARS)
         date = info.get("publication_date", "")
         year = int(date[:4]) if re.match(r"^\d{4}", date) else 0
         if not date or year < 1500 or year > 2100:
