@@ -4,80 +4,21 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import argparse
-import ast
 from collections import Counter
-from functools import lru_cache
 import hashlib
-import inspect
 import math
 import re
 import json
-import textwrap
 import unicodedata
 from pathlib import Path
-import re
 import sqlite3
 
 from .config import (ANALYSIS_WINDOW_WORDS, CORPUS_DIR, DEFAULT_CORPUS_ID,
                      EPUB_ANALYSIS_VERSION, EPUB_DATABASE, METRICS,
                      PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING,
-                     DURATION_MARKERS_FILE, METRIC_CACHE_VERSIONS)
+                     DURATION_MARKERS_FILE)
 from .metrics import cached_metric_values, windowed_metric_fields
 from .stats import Metrics, WORD_RE, normalize_markdown_text, punctuation_diversity, punctuation_mark_count, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
-
-def _metric_method_source(name: str, visited: set[str]) -> list[str]:
-    """Source d'une méthode Metrics et de ses dépendances Metrics directes."""
-    if name in visited:
-        return []
-    visited.add(name)
-    descriptor = inspect.getattr_static(Metrics, name, None)
-    function = getattr(descriptor, "func", descriptor)
-    if not callable(function):
-        return [f"{name}={function!r}"]
-    source = textwrap.dedent(inspect.getsource(function))
-    parts = [source]
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return parts
-    dependencies = {
-        node.attr for node in ast.walk(tree)
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name) and node.value.id == "self"
-    }
-    for dependency in sorted(dependencies):
-        if inspect.getattr_static(Metrics, dependency, None) is not None:
-            parts.extend(_metric_method_source(dependency, visited))
-    global_names = sorted({node.id for node in ast.walk(tree) if isinstance(node, ast.Name)})
-    for global_name in global_names:
-        value = getattr(function, "__globals__", {}).get(global_name)
-        if isinstance(value, Path):
-            content = value.read_bytes() if value.is_file() else b""
-            parts.append(f"path:{global_name}:{value}:{hashlib.sha256(content).hexdigest()}")
-        elif callable(value) and str(getattr(value, "__module__", "")).startswith("detector."):
-            module = inspect.getmodule(value)
-            module_path = Path(module.__file__) if module and getattr(module, "__file__", None) else None
-            if module_path and module_path.is_file():
-                parts.append(f"module:{module.__name__}:{hashlib.sha256(module_path.read_bytes()).hexdigest()}")
-    return parts
-
-
-@lru_cache(maxsize=None)
-def metric_function_hash(metric_name: str) -> str:
-    """Empreinte propre au champ et à ses dépendances dans ``Metrics``."""
-    if metric_name not in METRICS:
-        raise ValueError(f"Mesure inconnue : {metric_name}")
-    payload = _metric_method_source(metric_name, set())
-    payload.append(f"version={METRIC_CACHE_VERSIONS.get(metric_name, '')}")
-    return hashlib.sha256("\n".join(payload).encode("utf-8")).hexdigest()
-
-
-def metric_dependency_names(metric_name: str) -> set[str]:
-    """Retourne les champs Metrics dont dépend directement ou indirectement un champ."""
-    dependencies: set[str] = set()
-    _metric_method_source(metric_name, dependencies)
-    return dependencies
-
 
 def metric_cache_is_valid(
     connection: sqlite3.Connection,
@@ -86,13 +27,13 @@ def metric_cache_is_valid(
     content_sha256: str,
     window_index: int = 0,
 ) -> bool:
-    """Vérifie une mesure précise à partir de son contenu et de son calcul."""
+    """Une mesure est valide si elle existe pour cette version du document."""
     row = connection.execute(
-        "SELECT content_sha256,function_hash FROM metric_cache "
+        "SELECT content_sha256 FROM metric_cache "
         "WHERE book_id=? AND window_index=? AND metric_name=?",
         (book_id, window_index, field),
     ).fetchone()
-    return bool(row and row[0] == content_sha256 and row[1] == metric_function_hash(field))
+    return bool(row and row[0] == content_sha256)
 
 
 def invalid_metric_names(
@@ -108,15 +49,18 @@ def invalid_metric_names(
     }
 
 
-def purge_metric(connection: sqlite3.Connection, field: str, corpus_id: str = DEFAULT_CORPUS_ID) -> int:
-    """Supprime une mesure uniquement pour les œuvres du corpus demandé."""
+def reset_champ(connection: sqlite3.Connection, field: str, corpus_id: str | None = None) -> int:
+    """Invalide un champ ; son absence provoquera son seul recalcul."""
     if field not in METRICS:
         raise ValueError(f"Mesure inconnue : {field}")
-    cursor = connection.execute(
-        "DELETE FROM metric_cache WHERE metric_name=? AND book_id IN "
-        "(SELECT book_id FROM corpus_books WHERE corpus_id=?)",
-        (field, corpus_id),
-    )
+    if corpus_id is None:
+        cursor = connection.execute("DELETE FROM metric_cache WHERE metric_name=?", (field,))
+    else:
+        cursor = connection.execute(
+            "DELETE FROM metric_cache WHERE metric_name=? AND book_id IN "
+            "(SELECT book_id FROM corpus_books WHERE corpus_id=?)",
+            (field, corpus_id),
+        )
     return cursor.rowcount
 
 
@@ -252,27 +196,6 @@ def publication_overrides() -> dict[str, dict[str, str]]:
         object_author = re.search(r"\bauthor\s*:\s*[\"']([^\"']*)[\"']", value)
         result[clean_key] = {"date": object_date.group(1) if object_date else (value if not value.startswith("{") else ""), "title": object_title.group(1) if object_title else "", "author": object_author.group(1) if object_author else ""}
     return result
-
-
-def publication_date_overrides() -> dict[str, str]:
-    return {key: values.get("date", "") for key, values in publication_overrides().items()}
-
-
-def ensure_publication_date_entries(paths: list[Path]) -> None:
-    """Inscrit systématiquement les sources sans date avec une valeur vide."""
-    existing = publication_date_overrides()
-    missing = []
-    for path in paths:
-        raw = path.read_text(encoding=TEXT_ENCODING, errors="replace")
-        metadata = front_matter(raw)
-        # Les Markdown peuvent être autonomes, sans EPUB correspondant.
-        key = path.with_suffix(".epub").name if path.with_suffix(".epub").exists() else path.name
-        if not metadata.get("publication_date") and key not in existing:
-            missing.append(f'{key}: {{date: ""}}')
-    if missing:
-        PUBLICATION_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
-            handle.write("\n" + "\n".join(missing) + "\n")
 
 
 def canonical_authors(values: list[str], preferred: set[str] | None = None) -> dict[str, str]:
@@ -421,7 +344,7 @@ def init_database(connection: sqlite3.Connection) -> None:
             connection.executemany(
                 "INSERT OR IGNORE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
                 [
-                    (book_id, window_index, metric_id, json.dumps(value, ensure_ascii=False), digest, metric_function_hash(metric_id), datetime.now(timezone.utc).isoformat())
+                    (book_id, window_index, metric_id, json.dumps(value, ensure_ascii=False), digest, "", datetime.now(timezone.utc).isoformat())
                     for metric_id, value in values.items()
                 ],
             )
@@ -485,10 +408,6 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         for field in missing_metric_ids:
             if previous_stats is not None:
                 previous_stats.pop(field, None)
-        if previous_stats is not None:
-            for field in METRICS:
-                if metric_dependency_names(field) & missing_metric_ids:
-                    previous_stats.pop(field, None)
     else:
         missing_metric_ids = required_metric_ids
     full_recompute = old is None or old[1] != digest or old[2] != EPUB_ANALYSIS_VERSION
@@ -544,7 +463,7 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
                 connection.execute(
                     "INSERT OR REPLACE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
                     (book_id, index, field, json.dumps(value, ensure_ascii=False), digest,
-                     metric_function_hash(field), datetime.now(timezone.utc).isoformat()),
+                     "", datetime.now(timezone.utc).isoformat()),
                 )
                 if progress:
                     progress(step, total, field)
@@ -566,7 +485,6 @@ def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_COR
         discovered = set(corpus_root.rglob("*.md"))
         paths = sorted(discovered)
     paths = [path.resolve() for path in paths]
-    ensure_publication_date_entries(paths)
     metadata_by_path = {}
     overrides = publication_overrides()
     for path in paths:
@@ -626,18 +544,6 @@ def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_COR
             print(f"[{index}/{total_paths}] {'Calculé' if book_changed else 'Déjà à jour'} : {path.name}", flush=True)
             changed += int(book_changed)
             windows += count
-        missing_dates = [row[0] for row in connection.execute("SELECT path FROM books WHERE publication_date = ''")]
-        if missing_dates:
-            existing = publication_date_overrides()
-            additions = []
-            for path in missing_dates:
-                candidate = Path(path)
-                key = candidate.with_suffix(".epub").name if candidate.with_suffix(".epub").exists() else candidate.name
-                if key not in existing:
-                    additions.append(f'{key}: {{date: ""}}')
-            if additions:
-                with PUBLICATION_FILE.open("a", encoding=TEXT_ENCODING) as handle:
-                    handle.write("\n" + "\n".join(additions) + "\n")
         # Harmonise aussi les lignes conservées après la synchronisation :
         # cela supprime les groupes fantômes créés par « Nom Prénom » /
         # « Prénom Nom ».
@@ -650,8 +556,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Indexe les Markdown et calcule leurs statistiques")
     parser.add_argument("--reset-only", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
-        "--purge", action="append", choices=tuple(METRICS), metavar="MESURE",
-        help="supprime uniquement cette mesure avant de la recalculer (option répétable)",
+        "--reset-champ", action="append", choices=tuple(METRICS), metavar="MESURE",
+        help="invalide ce champ dans toute la base avant son recalcul (option répétable)",
     )
     parser.add_argument("--corpus", default=DEFAULT_CORPUS_ID, help="identifiant du dossier dans corpus/ (crouzet par défaut en développement)")
     parser.add_argument("--complete", action="store_true", help="calcule les mesures manquantes des œuvres déjà analysées dans un autre corpus")
@@ -661,11 +567,11 @@ def main() -> int:
         reset_database()
         print(f"Base entièrement réinitialisée : {EPUB_DATABASE}")
         return 0
-    if args.purge:
+    if args.reset_champ:
         with sqlite3.connect(EPUB_DATABASE) as connection:
             init_database(connection)
-            for field in args.purge:
-                purge_metric(connection, field, args.corpus)
+            for field in args.reset_champ:
+                reset_champ(connection, field)
             connection.commit()
     changed, windows = build_database(args.paths or None, args.corpus, args.complete)
     print(f"Base : {EPUB_DATABASE}")

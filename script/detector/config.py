@@ -61,9 +61,6 @@ TEMPORAL_CONNECTORS_FILE = DICTIONARIES_DIR / "temporal-connectors.txt"
 LOGICAL_CONNECTORS_FILE = DICTIONARIES_DIR / "logical-connectors.txt"
 EMOTIONS_FILE = DICTIONARIES_DIR / "emotions.txt"
 STATS_NOTES_FILE = ASSETS_DIR / "stats-notes.md"
-METRIC_CACHE_VERSIONS = {
-    "trigram_repetition": "2-lemmas-contextual-morphalou",
-}
 README_STATS_START = "<!-- STATS:START -->"
 README_STATS_END = "<!-- STATS:END -->"
 MORPHALOU_BATCH_SIZE = 10_000

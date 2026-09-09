@@ -25,7 +25,7 @@ import unicodedata
 from pathlib import Path
 
 import certifi
-from detector.config import ACTIVE_CORPUS_DIR, WIKIPEDIA_CACHE_FILE
+from detector.config import ACTIVE_CORPUS_DIR, CORPUS_DIR, WIKIPEDIA_CACHE_FILE
 
 ROOT = Path(__file__).resolve().parents[1]
 DATES_FILE = ROOT / "assets" / "publication.yml"
@@ -164,7 +164,7 @@ def source_authors(overrides: dict[str, dict[str, str]] | None = None) -> dict[s
     éditoriale du livre et sert uniquement à ordonner le fichier de dates.
     """
     authors = {}
-    for md in ACTIVE_CORPUS_DIR.rglob("*.md"):
+    for md in CORPUS_DIR.rglob("*.md"):
         _title, author = front_matter(md)
         key = md.with_suffix(".epub").name
         authors[key] = (overrides or {}).get(key, {}).get("author") or author.strip() or "Auteur inconnu"
@@ -217,6 +217,25 @@ def render_dates(entries: dict[str, dict[str, str]], authors: dict[str, str]) ->
     return "\n".join(lines) + "\n"
 
 
+def insert_publication_entries(updates: dict[str, str]) -> bool:
+    """Insère les nouvelles œuvres puis réécrit le registre classé par auteur."""
+    existing = read_existing()
+    merged = dict(existing)
+    for key, date in updates.items():
+        if key not in merged:
+            merged[key] = {"date": date}
+    for key, item in existing.items():
+        for field in ("date", "title", "author"):
+            if merged.get(key, {}).get(field, "") != item.get(field, ""):
+                raise RuntimeError(f"Protection publication.yml : champ existant modifié ({key}.{field})")
+    rendered = render_dates(merged, source_authors(merged))
+    previous = DATES_FILE.read_text(encoding="utf-8") if DATES_FILE.exists() else ""
+    if rendered == previous:
+        return False
+    DATES_FILE.write_text(rendered, encoding="utf-8")
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="n'écrit pas le fichier de dates")
@@ -245,20 +264,7 @@ def main() -> int:
         # à nouveau Wikipédia au prochain lancement.
         updates[key] = date or ""
     if not args.dry_run:
-        merged = dict(existing)
-        for key, date in updates.items():
-            # Les mises à jour ne concernent que des clés absentes : ne jamais
-            # écraser une date, un titre ou un auteur saisi manuellement.
-            if key not in merged:
-                merged[key] = {"date": date}
-        for key, item in existing.items():
-            for field in ("date", "title", "author"):
-                if merged.get(key, {}).get(field, "") != item.get(field, ""):
-                    raise RuntimeError(f"Protection publication.yml : champ existant modifié ({key}.{field})")
-        rendered = render_dates(merged, source_authors(merged))
-        previous = DATES_FILE.read_text(encoding="utf-8") if DATES_FILE.exists() else ""
-        if rendered != previous:
-            DATES_FILE.write_text(rendered, encoding="utf-8")
+        if insert_publication_entries(updates):
             print(f"Écrit : {DATES_FILE}")
         elif not updates:
             print("Aucune nouvelle référence de date : fichier inchangé.")

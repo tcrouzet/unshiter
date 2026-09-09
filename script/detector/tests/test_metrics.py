@@ -5,7 +5,7 @@ from pathlib import Path
 
 from detector.config import ANALYSIS_WINDOW_WORDS, NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
 from detector.epub_database import word_windows
-from detector.epub_database import metric_cache_is_valid, metric_function_hash
+from detector.epub_database import metric_cache_is_valid, reset_champ
 from detector.metrics import windowed_metric_fields
 from detector.stats import Metrics, normalize_markdown_text, tokenize
 
@@ -86,11 +86,21 @@ class MetricsTests(unittest.TestCase):
         )
         connection.execute(
             "INSERT INTO metric_cache VALUES (1,0,'word_count','3','document',?,?)",
-            (metric_function_hash("word_count"), "now"),
+            ("", "now"),
         )
         self.assertTrue(metric_cache_is_valid(connection, 1, "word_count", "document"))
         self.assertFalse(metric_cache_is_valid(connection, 1, "sentence_count", "document"))
         self.assertFalse(metric_cache_is_valid(connection, 1, "word_count", "modified-document"))
+
+    def test_reset_champ_invalidates_only_the_requested_metric(self):
+        connection = sqlite3.connect(":memory:")
+        connection.execute("CREATE TABLE metric_cache (book_id INTEGER, metric_name TEXT)")
+        connection.executemany(
+            "INSERT INTO metric_cache VALUES (?,?)",
+            [(1, "word_count"), (1, "sentence_count"), (2, "word_count")],
+        )
+        self.assertEqual(reset_champ(connection, "word_count"), 2)
+        self.assertEqual(connection.execute("SELECT metric_name FROM metric_cache").fetchall(), [("sentence_count",)])
 
 
 if __name__ == "__main__":
