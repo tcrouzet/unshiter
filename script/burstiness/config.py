@@ -5,6 +5,19 @@ Modifie ces valeurs pour changer le comportement par défaut du script
 (elles peuvent aussi être surchargées en ligne de commande, voir cli.py).
 """
 
+# Méthode utilisée pour découper un texte en phrases :
+#   "spacy" -> segmentation via spaCy (voir SPACY_FRENCH_MODEL), plus
+#              robuste sur les cas piégeux (guillemets, dialogue...),
+#              mais nécessite spaCy installé + le modèle téléchargé.
+#   "regex" -> regex maison, zéro dépendance, un peu moins fine sur
+#              certains cas particuliers.
+SENTENCE_SPLIT_MODE = "regex"
+
+# Modèle spaCy français utilisé quand SENTENCE_SPLIT_MODE = "spacy" (le
+# même modèle que script/detector, déjà présent dans requirements.txt du
+# dépôt — pip install spacy + ce modèle, aucune dépendance supplémentaire).
+SPACY_FRENCH_MODEL = "fr_core_news_lg"
+
 # --- Fichiers ------------------------------------------------------------
 #
 # Fichier Markdown source à analyser.
@@ -26,13 +39,30 @@ LENGTH_MODE = "words"
 # qu'une série soit considérée comme du "burst" et surlignée.
 RUN_THRESHOLD = 3
 
-# Tolérance relative pour considérer deux phrases comme "de longueur égale"
-# en nombre de syllabes. 0.30 = 30 % : une phrase de 20 syllabes est
-# regroupée avec toutes les phrases suivantes du même bloc dont le nombre
-# de syllabes reste à +/- 30 % de la phrase de référence (la 1ère de la
-# série), soit ici entre 14 et 26 syllabes. En descendre trop (ex: 0.10)
-# détecte peu de séries en pratique sur du texte réel.
-LENGTH_TOLERANCE = 0.30
+# Tolérance pour considérer deux phrases CONSÉCUTIVES comme "proches" en
+# longueur (comme le ferait un lecteur : on compare chaque phrase à sa
+# voisine immédiate, pas à une médiane de série ni à une statistique du
+# document entier).
+#
+# Le seuil suit la loi de Weber-Fechner (psychophysique de la perception
+# des quantités) : l'écart perceptible entre deux longueurs croît avec la
+# RACINE CARRÉE de leur grandeur, pas proportionnellement à elle, et pas
+# selon un nombre de mots fixe. Concrètement :
+#
+#     marge tolérée = LENGTH_TOLERANCE_K * sqrt(longueur moyenne des deux)
+#
+# Un lecteur remarque 1 mot d'écart entre deux phrases de 3-4 mots
+# (marge ~1.7 avec K=1.0), mais pas 4 mots d'écart entre deux phrases de
+# 26-30 mots (marge ~5.3) -- et ça se généralise tout seul à un texte à la
+# Proust aux phrases de 60-80 mots (marge ~8-9), sans aucun plafond ni
+# plancher fixé en mots. Voir burst_detect._is_close().
+#
+# LENGTH_TOLERANCE_K est un coefficient sans dimension : 1.0 = normal,
+# <1.0 = plus strict (moins de séries détectées), >1.0 = plus permissif
+# (au-delà de ~1.5-2.0, des séries incohérentes commencent à apparaître
+# par dérive progressive, à éviter). C'est le seul réglage à ajuster si la
+# détection te semble trop ou pas assez sensible.
+LENGTH_TOLERANCE_K = 1.0
 
 # --- Palette de couleur : chaque série jugée par SA PROPRE médiane -----
 #

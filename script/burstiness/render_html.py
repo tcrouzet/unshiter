@@ -11,7 +11,7 @@ from typing import List
 from . import color_scale
 from . import config
 from . import length_metrics
-from .sentence_split import Block, iter_blocks, split_sentences
+from .sentence_split import Block, iter_blocks, split_sentences_batch
 from .burst_detect import detect_bursts, run_index_for_sentence
 
 
@@ -36,7 +36,7 @@ def _heading_level(prefix: str) -> int:
 def build_html(
     md_text: str,
     threshold: int = config.RUN_THRESHOLD,
-    tolerance: float = config.LENGTH_TOLERANCE,
+    k: float = config.LENGTH_TOLERANCE_K,
     mode: str = None,
     title: str = "Burstiness",
 ) -> str:
@@ -44,27 +44,26 @@ def build_html(
     unit = length_metrics.unit_label(mode)
     blocks: List[Block] = list(iter_blocks(md_text))
 
-    # 1) découpe de chaque bloc analysable en phrases, en gardant la trace
-    #    de la plage [start, end) qu'il occupe dans la liste globale.
+    # 1) découpe de chaque bloc analysable en phrases, en UN SEUL passage
+    #    spaCy (nlp.pipe) pour tout le document au lieu d'un appel par
+    #    bloc — nettement plus rapide sur un document long. On garde la
+    #    trace de la plage [start, end) que chaque bloc occupe dans la
+    #    liste globale des phrases.
     analyzable = {"paragraph", "heading", "list_item", "blockquote"}
-    block_sentences: List[List[str]] = []
+    block_texts = [b.text if (b.kind in analyzable and b.text.strip()) else "" for b in blocks]
+    block_sentences: List[List[str]] = split_sentences_batch(block_texts)
+
     block_ranges: List[tuple] = []
     all_sentences: List[str] = []
-
-    for b in blocks:
-        if b.kind in analyzable and b.text.strip():
-            sentences = split_sentences(b.text)
-        else:
-            sentences = []
+    for sentences in block_sentences:
         start = len(all_sentences)
         all_sentences.extend(sentences)
         end = len(all_sentences)
-        block_sentences.append(sentences)
         block_ranges.append((start, end))
 
     # 2) détection des séries sur l'ensemble du document (le fil de lecture
     #    traverse les paragraphes/listes/citations).
-    counts, runs = detect_bursts(all_sentences, threshold=threshold, tolerance=tolerance, mode=mode)
+    counts, runs = detect_bursts(all_sentences, threshold=threshold, k=k, mode=mode)
     # Chaque série est entièrement autonome : sa couleur ne dépend QUE de
     # sa propre médiane interne, jamais du reste du document.
     run_local_medians = [color_scale.series_median(run) for run in runs]
@@ -116,10 +115,12 @@ def build_html(
                     f'title="{syll} {unit} (médiane de SA série : {local_median:g}) - '
                     f'série #{run_k + 1}, phrase {position_in_run + 1}/{run.length} ({range_txt})">'
                     f"{sentence_html}</span>"
+                    f'<sup class="len">{syll}</sup>'
                 )
             else:
                 rendered_sentences.append(
                     f'<span class="normal" title="{syll} {unit}">{sentence_html}</span>'
+                    f'<sup class="len">{syll}</sup>'
                 )
         inner = " ".join(rendered_sentences)
 
@@ -160,6 +161,7 @@ def build_html(
   blockquote {{ border-left: 3px solid #ccc; margin-left: 0; padding-left: 1em; color: #555; }}
   pre.md-code {{ background: #f4f4f4; padding: 0.8em; overflow-x: auto; border-radius: 4px; }}
   .md-hr {{ color: #999; text-align: center; margin: 1.5em 0; }}
+  sup.len {{ font-size: 0.6em; color: #999; margin-left: 0.1em; user-select: none; }}
 </style>
 </head>
 <body>
