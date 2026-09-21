@@ -907,7 +907,7 @@ function exportStylePrompt() {
     const link = document.createElement("a"); link.href = href; link.download = "style-interpretation-prompt.md"; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
   });
 }
-function exportPromptAndData() {
+function buildStyleExport() {
   const round2 = value => Number.isFinite(value) ? Math.round(value * 100) / 100 : value;
   const books = selected();
   const metrics = {};
@@ -941,18 +941,111 @@ function exportPromptAndData() {
     info.dispersion = round2(sigmaPoints);
     info.dispersion_significant = sigmaPoints >= DISPERSION_SIGNIFICANCE_POINTS;
     if (!nonNormalizable.has(field)) {
-      info.corpus_min = round2(corpusValues.length ? Math.min(...corpusValues) : null);
-      info.corpus_max = round2(corpusValues.length ? Math.max(...corpusValues) : null);
-      // Toutes les mesures normalisables sont rapportées au maximum observé
-      // dans le corpus complet. Le minimum ne fixe jamais l'origine.
+      info.corpus_min = corpusValues.length ? Math.min(...corpusValues) : null;
+      info.corpus_max = corpusValues.length ? Math.max(...corpusValues) : null;
+      // Cet export encode la position entre les deux bornes afin que la valeur
+      // réelle puisse être reconstruite exactement par le générateur.
       if (rawValue != null && corpusValues.length) {
-        const maximum = Math.max(...corpusValues);
-        info.value = round2(maximum ? rawValue / maximum : 0);
+        const minimum = Math.min(...corpusValues), maximum = Math.max(...corpusValues);
+        info.value = maximum === minimum ? 0 : (rawValue - minimum) / (maximum - minimum);
       }
     }
   }
-  const save = (name, content, type) => { const href = URL.createObjectURL(new Blob([content], { type })); const link = document.createElement("a"); link.href = href; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); };
-  save("style-interpretation-data.json", JSON.stringify({ metrics: orderedFields.map(field => { const { id, label, ...entry } = metrics[field]; return entry; }) }, null, 2), "application/json");
+  return { metrics: orderedFields.map(field => { const { label, ...entry } = metrics[field]; return entry; }) };
+}
+function saveGeneratedFile(name, content, type) {
+  const href = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a"); link.href = href; link.download = name;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+function exportPromptAndData() {
+  saveGeneratedFile("style-interpretation-data.json", JSON.stringify(buildStyleExport(), null, 2), "application/json");
+}
+function generateRewritePrompt(exported, rules, metricOrder, metricSections, header = "", debug = false) {
+  const excluded = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
+  const byId = new Map((exported?.metrics || []).map(metric => [metric.id, metric]));
+  const linesBySection = new Map();
+  const round2 = value => Math.round(value * 100) / 100;
+  const hasBounds = metric => Number.isFinite(metric?.corpus_min) && Number.isFinite(metric?.corpus_max);
+  const realValue = metric => metric.corpus_min + Number(metric.value) * (metric.corpus_max - metric.corpus_min);
+  const linkedChildren = metric => {
+    const links = [...String(metric.definition || "").matchAll(/\[([^\]]+)\]\(#([a-z][a-z0-9_]*)\)/g)]
+      .map(match => ({ label: match[1], id: match[2], metric: byId.get(match[2]) }))
+      .filter(child => child.metric && !hasBounds(child.metric));
+    return links.length >= 3 ? links : [];
+  };
+  for (const id of metricOrder || []) {
+    const metric = byId.get(id), section = metricSections?.[id];
+    if (!metric || !section || excluded.has(id) || metric.dispersion_significant !== true) continue;
+    const children = linkedChildren(metric);
+    const family = children.length >= 3;
+    if (!family && !hasBounds(metric)) continue;
+    let action = "";
+    if (hasBounds(metric) && Number.isFinite(Number(metric.value))) {
+      const value = realValue(metric);
+      const bracket = (rules?.[id]?.brackets || []).find(item => Array.isArray(item.range) && value >= item.range[0] && value <= item.range[1]);
+      if (bracket?.action) action = bracket.action.replaceAll("{value}", String(round2(value)));
+    }
+    let familyDetail = "";
+    if (family) {
+      const total = children.reduce((sum, child) => sum + Math.max(0, Number(child.metric.value) || 0), 0);
+      const shares = children
+        .map(child => ({ ...child, share: total ? Math.max(0, Number(child.metric.value) || 0) / total * 100 : 0 }))
+        .sort((left, right) => right.share - left.share || left.id.localeCompare(right.id));
+      const present = shares
+        .filter(child => child.share >= 3)
+      const absent = shares.filter(child => Number(child.metric.value) === 0);
+      const ruleCommon = rules?.[id]?.common;
+      if (typeof ruleCommon === "string") {
+        const commonUnit = rules?.[id]?.common_unit;
+        familyDetail = ruleCommon.replace(/\{([a-z][a-z0-9_]*)\}/g, (placeholder, ratioId) =>
+          hasBounds(byId.get(ratioId)) && Number.isFinite(Number(byId.get(ratioId).value))
+            ? String(commonUnit === "absolute"
+              ? round2(realValue(byId.get(ratioId)))
+              : Math.floor(realValue(byId.get(ratioId)) * 100))
+            : placeholder
+        );
+      } else {
+        const details = [];
+        if (present.length) details.push(`Répartition : ${present.map(child => `${child.label} ${round2(child.share)} %`).join(", ")}.`);
+        if (absent.length) details.push(`Absents : ${absent.map(child => child.label).join(", ")}.`);
+        familyDetail = details.join(" ");
+      }
+      if (!action && familyDetail) familyDetail = `${String(metric.title || id).replace(/\*\*/g, "")} : ${familyDetail}`;
+    }
+    const guidance = [action, familyDetail].filter(Boolean).join(" ") || "";
+    const definition = String(metric.definition || "")
+      .replace(/\[([^\]]+)\]\(#[a-z][a-z0-9_]*\)/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .trim();
+    const title = String(metric.title || id).replace(/\*\*/g, "");
+    const content = guidance ? `${title} — ${definition}\n${guidance}` : "";
+    const line = content ? `${debug ? `[${id}] ` : ""}${content}` : "";
+    if (!line) continue;
+    if (!linesBySection.has(section)) linesBySection.set(section, []);
+    linesBySection.get(section).push(line);
+  }
+  const sectionOrder = [...new Set((metricOrder || []).map(id => metricSections?.[id]).filter(Boolean))];
+  const body = sectionOrder
+    .filter(section => linesBySection.has(section))
+    .map(section => `## ${section}\n${linesBySection.get(section).join("\n")}`)
+    .join("\n\n");
+  return [String(header || "").trim(), body].filter(Boolean).join("\n\n");
+}
+function exportRewritePrompt() {
+  const exported = buildStyleExport();
+  const args = [exported, data.rewrite_rules || {}, data.metric_order || [], data.metric_sections || {}, data.site?.prompt || ""];
+  const prompt = generateRewritePrompt(...args);
+  const showIds = ["true", "1", "yes", "oui"].includes(String(data.site?.prompt_ids || "").toLowerCase());
+  const debugPrompt = generateRewritePrompt(...args, showIds);
+  const dialog = document.getElementById("rewrite-prompt-dialog");
+  const output = document.getElementById("rewrite-prompt-output");
+  if (!dialog || !output) return;
+  output.value = debugPrompt;
+  output.dataset.copyValue = prompt;
+  dialog.showModal();
 }
 function controls() {
   const distanceTitle = document.querySelector(".distance-box h2");
@@ -1082,7 +1175,26 @@ function controls() {
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
+  const rewriteButton = document.createElement("button"); rewriteButton.type = "button"; rewriteButton.id = "export-rewrite-prompt"; rewriteButton.textContent = "Prompt de réécriture"; exportBox.appendChild(rewriteButton); rewriteButton.addEventListener("click", exportRewritePrompt);
   document.querySelector("aside")?.appendChild(exportBox);
+  document.body.insertAdjacentHTML("beforeend", '<dialog id="rewrite-prompt-dialog" class="rewrite-prompt-dialog"><div class="rewrite-prompt-heading"><h2>Prompt de réécriture</h2><button type="button" id="rewrite-prompt-close" aria-label="Fermer">×</button></div><textarea id="rewrite-prompt-output" readonly></textarea><div class="rewrite-prompt-actions"><button type="button" id="rewrite-prompt-copy">Copier</button></div></dialog>');
+  const rewriteDialog = document.getElementById("rewrite-prompt-dialog");
+  document.getElementById("rewrite-prompt-close")?.addEventListener("click", () => rewriteDialog.close());
+  document.getElementById("rewrite-prompt-copy")?.addEventListener("click", async event => {
+    const output = document.getElementById("rewrite-prompt-output");
+    try {
+      await navigator.clipboard.writeText(output.dataset.copyValue || output.value);
+    } catch (_) {
+      const displayed = output.value;
+      output.value = output.dataset.copyValue || displayed;
+      output.select();
+      document.execCommand("copy");
+      output.value = displayed;
+      output.setSelectionRange(0, 0);
+    }
+    event.currentTarget.textContent = "Copié";
+    setTimeout(() => { event.currentTarget.textContent = "Copier"; }, 1200);
+  });
   const savedViewMode = storageGet("unshiter-view-mode") || savedNeighborhood?.mode || "works";
   if (savedViewMode === "authors") { authorProfile = true; corpusProfile = false; authorLimits = false; }
   else if (savedViewMode === "author-limits") { authorProfile = false; corpusProfile = true; authorLimits = true; }
@@ -1098,7 +1210,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260909081104261161000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260918161057885847000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

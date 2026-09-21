@@ -86,6 +86,12 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             "ellipsis_ratio": "suspention_point_count",
             "exclamation_ratio": "exclamation_point_count",
             "exclamative_construction_ratio": "exclamative_sentence_count",
+            "comma_ratio": "comma_count",
+            "colon_ratio": "colon_count",
+            "semicolons_ratio": "semicolons_count",
+            "dash_ratio": "dash_count",
+            "parenthesis_ratio": "parenthesis_count",
+            "quote_mark_ratio": "quote_mark_count",
         }.items():
             if count in values:
                 values[ratio] = values[count] / sentence_count

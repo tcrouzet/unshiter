@@ -14,12 +14,12 @@ from .config import (ANALYSIS_WINDOW_WORDS, BIGFIVE_AXES, EPUB_DATABASE, METRICS
                      CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
                      DISCURSIVITE_WEIGHTS)
-from .config import CHART_PALETTE_FILE, STATS_NOTES_FILE
+from .config import CHART_PALETTE_FILE, REWRITE_RULES_FILE, STATS_NOTES_FILE
 from .metrics import cached_metric_values
 
 
 def site_config() -> dict[str, str]:
-    values = {"name": "Site Unshiter", "author": "Thierry Crouzet", "author_url": "https://tcrouzet.com", "description": "", "copyright": "© {author} — (date) — {livres} livres"}
+    values = {"name": "Site Unshiter", "author": "Thierry Crouzet", "author_url": "https://tcrouzet.com", "description": "", "copyright": "© {author} — (date) — {livres} livres", "prompt": "", "prompt_ids": "false"}
     if SITE_CONFIG_FILE.exists():
         for line in SITE_CONFIG_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
             key, separator, value = line.partition(":")
@@ -140,6 +140,17 @@ def export_json() -> int:
         title = note_titles.get(field, "")
         return title.split("/", 1)[0].replace("**", "").strip()
     metric_labels = {field: preferred_label(field) for field in METRICS}
+    rewrite_rules = json.loads(REWRITE_RULES_FILE.read_text(encoding=TEXT_ENCODING)) if REWRITE_RULES_FILE.exists() else {}
+    metrics = [
+        {
+            "id": field,
+            "label": metric_labels[field],
+            "title": note_titles.get(field, ""),
+            "note": note_data.get(field, ""),
+            "section": metric_sections.get(field, ""),
+        }
+        for field in METRICS
+    ]
     radar_ids = default_radar_ids()
     composite_weights = {
         "classicism_score": CLASSICISM_WEIGHTS,
@@ -149,7 +160,7 @@ def export_json() -> int:
         "discursivite_score": DISCURSIVITE_WEIGHTS,
     }
     if not EPUB_DATABASE.exists():
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": [], "books": []}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "metrics": metrics, "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "rewrite_rules": rewrite_rules, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": [], "books": []}
     else:
         with sqlite3.connect(EPUB_DATABASE) as db:
             db.row_factory = sqlite3.Row
@@ -178,7 +189,7 @@ def export_json() -> int:
                     "corpora": [row[0] for row in db.execute("SELECT corpus_id FROM corpus_books WHERE book_id=? ORDER BY corpus_id", (book["id"],))],
                     "analyses": analyses,
                 })
-        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
+        payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "metrics": metrics, "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "rewrite_rules": rewrite_rules, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])
 

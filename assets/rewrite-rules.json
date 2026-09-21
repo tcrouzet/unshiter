@@ -1,0 +1,372 @@
+{
+  "classicism_score": {
+    "unit": "score composite",
+    "brackets": [
+      {"range": [-0.05, 0.20], "action": "Registre nettement contemporain ({value}) : quasiment aucun passé simple ni subjonctif littéraire, ponctuation courante (points, virgules), pas de recherche archaïsante."},
+      {"range": [0.20, 0.45], "action": "Registre mixte ({value}) : quelques traits littéraires (subjonctif, ponctuation savante) présents sans dominer, l'ensemble reste contemporain."},
+      {"range": [0.45, 0.71], "action": "Registre nettement classique ({value}) : emploie le subjonctif imparfait/plus-que-parfait, une ponctuation savante marquée (point-virgule, deux-points), une voix active soutenue."}
+    ]
+  },
+  "punctuation_diversity": {
+    "unit": "% (entropie)",
+    "common_unit": "absolute",
+    "common": "virgules ({comma_ratio}), deux-points ({colon_ratio}), points-virgules ({semicolons_ratio}), points d’exclamation ({exclamation_ratio}), points d’interrogation ({question_mark_ratio}), points de suspension ({ellipsis_ratio}), tirets ({dash_ratio}), parenthèses ({parenthesis_ratio}), guillemets ({quote_mark_ratio}).",
+    "brackets": [
+      {"range": [0.35, 0.49], "action": "Ponctuation par phrase peu diversifiée: "},
+      {"range": [0.49, 0.62], "action": "Ponctuation par phrase moyennement diversifié: "},
+      {"range": [0.62, 0.76], "action": "Ponctuation par phrase très diversifiée:"}
+    ]
+  },
+  "action_verb_ratio": {
+    "unit": "% des verbes narratifs",
+    "brackets": [
+      {"range": [0.28, 0.43], "action": "Peu de verbes d'action ({value}%) : privilégie les verbes d'état (être, sembler, rester, paraître)."},
+      {"range": [0.43, 0.59], "action": "Équilibre verbes d'action / verbes d'état ({value}%)."},
+      {"range": [0.59, 0.74], "action": "Verbes d'action très dominants ({value}%) : privilégie les verbes concrets (courir, frapper, ouvrir)."}
+    ]
+  },
+  "avg_sentence_length": {
+    "unit": "mots",
+    "brackets": [
+      {"range": [8.42, 20.30], "action": "Phrases courtes ({value} mots en moyenne) : va à l'essentiel, une idée par phrase."},
+      {"range": [20.30, 32.17], "action": "Longueur de phrase moyenne ({value} mots)."},
+      {"range": [32.17, 44.05], "action": "Phrases longues ({value} mots en moyenne) : enchaîne plusieurs propositions avant le point final."}
+    ]
+  },
+  "hapax_ratio": {
+    "unit": "% des lemmes distincts",
+    "brackets": [
+      {"range": [0.38, 0.46], "action": "Vocabulaire répétitif ({value}%) : réutilise volontiers les mêmes mots pleins."},
+      {"range": [0.46, 0.55], "action": "Vocabulaire modérément renouvelé ({value}%)."},
+      {"range": [0.55, 0.63], "action": "Vocabulaire très renouvelé ({value}%) : introduis sans cesse du vocabulaire nouveau."}
+    ]
+  },
+  "relative_clause_ratio": {
+    "unit": "relatives par phrase",
+    "brackets": [
+      {"range": [0.07, 0.34], "action": "Peu de relatives ({value} par phrase) : évite le qui/que/où/dont."},
+      {"range": [0.34, 0.60], "action": "Usage modéré de relatives ({value} par phrase)."},
+      {"range": [0.60, 0.87], "action": "Relatives fréquentes ({value} par phrase) : enchâsse régulièrement du qui/que/où/dont."}
+    ]
+  },
+  "dialogue_ratio": {
+    "unit": "% des mots",
+    "brackets": [
+      {"range": [0, 0.15], "action": "Peu ou pas de dialogue ({value}% des mots) : reste en narration/description."},
+      {"range": [0.15, 0.30], "action": "Dialogue ponctuel ({value}% des mots)."},
+      {"range": [0.30, 0.45], "action": "Dialogue dominant ({value}% des mots) : fais avancer la scène surtout par des paroles échangées."}
+    ]
+  },
+  "oral_familiarity_ratio": {
+    "unit": "marqueurs pour 100 mots",
+    "brackets": [
+      {"range": [0, 0.063], "action": "Aucune ou quasi aucune familiarité orale ({value} pour 100 mots)."},
+      {"range": [0.063, 0.127], "action": "Quelques touches de langage oral ({value} pour 100 mots)."},
+      {"range": [0.127, 0.19], "action": "Registre oralisé marqué ({value} pour 100 mots) : multiplie tournures relâchées et interjections."}
+    ]
+  },
+  "negation_ratio": {
+    "unit": "% des phrases",
+    "brackets": [
+      {"range": [0.12, 0.22], "action": "Peu de phrases négatives ({value}% des phrases)."},
+      {"range": [0.22, 0.31], "action": "Part modérée de négation ({value}% des phrases)."},
+      {"range": [0.31, 0.41], "action": "Beaucoup de négations ({value}% des phrases) : ne...pas, jamais, aucun plutôt que l'affirmative équivalente."}
+    ]
+  },
+  "active_voice_ratio": {
+    "unit": "ratio actif/total",
+    "brackets": [
+      {"range": [0.22, 0.60], "action": "Voix passive fréquente ({value})."},
+      {"range": [0.60, 0.99], "action": "Équilibre actif/passif ({value})."},
+      {"range": [0.99, 1.37], "action": "Voix active quasi systématique ({value}) : réserve le passif à de rares effets."}
+    ]
+  },
+  "baroque_score": {
+    "unit": "score composite",
+    "brackets": [
+      {"range": [0.33, 0.523], "action": "Registre sobre, minimaliste : phrases simples, peu de subordination, peu d'adjectifs décoratifs."},
+      {"range": [0.523, 0.717], "action": "Registre modérément ornementé : quelques subordinations et enrichissements descriptifs."},
+      {"range": [0.717, 0.91], "action": "Registre maximaliste marqué : phrases très subordonnées, accumulation d'adjectifs et de compléments."}
+    ]
+  },
+  "narrativity_score": {
+    "unit": "score composite",
+    "brackets": [
+      {"range": [0.26, 0.36], "action": "Registre plutôt descriptif : peu de verbes d'action, peu de dialogue, plus de commentaire que d'événement."},
+      {"range": [0.36, 0.46], "action": "Équilibre narration/description."},
+      {"range": [0.46, 0.56], "action": "Registre nettement narratif : enchaîne les actions concrètes, dialogue fréquent, peu d'adjectifs descriptifs."}
+    ]
+  },
+  "emotionality_score": {
+    "unit": "score composite",
+    "brackets": [
+      {"range": [0.42, 0.577], "action": "Registre neutre : peu de marqueurs émotionnels explicites."},
+      {"range": [0.577, 0.733], "action": "Émotion modérément présente et parfois renforcée."},
+      {"range": [0.733, 0.89], "action": "Émotion très présente et intensifiée : nomme et renforce fréquemment les affects."}
+    ]
+  },
+  "discursivite_score": {
+    "unit": "score composite",
+    "brackets": [
+      {"range": [0.25, 0.48], "action": "Registre immersif : peu de connecteurs logiques, peu de noms abstraits, scène vécue plutôt que commentée."},
+      {"range": [0.48, 0.71], "action": "Discours modérément argumentatif."},
+      {"range": [0.71, 0.94], "action": "Registre discursif marqué : connecteurs logiques fréquents (donc, cependant, ainsi), noms abstraits, présent gnomique."}
+    ]
+  },
+  "structural_diversity": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.44, 0.513], "action": "Diversité syntaxique faible ({value}%) : réutilise volontiers le même patron de phrase plusieurs fois de suite."},
+      {"range": [0.513, 0.587], "action": "Diversité syntaxique modérée ({value}%)."},
+      {"range": [0.587, 0.66], "action": "Diversité syntaxique élevée ({value}%) : n'enchaîne pas plus de deux phrases de suite avec la même construction."}
+    ]
+  },
+  "average_syntactic_depth": {
+    "unit": "niveaux d'emboîtement",
+    "brackets": [
+      {"range": [2.7, 3.557], "action": "Phrases syntaxiquement simples ({value} niveaux), type « Le chat dort »."},
+      {"range": [3.557, 4.413], "action": "Profondeur syntaxique moyenne ({value} niveaux)."},
+      {"range": [4.413, 5.27], "action": "Phrases très emboîtées ({value} niveaux) : empile plusieurs subordonnées avant de revenir au verbe principal."}
+    ]
+  },
+  "sentence_start_recurrence_distance": {
+    "unit": "phrases d'écart",
+    "brackets": [
+      {"range": [11.19, 12.75], "action": "Les débuts de phrase identiques reviennent assez vite (tous les {value} phrases)."},
+      {"range": [12.75, 14.31], "action": "Espacement moyen des répétitions de début de phrase (~{value} phrases)."},
+      {"range": [14.31, 15.87], "action": "Les débuts de phrase identiques ne reviennent que très espacés (tous les {value} phrases) : varie systématiquement l'attaque de chaque phrase."}
+    ]
+  },
+  "burstiness": {
+    "unit": "indice 0-1",
+    "brackets": [
+      {"range": [0.57, 0.707], "action": "Longueurs de phrase plutôt homogènes ({value})."},
+      {"range": [0.707, 0.843], "action": "Alternance modérée de longueur entre phrases consécutives ({value})."},
+      {"range": [0.843, 0.98], "action": "Alternance très marquée entre phrases courtes et longues d'une phrase à l'autre ({value})."}
+    ]
+  },
+  "noun_verb_ratio": {
+    "unit": "noms pour un verbe",
+    "brackets": [
+      {"range": [1.54, 2.823], "action": "Style plutôt verbal ({value} noms pour un verbe)."},
+      {"range": [2.823, 4.107], "action": "Équilibre nominal/verbal ({value})."},
+      {"range": [4.107, 5.39], "action": "Style nettement nominal ({value} noms pour un verbe) : s'appuie surtout sur les substantifs."}
+    ]
+  },
+  "simple_past_ratio": {
+    "unit": "% des verbes narratifs",
+    "brackets": [
+      {"range": [0, 0.063], "action": "Quasiment aucun passé simple ({value}%) : passé composé ou présent pour la narration."},
+      {"range": [0.063, 0.127], "action": "Passé simple minoritaire mais présent ({value}%)."},
+      {"range": [0.127, 0.19], "action": "Passé simple assez présent ({value}% des verbes narratifs)."}
+    ]
+  },
+  "periphrastic_future_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0, 0.147], "action": "Futur simple privilégié ({value}% de futurs périphrastiques) : « il partira »."},
+      {"range": [0.147, 0.293], "action": "Mélange futur simple / futur périphrastique ({value}%)."},
+      {"range": [0.293, 0.44], "action": "Futur périphrastique dominant ({value}%) : « il va partir »."}
+    ]
+  },
+  "avg_modifiers_per_noun": {
+    "unit": "ratio",
+    "brackets": [
+      {"range": [0.39, 0.47], "action": "Peu de modificateurs par nom ({value})."},
+      {"range": [0.47, 0.55], "action": "Qualification modérée des noms ({value})."},
+      {"range": [0.55, 0.63], "action": "Forte qualification des noms ({value}) : ajoute systématiquement un adjectif, complément ou relative."}
+    ]
+  },
+  "temporal_connector_ratio": {
+    "unit": "pour 100 phrases",
+    "brackets": [
+      {"range": [5.13, 14.923], "action": "Peu de connecteurs temporels explicites ({value} pour 100 phrases)."},
+      {"range": [14.923, 24.717], "action": "Connecteurs temporels modérément présents ({value} pour 100 phrases)."},
+      {"range": [24.717, 34.51], "action": "Connecteurs temporels fréquents ({value} pour 100 phrases) : puis/ensuite/alors/quand."}
+    ]
+  },
+  "narrative_past_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0, 0.1], "action": "Passé narratif littéraire quasi absent ({value}%)."},
+      {"range": [0.1, 0.2], "action": "Passé narratif minoritaire mais présent ({value}%)."},
+      {"range": [0.2, 0.3], "action": "Passé narratif littéraire notable ({value}% des verbes de récit)."}
+    ]
+  },
+  "emotion_sentence_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.2, 0.337], "action": "Peu de phrases à marqueur émotionnel explicite ({value}%)."},
+      {"range": [0.337, 0.473], "action": "Part modérée de phrases émotionnelles explicites ({value}%)."},
+      {"range": [0.473, 0.61], "action": "Beaucoup de phrases à marqueur émotionnel explicite ({value}%)."}
+    ]
+  },
+  "ellipsis_ratio": {
+    "unit": "occurrences",
+    "brackets": [
+      {"range": [0, 0.097], "action": "Quasiment aucun point de suspension ({value})."},
+      {"range": [0.097, 0.193], "action": "Points de suspension occasionnels ({value})."},
+      {"range": [0.193, 0.29], "action": "Points de suspension fréquents ({value})."}
+    ]
+  },
+  "exclamation_ratio": {
+    "unit": "occurrences",
+    "brackets": [
+      {"range": [0, 0.083], "action": "Quasiment aucun point d'exclamation ({value})."},
+      {"range": [0.083, 0.167], "action": "Points d'exclamation occasionnels ({value})."},
+      {"range": [0.167, 0.25], "action": "Points d'exclamation fréquents ({value})."}
+    ]
+  },
+  "logical_connector_ratio": {
+    "unit": "pour 100 phrases",
+    "brackets": [
+      {"range": [18.3, 51.153], "action": "Peu de connecteurs logiques ({value} pour 100 phrases) : le texte reste factuel."},
+      {"range": [51.153, 84.007], "action": "Connecteurs logiques modérément présents ({value} pour 100 phrases)."},
+      {"range": [84.007, 116.86], "action": "Connecteurs logiques très fréquents ({value} pour 100 phrases) : donc/cependant/ainsi/car."}
+    ]
+  },
+  "nominal_sentence_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.07, 0.19], "action": "Peu de phrases nominales sans verbe ({value}%)."},
+      {"range": [0.19, 0.31], "action": "Phrases nominales occasionnelles ({value}%)."},
+      {"range": [0.31, 0.43], "action": "Phrases nominales fréquentes ({value}%) : coupe en phrases sans verbe conjugué."}
+    ]
+  },
+  "median_sentence_length": {
+    "unit": "mots",
+    "brackets": [
+      {"range": [7, 16.333], "action": "Phrase médiane courte ({value} mots)."},
+      {"range": [16.333, 25.667], "action": "Phrase médiane de longueur moyenne ({value} mots)."},
+      {"range": [25.667, 35], "action": "Phrase médiane longue ({value} mots)."}
+    ]
+  },
+  "sentence_length_p10": {
+    "unit": "mots",
+    "brackets": [
+      {"range": [2, 5.333], "action": "Les phrases les plus courtes (10%) descendent très bas ({value} mots)."},
+      {"range": [5.333, 8.667], "action": "Les phrases les plus courtes restent modérées ({value} mots)."},
+      {"range": [8.667, 12], "action": "Même les phrases les plus courtes restent correctes ({value} mots)."}
+    ]
+  },
+  "sentence_length_p90": {
+    "unit": "mots",
+    "brackets": [
+      {"range": [16, 41.333], "action": "Les phrases les plus longues (10%) restent contenues ({value} mots)."},
+      {"range": [41.333, 66.667], "action": "Les phrases les plus longues montent modérément ({value} mots)."},
+      {"range": [66.667, 92], "action": "Les phrases les plus longues (10%) peuvent devenir très amples ({value} mots)."}
+    ]
+  },
+  "paragraph_length_std_dev": {
+    "unit": "écart-type",
+    "brackets": [
+      {"range": [18.1, 251.35], "action": "Paragraphes de longueur régulière ({value})."},
+      {"range": [251.35, 484.6], "action": "Variation modérée de longueur des paragraphes ({value})."},
+      {"range": [484.6, 717.85], "action": "Grande variation de longueur entre paragraphes ({value})."}
+    ]
+  },
+  "sentence_length_std_dev": {
+    "unit": "écart-type",
+    "brackets": [
+      {"range": [5.44, 21.97], "action": "Longueurs de phrase homogènes sur l'ensemble du texte ({value})."},
+      {"range": [21.97, 38.5], "action": "Variation modérée des longueurs de phrase ({value})."},
+      {"range": [38.5, 55.03], "action": "Forte variation des longueurs de phrase sur l'ensemble du texte ({value})."}
+    ]
+  },
+  "avg_paragraph_length": {
+    "unit": "mots",
+    "brackets": [
+      {"range": [19.28, 213.79], "action": "Paragraphes courts ({value} mots en moyenne)."},
+      {"range": [213.79, 408.3], "action": "Paragraphes de longueur moyenne ({value} mots)."},
+      {"range": [408.3, 602.81], "action": "Paragraphes longs ({value} mots en moyenne)."}
+    ]
+  },
+  "punctuation_variety_score": {
+    "unit": "ratio",
+    "brackets": [
+      {"range": [0.02, 0.433], "action": "Ponctuation savante quasi absente ({value})."},
+      {"range": [0.433, 0.847], "action": "Ponctuation savante occasionnelle ({value})."},
+      {"range": [0.847, 1.26], "action": "Ponctuation savante fréquente ({value}) : point-virgule et deux-points réguliers."}
+    ]
+  },
+  "structural_repetition_rate": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.29, 0.503], "action": "Peu de répétition de patrons syntaxiques ({value}%)."},
+      {"range": [0.503, 0.717], "action": "Répétition modérée des patrons syntaxiques ({value}%)."},
+      {"range": [0.717, 0.93], "action": "Reprise fréquente de patrons syntaxiques déjà rencontrés ({value}%)."}
+    ]
+  },
+  "subordinate_clause_ratio": {
+    "unit": "subordonnées par phrase",
+    "brackets": [
+      {"range": [0.56, 1.37], "action": "Peu de subordonnées par phrase ({value})."},
+      {"range": [1.37, 2.18], "action": "1 à 2 subordonnées par phrase en moyenne ({value})."},
+      {"range": [2.18, 2.99], "action": "Plusieurs subordonnées par phrase en moyenne ({value})."}
+    ]
+  },
+  "incise_density": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.04, 0.137], "action": "Peu d'incises ({value}% des phrases)."},
+      {"range": [0.137, 0.233], "action": "Incises occasionnelles ({value}% des phrases)."},
+      {"range": [0.233, 0.33], "action": "Incises fréquentes ({value}% des phrases)."}
+    ]
+  },
+  "coordination_accumulation_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0, 0.077], "action": "Quasiment aucune accumulation coordonnée ({value}%)."},
+      {"range": [0.077, 0.153], "action": "Accumulation coordonnée occasionnelle ({value}%)."},
+      {"range": [0.153, 0.23], "action": "Accumulation coordonnée fréquente ({value}%) : énumérations empilées par « et »."}
+    ]
+  },
+  "right_branching_depth": {
+    "unit": "niveaux",
+    "brackets": [
+      {"range": [1.58, 2.21], "action": "Phrases qui s'arrêtent net après le verbe ({value} niveaux)."},
+      {"range": [2.21, 2.84], "action": "Expansion finale modérée ({value} niveaux)."},
+      {"range": [2.84, 3.47], "action": "Phrases qui se développent longuement après le verbe ({value} niveaux)."}
+    ]
+  },
+  "type_token_ratio": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.07, 0.153], "action": "Vocabulaire très répété rapporté à la longueur du texte ({value}%)."},
+      {"range": [0.153, 0.237], "action": "Diversité lexicale globale modérée ({value}%)."},
+      {"range": [0.237, 0.32], "action": "Vocabulaire peu répété rapporté à la longueur du texte ({value}%)."}
+    ]
+  },
+  "global_lemma_richness": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.07, 0.18], "action": "Peu de mots pleins distincts rapportés au total ({value}%)."},
+      {"range": [0.18, 0.29], "action": "Diversité lexicale globale modérée ({value}%)."},
+      {"range": [0.29, 0.4], "action": "Beaucoup de mots pleins distincts rapportés au total ({value}%)."}
+    ]
+  },
+  "lemma_richness": {
+    "unit": "ratio local",
+    "brackets": [
+      {"range": [0.48, 0.56], "action": "Diversité lexicale locale modérée ({value})."},
+      {"range": [0.56, 0.64], "action": "Diversité lexicale locale correcte ({value})."},
+      {"range": [0.64, 0.72], "action": "Forte diversité lexicale locale ({value})."}
+    ]
+  },
+  "flesch": {
+    "unit": "indice Flesch",
+    "brackets": [
+      {"range": [36.31, 49.497], "action": "Texte difficile à lire (Flesch {value})."},
+      {"range": [49.497, 62.683], "action": "Lisibilité moyenne (Flesch {value})."},
+      {"range": [62.683, 75.87], "action": "Texte facile à lire (Flesch {value})."}
+    ]
+  },
+  "tense_shift_rate": {
+    "unit": "%",
+    "brackets": [
+      {"range": [0.17, 0.327], "action": "Peu de ruptures de temps verbal entre paragraphes ({value}%)."},
+      {"range": [0.327, 0.483], "action": "Ruptures de temps verbal occasionnelles ({value}%)."},
+      {"range": [0.483, 0.64], "action": "Ruptures de temps verbal fréquentes entre paragraphes ({value}%)."}
+    ]
+  }
+}

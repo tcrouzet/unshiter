@@ -448,6 +448,12 @@ class Metrics:
     def punctuation_ratio(self): return self.punctuation_mark_count() / self.word_count() if self.word_count() else 0
     def punctuation_diversity(self): return punctuation_diversity(self.text)
     def punctuation_variety_score(self): return (self.semicolons_count()+self.colon_count()+self.dash_count()) / self.sentence_count() if self.sentence_count() else 0
+    def comma_ratio(self): return self.comma_count() / self.sentence_count() if self.sentence_count() else 0
+    def colon_ratio(self): return self.colon_count() / self.sentence_count() if self.sentence_count() else 0
+    def semicolons_ratio(self): return self.semicolons_count() / self.sentence_count() if self.sentence_count() else 0
+    def dash_ratio(self): return self.dash_count() / self.sentence_count() if self.sentence_count() else 0
+    def parenthesis_ratio(self): return self.parenthesis_count() / self.sentence_count() if self.sentence_count() else 0
+    def quote_mark_ratio(self): return self.quote_mark_count() / self.sentence_count() if self.sentence_count() else 0
     def structural_diversity(self): return structural_diversity(self.structures)
     def structural_rhythm(self): return structural_rhythm(self.structures)
     def structural_repetition_rate(self): return structural_repetition_rate(self.structures)

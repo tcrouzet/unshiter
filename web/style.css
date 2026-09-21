@@ -18,6 +18,14 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .authors-clear { margin: .6rem 0 .4rem; }
 .prompt-exports { display: grid; gap: .4rem; margin-top: 1rem; }
 .prompt-exports button { width: 100%; }
+.rewrite-prompt-dialog { width: min(68rem, 94vw); height: min(48rem, 90vh); padding: 1rem; border: 1px solid #cfc8c0; border-radius: .625rem; background: #fffdf9; color: #514a44; box-shadow: 0 1rem 4rem #0005; box-sizing: border-box; }
+.rewrite-prompt-dialog::backdrop { background: #0008; }
+.rewrite-prompt-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+.rewrite-prompt-heading h2 { margin: 0; font-size: 1.2rem; }
+#rewrite-prompt-close { border: 0; background: transparent; color: #6f6962; font-size: 1.7rem; cursor: pointer; }
+#rewrite-prompt-output { display: block; width: 100%; height: calc(100% - 6rem); padding: 1rem; resize: none; border: 1px solid #d8d0c8; border-radius: .35rem; background: white; color: #282522; font: .95rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; box-sizing: border-box; }
+.rewrite-prompt-actions { display: flex; justify-content: flex-end; margin-top: .75rem; }
+.rewrite-prompt-actions button { padding: .45rem 1rem; border: 1px solid #b8afa6; border-radius: .3rem; background: white; color: #514a44; cursor: pointer; }
 .chart-box canvas { display: block; width: 100% !important; max-width: 100%; cursor: crosshair; }
 .radar-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem 1rem; padding: .5rem 2rem .8rem; margin-bottom: .5rem; font-size: .85rem; }
 .radar-legend span { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; pointer-events: auto; user-select: none; }

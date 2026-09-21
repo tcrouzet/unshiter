@@ -83,6 +83,33 @@ Entropie de Shannon de la répartition entre les dix comptages élémentaires :
 ##### Densité de ponctuation savante (punctuation_variety_score) #web
 Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-points](#colon_count) et du [nombre de tirets](#dash_count), divisée par le [nombre de phrases](#sentence_count).
 
+##### Virgules par phrase (comma_ratio) #web
+[Nombre de virgules](#comma_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Deux-points par phrase (colon_ratio) #web
+[Nombre de deux-points](#colon_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Points-virgules par phrase (semicolons_ratio) #web
+[Nombre de points-virgules](#semicolons_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Points d’exclamation par phrase (exclamation_ratio) #web
+[Nombre de points d’exclamation](#exclamation_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Points d’interrogation par phrase (question_mark_ratio) #web
+[Nombre de points d’interrogation](#question_mark_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Points de suspension par phrase (ellipsis_ratio) #web
+[Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Tirets par phrase (dash_ratio) #web
+[Nombre de tirets](#dash_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Parenthèses par phrase (parenthesis_ratio) #web
+[Nombre de parenthèses](#parenthesis_count) divisé par le [nombre de phrases](#sentence_count).
+
+##### Guillemets par phrase (quote_mark_ratio) #web
+[Nombre de guillemets](#quote_mark_count) divisé par le [nombre de phrases](#sentence_count).
+
 
 
 #### Syntaxe et grammaire
@@ -319,15 +346,6 @@ Indice français calculé avec le [nombre de mots](#word_count), le [nombre de p
 
 ##### **Négativité** / Positivité (negation_ratio) #web
 [Nombre de phrases négatives](#negative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
-
-##### Densité de points de suspension (ellipsis_ratio) #web
-[Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
-
-##### Points d'interrogation (question_mark_ratio) #web
-[Nombre total de points d’interrogation](#question_mark_count) rapporté [au nombre de phrases](#sentence_count).
-
-##### Exclamations (exclamation_ratio) #web
-[Nombre de points d’exclamation](#exclamation_point_count) rapporté [au nombre de phrases](#sentence_count). Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
 
 ##### Constructions exclamatives (exclamative_construction_ratio) #web
 [Nombre de constructions exclamatives](#exclamative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
