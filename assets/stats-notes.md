@@ -62,9 +62,13 @@ Distance de Burrows calculée uniquement sur les mesures stylistiques dont la [d
 Projection en deux dimensions des distances de Burrows calculées sur les seules mesures dont la [dispersion](#note_dispersion) atteint au moins 5 % parmi toutes les œuvres du corpus choisi, indépendamment de la sélection affichée. Les œuvres proches dans la carte sont proches dans cet espace multidimensionnel ; les axes de la projection n’ont pas de signification littéraire propre. Le stress indique la déformation introduite par la réduction à deux dimensions : plus il est faible, plus la carte respecte les distances originales.
 
 ##### Voisinage stylistique (note_neighborhood) #web
+
+Cette mesure s'inspire du principe de la **Delta de Burrows**, la méthode de référence en stylométrie pour comparer des textes et estimer leur proximité d'auteur. Le principe — standardiser chaque mesure en z-score sur l'ensemble du corpus, puis calculer la distance entre deux œuvres comme la moyenne des écarts absolus entre leurs vecteurs de z-scores — a été introduit par John Burrows en 2002 et affiné depuis par plusieurs travaux en humanités numériques.
+
 Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
 
 Mathématiquement, chaque œuvre est représentée par le vecteur des mesures dont la [dispersion](#note_dispersion) atteint au moins 5 % sur le corpus complet, jamais sur la seule sélection affichée. Pour chaque mesure retenue `j`, on calcule sur toutes les œuvres du corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
+
 
 ### Mesures
 

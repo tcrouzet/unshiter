@@ -78,6 +78,7 @@ function clearCorpusStorage({ keepPresets = true } = {}) {
 }
 let evolutionOrder = "values", evolutionHighlight = "";
 let secondaryTableOrder = "delta";
+let renderedTableData = [];
 const flippedAxes = new Set();
 function publicMetricId(key) { return key; }
 function metricKey(ref) { return ref; }
@@ -810,6 +811,11 @@ function renderTables(books) {
   const orderLabel = secondaryTableOrder === "delta" ? "Ordre des notes" : "Ordre par delta";
   const orderButton = `<button id="secondary-table-order" class="table-order" type="button">${orderLabel}</button>`;
   document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  renderedTableData = [
+    { id: "bigfive", title: "Tableau 1 · BigFive", definitions: RADAR.map(canonicalLabel), books: tableBooks },
+    { id: "measures", title: "Tableau 2 · Mesures", definitions: secondaryDefinitions, books: tableBooks },
+    { id: "raw_data", title: "Tableau 3 · Données", definitions: technical, books: tableBooks },
+  ];
 }
 function downloadRenderedTable(container, name, format) {
   const table = container?.querySelector("table"); if (!table) return;
@@ -958,6 +964,42 @@ function saveGeneratedFile(name, content, type) {
   const link = document.createElement("a"); link.href = href; link.download = name;
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+function exportAllTableData() {
+  const tables = renderedTableData.map(source => ({
+    id: source.id,
+    title: source.title,
+    rows: source.definitions.map(([key]) => {
+      const values = source.books.map((book, index) => {
+        const rawValue = value(book, key);
+        const displayedValue = DISPLAY_INVERTED.has(key) && rawValue != null ? 1 - rawValue : rawValue;
+        return {
+          entity_id: book.id ?? (book.author ? `author:${book.author}` : `entity:${index}`),
+          title: book.title || book.author || "",
+          author: book.author || "",
+          value: rawValue,
+          displayed_value: displayedValue,
+        };
+      });
+      const rawValues = values.map(entry => entry.value).filter(Number.isFinite);
+      const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(rawValues, key);
+      return {
+        id: publicMetricId(key),
+        title: metricLabel(key),
+        definition: metricNote(key),
+        dispersion: sigma,
+        dispersion_significant: sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS,
+        values,
+      };
+    }),
+  }));
+  const payload = {
+    generated_at: new Date().toISOString(),
+    corpus: storageCorpus,
+    mode: authorProfile || authorLimits ? "authors" : "works",
+    tables,
+  };
+  saveGeneratedFile(`unshiter-${storageCorpus || "corpus"}-all-data.json`, JSON.stringify(payload, null, 2), "application/json");
 }
 function exportPromptAndData() {
   saveGeneratedFile("style-interpretation-data.json", JSON.stringify(buildStyleExport(), null, 2), "application/json");
@@ -1210,7 +1252,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923084837948415000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
@@ -1305,6 +1347,12 @@ fetch("data.json?v=20260923084837948415000").then(r => r.json()).then(json => {
   const copyright = data.site?.copyright || "© {author} — (date) — {livres} livres";
   const renderedCopyright = copyright.replaceAll("(date)", dateLabel).replaceAll("{date}", dateLabel).replaceAll("{livres}", String(data.books.length)).replaceAll("{author}", data.site?.author || "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   document.querySelector("footer").innerHTML = renderedCopyright;
+  const allDataButton = document.createElement("button");
+  allDataButton.type = "button";
+  allDataButton.id = "all-data-download";
+  allDataButton.textContent = "All data";
+  allDataButton.addEventListener("click", exportAllTableData);
+  document.querySelector("footer").append(" — ", allDataButton);
   const footerHelp = document.createElement("a");
   footerHelp.href = "#";
   footerHelp.textContent = "Aide";
