@@ -68,7 +68,7 @@ const REMOVED_KEYS = new Set();
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
-let data, chart, surfaceChart, distanceChart, mdsChart, typicityChart, pcaCharts = [], evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar", radarMode = "bigfive";
+let data, chart, surfaceChart, mdsChart, typicityChart, pcaCharts = [], evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar", radarMode = "bigfive";
 const CONFIG_STORAGE_KEYS = [
   "unshiter-evolution-highlight", "unshiter-secondary-table-order",
   "unshiter-neighborhood", "unshiter-books", "unshiter-metrics",
@@ -302,7 +302,6 @@ function draw() {
     chart.update();
   }));
   drawSurfaces(books);
-  drawDistances(books);
   drawMDS(books);
   drawNeighborhood(books);
   drawTypicity(books);
@@ -366,20 +365,6 @@ function drawSurfaces(books) {
     surfaceBox.dataset.exportTitle = title;
   }
   surfaceChart = new Chart(document.getElementById("surfaces"), { type: "bar", data: { labels: sorted.map(x => x.label), datasets: [{ label: "Couverture stylistique", data: sorted.map(x => x.area), backgroundColor: sorted.map(x => `${x.color}b8`), borderColor: sorted.map(x => x.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => sorted[items[0]?.dataIndex]?.hover || "", label: () => "" } } }, scales: { x: { display: false, beginAtZero: true }, y: { grid: { display: false }, ticks: { font: context => ({ weight: isAI(sorted[context.index]?.author) ? "700" : "400" }) } } } } });
-}
-function drawDistances(books) {
-  distanceChart?.destroy();
-  const canvas = document.getElementById("distances");
-  if (!canvas || books.length < 2) return;
-  const entities = (authorProfile || authorLimits ? authorAverages(books) : books).map((entity, index) => ({ ...entity, __color: isAI(entity) ? IA_COLOR : COLORS[index % COLORS.length] }));
-  // La typicité est relative à la sélection courante : les œuvres
-  // décochées ne participent ni à la standardisation ni au centre.
-  const context = burrowsContext(entities, books);
-  const centerDistances = burrowsDistancesToCenter(context, burrowsContext(books, books));
-  const ordered = entities.map((entity, index) => ({ label: entity.title || entity.author || "Œuvre", distance: centerDistances[index], color: entity.__color, isAI: isAI(entity) })).sort((a, b) => a.distance - b.distance);
-  const box = canvas.closest(".distance-box");
-  if (box) box.style.height = `${Math.max(300, ordered.length * 30 + 90)}px`;
-  distanceChart = new Chart(canvas, { type: "bar", data: { labels: ordered.map(item => item.label), datasets: [{ label: "Δ Burrows au centre", data: ordered.map(item => item.distance), backgroundColor: ordered.map(item => `${item.color}b8`), borderColor: ordered.map(item => item.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => `Δ ${Number(item.raw).toFixed(2)}` } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: ordered[context.index]?.isAI ? "700" : "400" }) } } } } });
 }
 function classicalMDS(entities) {
   const context = burrowsContext(entities), n = entities.length;
@@ -664,33 +649,44 @@ function drawTypicity(selectedBooks) {
   const canvas = document.getElementById("typicity-chart");
   if (!canvas) return;
   typicityChart?.destroy();
-  const context = burrowsContext(selectedBooks, selectedBooks);
+  let chartArea = canvas.parentElement;
+  if (!chartArea?.classList.contains("typicity-chart-area")) {
+    chartArea = document.createElement("div");
+    chartArea.className = "typicity-chart-area";
+    canvas.before(chartArea);
+    chartArea.appendChild(canvas);
+  }
+  const authorMode = authorProfile || authorLimits;
+  const entities = authorMode ? authorAverages(selectedBooks) : selectedBooks;
+  const context = burrowsContext(entities, entities);
   const centerDistances = burrowsDistancesToCenter(context);
-  const works = selectedBooks.map((book, index) => ({ book, score: centerDistances[index] }));
+  const scored = entities.map((entity, index) => ({ entity, score: centerDistances[index] }));
   const pairDistances = [];
   for (let left = 0; left < context.vectors.length; left++) for (let right = left + 1; right < context.vectors.length; right++) pairDistances.push(context.distance(context.vectors[left], context.vectors[right]));
-  const meanTypicity = works.reduce((sum, work) => sum + work.score, 0) / Math.max(works.length, 1);
+  const meanTypicity = scored.reduce((sum, item) => sum + item.score, 0) / Math.max(scored.length, 1);
   const meanPairDistance = pairDistances.reduce((sum, distance) => sum + distance, 0) / Math.max(pairDistances.length, 1);
   const scaleRatio = meanPairDistance ? meanTypicity / meanPairDistance : 1;
   console.assert(scaleRatio >= .4 && scaleRatio <= 1.2, `Échelle de typicité incohérente : moyenne=${meanTypicity}, distance moyenne=${meanPairDistance}, ratio=${scaleRatio}`);
-  const authors = works.reduce((groups, work) => {
-    const author = work.book.author || "Auteur inconnu";
-    (groups[author] ||= []).push(work.score);
-    return groups;
-  }, {});
-  const rows = Object.entries(authors).map(([author, scores]) => ({ author, score: scores.reduce((sum, number) => sum + number, 0) / scores.length })).sort((left, right) => left.score - right.score || authorCompare(left.author, right.author));
-  const selectedEntities = authorProfile || authorLimits ? authorAverages(selectedBooks) : selectedBooks;
   const referenceIndex = Number(document.getElementById("neighborhood-reference")?.value || 0);
-  const referenceAuthor = selectedEntities[referenceIndex]?.author || "";
-  const authorOrder = [...rows].sort((left, right) => authorCompare(left.author, right.author));
-  const authorColors = Object.fromEntries(authorOrder.map((row, index) => [row.author, isAI(row.author) ? IA_COLOR : COLORS[index % COLORS.length]]));
+  const reference = entities[referenceIndex];
+  const authorNames = [...new Set(entities.map(entity => entity.author || "Auteur inconnu"))].sort(authorCompare);
+  const authorColors = Object.fromEntries(authorNames.map((author, index) => [author, isAI(author) ? IA_COLOR : COLORS[index % COLORS.length]]));
+  const rows = scored.map(({ entity, score }) => ({
+    entity,
+    author: entity.author || "Auteur inconnu",
+    label: authorMode ? (entity.author || "Auteur inconnu") : (entity.title || "Œuvre"),
+    exportLabel: authorMode ? (entity.author || "Auteur inconnu") : (entity.title || "Œuvre"),
+    score,
+    highlighted: authorMode ? entity.author === reference?.author : entity.id === reference?.id,
+  })).sort((left, right) => left.score - right.score || left.label.localeCompare(right.label, "fr"));
   const corpusLabel = data.corpora?.find(corpus => corpus.id === storageCorpus)?.label || storageCorpus;
   document.getElementById("typicity-title").textContent = `Typicité stylistique — ${corpusLabel}`;
   const box = canvas.closest(".typicity-box");
-  if (box) box.style.height = `${Math.max(320, rows.length * 34 + 120)}px`;
+  if (box) box.style.height = "auto";
+  chartArea.style.height = `${Math.max(260, rows.length * 30 + 50)}px`;
   const valueLabels = { id: "typicityValueLabels", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0), context2d = instance.ctx; context2d.save(); context2d.fillStyle = "#514a44"; context2d.font = "12px system-ui"; context2d.textBaseline = "middle"; meta.data.forEach((bar, index) => context2d.fillText(rows[index].score.toFixed(2), bar.x + 7, bar.y)); context2d.restore(); } };
-  typicityChart = new Chart(canvas, { type: "bar", plugins: [valueLabels], data: { labels: rows.map(row => row.author), datasets: [{ data: rows.map(row => row.score), backgroundColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : `${authorColors[row.author]}b8`), borderColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : authorColors[row.author]), borderWidth: rows.map(row => row.author === referenceAuthor ? 2 : 1) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 55 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => Number(item.raw).toFixed(2) } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: rows[context.index]?.author === referenceAuthor ? "700" : "400" }), color: context => rows[context.index]?.author === referenceAuthor ? "#1565c0" : "#514a44" } } } } });
-  typicityChart.$csvRows = [["Auteur", "Typicité"], ...rows.map(row => [row.author, row.score.toFixed(2)])];
+  typicityChart = new Chart(canvas, { type: "bar", plugins: [valueLabels], data: { labels: rows.map(row => row.label), datasets: [{ data: rows.map(row => row.score), backgroundColor: rows.map(row => row.highlighted ? "#1565c0" : `${authorColors[row.author]}b8`), borderColor: rows.map(row => row.highlighted ? "#1565c0" : authorColors[row.author]), borderWidth: rows.map(row => row.highlighted ? 2 : 1) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, interaction: { mode: "index", axis: "y", intersect: true }, layout: { padding: { right: 55 } }, plugins: { legend: { display: false }, tooltip: { mode: "index", axis: "y", intersect: true, position: "nearest", callbacks: { title: items => rows[items[0]?.dataIndex]?.label || "", label: item => rows[item.dataIndex]?.author || "Auteur inconnu", afterLabel: item => `Δ ${Number(item.raw).toFixed(2)}` } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: rows[context.index]?.highlighted ? "700" : "400" }), color: context => rows[context.index]?.highlighted ? "#1565c0" : "#514a44" } } } } });
+  typicityChart.$csvRows = [[authorMode ? "Auteur" : "Œuvre", "Auteur", "Typicité"], ...rows.map(row => [row.exportLabel, row.author, row.score.toFixed(2)])];
 }
 function extremeMetricKeys() {
   // Même univers que les analyses stylistiques : mesures atomiques dont la
@@ -1458,11 +1454,6 @@ function controls() {
   document.getElementById("radar-pca")?.addEventListener("click", () => setRadarMode("pca"));
   document.getElementById("radar-bigfive")?.classList.toggle("active", radarMode === "bigfive");
   document.getElementById("radar-pca")?.classList.toggle("active", radarMode === "pca");
-  const distanceTitle = document.querySelector(".distance-box h2");
-  if (distanceTitle) {
-    distanceTitle.childNodes[0].textContent = "Distance au centre ";
-    if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
-  }
   const distanceBox = document.querySelector(".distance-box");
   if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><section class="typicity-box chart-frame"><div class="chart-heading"><h2 id="typicity-title">Typicité stylistique</h2><select class="chart-download" data-canvas="typicity-chart" aria-label="Télécharger la typicité stylistique"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><p>Plus la barre est courte, plus le texte est proche du profil moyen du corpus.</p><canvas id="typicity-chart"></canvas></section><section class="extreme-box chart-frame"><div class="chart-heading"><h2>Valeurs extrêmes</h2><select class="chart-download table-download" data-table-id="extreme-values" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><label class="reference-select">Auteur ou œuvre <select id="extreme-entity"></select></label><label class="reference-select">Ordre <select id="extreme-order"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><p>Mesures classées parmi les valeurs les plus basses ou les plus hautes du corpus, selon l’ordre choisi.</p><div id="extreme-values" class="extreme-values"></div></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   const extremeHeading = document.querySelector(".extreme-box .chart-heading");
@@ -1472,27 +1463,20 @@ function controls() {
   }
   const extremeEntityLabel = document.getElementById("extreme-entity")?.closest("label");
   if (extremeEntityLabel && !document.getElementById("extreme-compare")) extremeEntityLabel.insertAdjacentHTML("afterend", '<label class="reference-select">Comparer avec <select id="extreme-compare"><option value="">Aucune comparaison</option></select></label>');
-  if (distanceBox) distanceBox.hidden = true;
-  const bonusLinks = document.querySelector(".bonus-links");
-  const tablesBlock = document.getElementById("tables");
-  if (bonusLinks && tablesBlock) tablesBlock.parentNode.appendChild(bonusLinks);
   const mdsBox = document.querySelector(".mds-box");
-  if (bonusLinks && distanceBox) bonusLinks.before(distanceBox);
-  if (bonusLinks && mdsBox) bonusLinks.before(mdsBox);
+  if (mdsBox) mdsBox.hidden = false;
+  distanceBox?.remove();
+  document.querySelector(".bonus-links")?.remove();
   const typicityBox = document.querySelector(".typicity-box");
   const neighborhoodBox = document.querySelector(".neighborhood-box");
   if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
   document.getElementById("extreme-entity")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
   document.getElementById("extreme-compare")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
   document.getElementById("extreme-order")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
-  document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Distance au centre"));
-  document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
   if (oldTableDownload?.tagName === "BUTTON") {
     const tableDownload = document.createElement("select"); tableDownload.id = "neighborhood-download"; tableDownload.className = "chart-download table-download"; tableDownload.dataset.table = "neighborhood-table"; tableDownload.setAttribute("aria-label", "Télécharger le tableau"); tableDownload.innerHTML = '<option value="" selected>Télécharger le tableau</option><option value="png">PNG</option><option value="svg">SVG</option>'; oldTableDownload.replaceWith(tableDownload); document.getElementById("neighborhood-table")?.before(tableDownload);
   }
-  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { const show = distanceBox.hidden; distanceBox.hidden = !show; if (show && mdsBox) { mdsBox.hidden = true; document.getElementById("show-mds").textContent = "Carte MDS"; } event.currentTarget.textContent = distanceBox.hidden ? "Distance au centre" : "Masquer Distance au centre"; } });
-  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { const show = box.hidden; box.hidden = !show; if (show && distanceBox) { distanceBox.hidden = true; document.getElementById("show-distance").textContent = "Distance au centre"; } event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
   document.getElementById("mds-zoom-out")?.addEventListener("click", () => mdsZoom(1.25));
   document.getElementById("mds-zoom-in")?.addEventListener("click", () => mdsZoom(.8));
   document.getElementById("mds-reset")?.addEventListener("click", mdsReset);
@@ -1634,7 +1618,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923175149214171000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923203536630768000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

@@ -56,7 +56,8 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .surface-box canvas, .distance-box canvas { display: block; width: 100% !important; max-width: 100%; }
 .typicity-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; min-height: 20rem; box-sizing: border-box; overflow: hidden; }
 .typicity-box > p { margin: .25rem 0 .8rem; color: #6f6962; font-size: .9rem; }
-.typicity-box canvas { display: block; width: 100% !important; max-width: 100%; height: calc(100% - 3.5rem) !important; }
+.typicity-chart-area { position: relative; width: 100%; min-height: 16rem; }
+.typicity-chart-area canvas { display: block; width: 100% !important; max-width: 100%; height: 100% !important; }
 .extreme-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; box-sizing: border-box; overflow: hidden; }
 .extreme-box > p { margin: .25rem 0 .8rem; color: #6f6962; font-size: .9rem; }
 .extreme-values { overflow-x: auto; }

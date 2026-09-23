@@ -291,21 +291,26 @@ def init_database(connection: sqlite3.Connection) -> None:
         f"DELETE FROM metric_cache WHERE metric_name NOT IN ({placeholders})",
         tuple(PERSISTED_METRICS),
     )
-    connection.execute("INSERT OR IGNORE INTO corpora(id,label) VALUES(?,?)", ("bigcorpus", "bigcorpus"))
-    project_root = CORPUS_DIR.parent
-    connection.execute(
-        "UPDATE books SET path=replace(path, ?, ?) WHERE path LIKE ?",
-        (str(project_root / "_epub"), str(CORPUS_DIR / "bigcorpus" / "_epub"), str(project_root / "_epub") + "/%"),
-    )
-    connection.execute(
-        "UPDATE books SET path=replace(path, ?, ?) WHERE path LIKE ?",
-        (str(project_root / "sources"), str(CORPUS_DIR / "bigcorpus" / "sources"), str(project_root / "sources") + "/%"),
-    )
-    connection.execute(
-        "INSERT OR IGNORE INTO corpus_books(corpus_id,book_id) "
-        "SELECT 'bigcorpus',id FROM books WHERE path LIKE ?",
-        (str(CORPUS_DIR / "bigcorpus") + "/%",),
-    )
+    # Un livre est identifié par son chemin réel. Une ancienne migration
+    # réinsérait ici les anciens dossiers _epub/ et sources/ dans Bigcorpus,
+    # même après leur disparition. Retirer systématiquement les chemins qui
+    # n'existent plus empêche ces appartenances fantômes lors d'une mise à
+    # jour ciblée aussi bien que lors d'une synchronisation complète.
+    missing_book_ids = [
+        book_id for book_id, path in connection.execute("SELECT id,path FROM books")
+        if not Path(path).is_file()
+    ]
+    if missing_book_ids:
+        placeholders = ",".join("?" for _ in missing_book_ids)
+        connection.execute(
+            f"DELETE FROM corpus_books WHERE book_id IN ({placeholders})",
+            tuple(missing_book_ids),
+        )
+        connection.execute(
+            f"DELETE FROM books WHERE id IN ({placeholders}) "
+            "AND id NOT IN (SELECT book_id FROM corpus_books)",
+            tuple(missing_book_ids),
+        )
 
 
 def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None = None, date_override: str = "", title_override: str = "", corpus_max_sentence_length: int | None = None, progress=None) -> tuple[bool, int, int]:
