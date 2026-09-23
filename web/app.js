@@ -74,6 +74,7 @@ const CONFIG_STORAGE_KEYS = [
   "unshiter-neighborhood", "unshiter-books", "unshiter-metrics",
   "unshiter-authors-open", "unshiter-metrics-open", "unshiter-presets",
   "unshiter-flipped", "unshiter-view-mode", "unshiter-radar-mode",
+  "unshiter-extreme-selection",
 ];
 let storageCorpus = "";
 function storageKey(key) { return storageCorpus ? `${key}:${storageCorpus}` : key; }
@@ -702,7 +703,12 @@ function drawExtremeValues() {
   const output = document.getElementById("extreme-values");
   if (!select || !output) return;
   const escapeHtml = text => String(text ?? "").replace(/[&<>\"]/g, character => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[character]));
-  const previous = select.value;
+  const saved = JSON.parse(storageGet("unshiter-extreme-selection") || "null");
+  const previous = select.value || saved?.entity || "";
+  if (orderSelect && !orderSelect.dataset.restored) {
+    if (["1", "2", "3", "4", "5"].includes(String(saved?.order))) orderSelect.value = String(saved.order);
+    orderSelect.dataset.restored = "true";
+  }
   const authors = authorAverages(data.books).sort((left, right) => authorCompare(left.author, right.author));
   const works = [...data.books].sort((left, right) => authorCompare(left, right) || String(left.title).localeCompare(String(right.title), "fr"));
   select.innerHTML = `<optgroup label="Auteurs">${authors.map(author => `<option value="author:${escapeHtml(author.author)}">${escapeHtml(author.author)}</option>`).join("")}</optgroup><optgroup label="Œuvres">${works.map(book => `<option value="work:${book.id}">${escapeHtml(book.title)} — ${escapeHtml(book.author || "Auteur inconnu")}</option>`).join("")}</optgroup>`;
@@ -731,6 +737,11 @@ function drawExtremeValues() {
   rows.sort((left, right) => left.percentile - right.percentile || metricLabel(left.key).localeCompare(metricLabel(right.key), "fr"));
   if (!rows.length) { output.innerHTML = "<p>Aucune valeur ne figure aux deux extrémités du classement.</p>"; return; }
   output.innerHTML = `<table><thead><tr><th>Mesure</th><th>Classement</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(metricLabel(row.key))} <button class="table-note-help metric-help" type="button" data-note-id="${row.key}" data-key="${row.key}" aria-label="Afficher la définition">?</button></td><td>${row.position}</td></tr>`).join("")}</tbody></table>`;
+}
+function saveExtremeSelection() {
+  const entity = document.getElementById("extreme-entity")?.value || "";
+  const order = document.getElementById("extreme-order")?.value || "2";
+  storageSet("unshiter-extreme-selection", JSON.stringify({ entity, order }));
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
@@ -1095,10 +1106,9 @@ function renderTables(books) {
   const characterIndex = details.findIndex(([key]) => key === "document_char_count");
   const wordsIndex = details.findIndex(([key]) => key === "word_count");
   if (characterIndex >= 0 && wordsIndex >= 0 && characterIndex > wordsIndex) details.splice(wordsIndex, 0, details.splice(characterIndex, 1)[0]);
-  const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
   const orderLabel = secondaryTableOrder === "delta" ? "Ordre des notes" : "Ordre par delta";
   const orderButton = `<button id="secondary-table-order" class="table-order" type="button">${orderLabel}</button>`;
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau PCA ${exportMenu("table-pca")}</h2><div id="table-pca">${pcaTable(tableBooks)}</div></div><div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau PCA ${tableExportMenu("table-pca")}</h2><div id="table-pca">${pcaTable(tableBooks)}</div></div><div class="table-wrap"><h2>Tableau 1 · BigFive ${tableExportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${tableExportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${tableExportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
   renderedTableData = [
     { id: "pca", title: "Tableau PCA", definitions: RADAR_PCA, books: tableBooks },
     { id: "bigfive", title: "Tableau 1 · BigFive", definitions: RADAR.map(canonicalLabel), books: tableBooks },
@@ -1106,8 +1116,12 @@ function renderTables(books) {
     { id: "raw_data", title: "Tableau 3 · Données", definitions: technical, books: tableBooks },
   ];
 }
+function tableExportMenu(id) {
+  return `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
+}
 function downloadRenderedTable(container, name, format) {
   const table = container?.querySelector("table"); if (!table) return;
+  const escapeXml = text => String(text ?? "").replace(/[&<>\"]/g, character => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[character]));
   const sourceRows = format === "csv" ? [...table.rows].filter(row => !row.classList.contains("metric-section")) : [...table.rows];
   const rows = sourceRows.map(row => [...row.cells].map(cell => cell.textContent.trim()));
   const link = document.createElement("a");
@@ -1116,10 +1130,28 @@ function downloadRenderedTable(container, name, format) {
     link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })); link.download = `${name}.csv`;
   } else {
     const widths = rows[0].map((_, i) => Math.max(80, ...rows.map(row => (row[i] || "").length * 7 + 20)));
-    const height = rows.length * 28 + 20; let y = 22;
-    const body = rows.map((row, ri) => { let x = 5; const cells = row.map((cell, i) => { const out = `<rect x="${x}" y="${y - 18}" width="${widths[i]}" height="28" fill="${ri === 0 ? "#eee" : "white"}" stroke="#ddd"/><text x="${x + 5}" y="${y}" font-family="system-ui" font-size="12">${esc(cell)}</text>`; x += widths[i]; return out; }).join(""); y += 28; return cells; }).join("");
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${widths.reduce((a,b)=>a+b,0)+10}" height="${height}"><rect width="100%" height="100%" fill="white"/>${body}</svg>`;
-    link.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); link.download = `${name}.svg`;
+    const selectedLabel = name === "extreme-values" ? document.getElementById("extreme-entity")?.selectedOptions?.[0]?.textContent?.trim() : "";
+    const exportTitle = selectedLabel ? `Valeurs extrêmes — ${selectedLabel}` : "";
+    const titleHeight = exportTitle ? 46 : 0;
+    const tableWidth = widths.reduce((left, right) => left + right, 0) + 10;
+    const exportWidth = Math.max(tableWidth, exportTitle.length * 9 + 30);
+    const height = rows.length * 28 + 20 + titleHeight; let y = 22 + titleHeight;
+    const body = rows.map((row, ri) => { let x = 5; const cells = row.map((cell, i) => { const out = `<rect x="${x}" y="${y - 18}" width="${widths[i]}" height="28" fill="${ri === 0 ? "#eee" : "white"}" stroke="#ddd"/><text x="${x + 5}" y="${y}" font-family="system-ui" font-size="12">${escapeXml(cell)}</text>`; x += widths[i]; return out; }).join(""); y += 28; return cells; }).join("");
+    const titleMarkup = exportTitle ? `<text x="${exportWidth / 2}" y="30" text-anchor="middle" font-family="system-ui" font-size="18" font-weight="600">${escapeXml(exportTitle)}</text>` : "";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${exportWidth}" height="${height}"><rect width="100%" height="100%" fill="white"/>${titleMarkup}${body}</svg>`;
+    const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    if (format === "png") {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas"); canvas.width = exportWidth; canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        URL.revokeObjectURL(svgUrl);
+        const pngLink = document.createElement("a"); pngLink.download = `${name}.png`; pngLink.href = canvas.toDataURL("image/png"); document.body.appendChild(pngLink); pngLink.click(); pngLink.remove();
+      };
+      image.src = svgUrl;
+      return;
+    }
+    link.href = svgUrl; link.download = `${name}.svg`;
   }
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
@@ -1409,6 +1441,11 @@ function controls() {
   }
   const distanceBox = document.querySelector(".distance-box");
   if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><section class="typicity-box chart-frame"><div class="chart-heading"><h2 id="typicity-title">Typicité stylistique</h2><select class="chart-download" data-canvas="typicity-chart" aria-label="Télécharger la typicité stylistique"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><p>Plus la barre est courte, plus le texte est proche du profil moyen du corpus.</p><canvas id="typicity-chart"></canvas></section><section class="extreme-box chart-frame"><div class="chart-heading"><h2>Valeurs extrêmes</h2><select class="chart-download table-download" data-table-id="extreme-values" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><label class="reference-select">Auteur ou œuvre <select id="extreme-entity"></select></label><label class="reference-select">Ordre <select id="extreme-order"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><p>Mesures classées parmi les valeurs les plus basses ou les plus hautes du corpus, selon l’ordre choisi.</p><div id="extreme-values" class="extreme-values"></div></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  const extremeHeading = document.querySelector(".extreme-box .chart-heading");
+  if (extremeHeading) {
+    extremeHeading.querySelector(".table-download")?.remove();
+    extremeHeading.insertAdjacentHTML("beforeend", tableExportMenu("extreme-values"));
+  }
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1419,8 +1456,8 @@ function controls() {
   const typicityBox = document.querySelector(".typicity-box");
   const neighborhoodBox = document.querySelector(".neighborhood-box");
   if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
-  document.getElementById("extreme-entity")?.addEventListener("change", drawExtremeValues);
-  document.getElementById("extreme-order")?.addEventListener("change", drawExtremeValues);
+  document.getElementById("extreme-entity")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
+  document.getElementById("extreme-order")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
   document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Distance au centre"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
@@ -1570,7 +1607,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923160919551435000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923162515789083000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
