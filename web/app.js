@@ -5,6 +5,7 @@ const RADAR = [
   ["emotionality_score", null],
   ["discursivite_score", null],
 ];
+const RADAR_PCA = [];
 const SUMMARY = [
   ["punctuation_ratio", null], ["punctuation_diversity", null],
   ["structural_diversity", null], ["structural_rhythm", null],
@@ -55,12 +56,12 @@ const REMOVED_KEYS = new Set();
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
-let data, chart, surfaceChart, distanceChart, mdsChart, evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar";
+let data, chart, surfaceChart, distanceChart, mdsChart, pcaCharts = [], evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar", radarMode = "bigfive";
 const CONFIG_STORAGE_KEYS = [
   "unshiter-evolution-highlight", "unshiter-secondary-table-order",
   "unshiter-neighborhood", "unshiter-books", "unshiter-metrics",
   "unshiter-authors-open", "unshiter-metrics-open", "unshiter-presets",
-  "unshiter-flipped", "unshiter-view-mode",
+  "unshiter-flipped", "unshiter-view-mode", "unshiter-radar-mode",
 ];
 let storageCorpus = "";
 function storageKey(key) { return storageCorpus ? `${key}:${storageCorpus}` : key; }
@@ -197,6 +198,13 @@ function scale(key, n) {
   // sélection affichée. Ainsi retirer un auteur ne change pas les limites.
   const values = corpusValues.get(key) || [];
   if (!values.length) return null;
+  if (RADAR_PCA.some(([field]) => field === key)) {
+    const sorted = [...values].sort((a, b) => a - b);
+    if (sorted.length === 1) return 50;
+    const lower = sorted.findIndex(value => value >= n);
+    const upper = sorted.findLastIndex(value => value <= n);
+    return Math.max(0, Math.min(100, ((Math.max(lower, 0) + Math.max(upper, 0)) / 2) / (sorted.length - 1) * 100));
+  }
   const maximum = Math.max(...values);
   if (!Number.isFinite(maximum)) return null;
   // L'origine reste le zéro réel : la plus petite valeur du corpus n'est
@@ -209,13 +217,18 @@ function scale(key, n) {
   // progressivement vers le bord, sans seuil ni saturation artificielle.
   return Math.max(0, Math.min(100, Math.log1p(4 * relative) / Math.log1p(4) * 100));
 }
+function activeRadarKeys() {
+  return radarMode === "pca" ? RADAR_PCA.map(([key]) => key) : checkedMetrics();
+}
 function draw() {
-  const books = selected(), keys = checkedMetrics(), labels = keys.map(metricLabel);
+  const books = selected(), keys = activeRadarKeys(), labels = keys.map(metricLabel);
   // Les tableaux sont indépendants des graphiques : ils doivent rester
   // visibles même si Chart.js ou un graphique facultatif échoue à se charger.
   renderTables(books);
-  const title = radarTitle(books);
+  const title = `${radarTitle(books)}${radarMode === "pca" ? " · PCA" : ""}`;
   currentRadarTitle = title;
+  const radarHeading = document.querySelector(".chart-box")?.closest(".chart-frame")?.querySelector("h2");
+  if (radarHeading) radarHeading.textContent = radarMode === "pca" ? "Radar PCA" : "Radar";
   chart?.destroy();
   const multipleAuthors = new Set(books.map(book => book.author).filter(Boolean)).size > 1;
   const authorName = author => (author || "Auteur inconnu").trim().split(/\s+/).at(-1);
@@ -237,6 +250,7 @@ function draw() {
   drawMDS(books);
   drawNeighborhood(books);
   drawEvolution(books);
+  drawPcaCharts();
   // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
   // ce qui permet de télécharger deux fois de suite le même format.
   document.querySelectorAll(".chart-download").forEach(select => { select.selectedIndex = -1; });
@@ -278,7 +292,7 @@ function authorSurfaceProfiles(books, keys) {
 }
 function drawSurfaces(books) {
   surfaceChart?.destroy();
-  const keys = checkedMetrics();
+  const keys = activeRadarKeys();
   const profiles = (authorProfile || authorLimits) ? authorSurfaceProfiles(books, keys) : books.map(book => ({ label: book.title, author: book.author || "Auteur inconnu", values: keys.map(key => scale(key, value(book, key))) }));
   const labels = profiles.map(profile => profile.label);
   const surfaceBox = document.querySelector(".surface-box");
@@ -288,7 +302,7 @@ function drawSurfaces(books) {
   const sorted = labels.map((label, i) => ({ label, author: profiles[i].author || profiles[i].hover || "Auteur inconnu", hover: profiles[i].hover || profiles[i].author || "Auteur inconnu", area: maximumArea ? areas[i] / maximumArea * 100 : 0, color: isAI(profiles[i]) ? IA_COLOR : COLORS[i % COLORS.length] })).sort((a, b) => a.area - b.area);
   const surfaceTitle = document.querySelector(".surface-box h2");
   if (surfaceTitle) {
-    const title = `Couverture stylistique${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
+    const title = `Couverture stylistique${radarMode === "pca" ? " PCA" : ""}${singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
     surfaceTitle.childNodes[0].textContent = `${title} `;
     surfaceTitle.dataset.exportTitle = title;
     surfaceBox.dataset.exportTitle = title;
@@ -597,7 +611,10 @@ function drawEvolution(selectedBooks) {
   evolutionCharts = [];
   const authorMode = Boolean(authorProfile);
   const books = [...(authorMode ? authorEvolutionEntities(selectedBooks) : selectedBooks)].filter(book => authorMode || (book.publication_date && !Number.isNaN(Date.parse(book.publication_date)))).sort((a, b) => authorMode ? String(a.author).localeCompare(String(b.author), "fr") : Date.parse(a.publication_date) - Date.parse(b.publication_date));
-  const definitions = checkedMetrics().map(key => [key, metricLabel(key)]).filter(Boolean);
+  const definitions = [
+    ...checkedMetrics().map(key => [key, metricLabel(key)]),
+    ...RADAR_PCA.map(([key, label]) => [key, label]),
+  ].filter((definition, index, all) => all.findIndex(([key]) => key === definition[0]) === index);
   const container = document.getElementById("evolution-charts");
   const entityKey = entity => entity ? (authorMode ? `author:${entity.author}` : `work:${entity.id}`) : "";
   const entityLabel = entity => authorMode ? entity.author : `${entity.title} — ${entity.author}`;
@@ -631,14 +648,16 @@ function drawEvolution(selectedBooks) {
     const evolutionTitle = `${label}${!authorMode && singleAuthor(books) ? ` · ${singleAuthor(books)}` : ""}`;
     const noteId = noteEntry(key).id;
     const help = noteId == null ? "" : ` <button class="metric-help help" data-key="${publicMetricId(key)}" type="button" aria-label="Afficher l’explication">?</button>`;
-    container.insertAdjacentHTML("beforeend", `<div class="evolution-chart chart-frame"><div class="chart-heading"><h3>${evolutionTitle}${help}</h3><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="${id}"></canvas></div>`);
+    const pcaHeading = key === RADAR_PCA[0]?.[0] ? '<h2 class="evolution-section-title">Composantes PCA</h2>' : "";
+    container.insertAdjacentHTML("beforeend", `${pcaHeading}<div class="evolution-chart chart-frame"><div class="chart-heading"><h3>${evolutionTitle}${help}</h3><select class="chart-download" data-canvas="${id}" aria-label="Télécharger ${evolutionTitle}"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="${id}"></canvas></div>`);
     const lineColor = books.every(isAI) ? IA_COLOR : COLORS[i % COLORS.length];
     const isHighlighted = index => {
       const entity = plotBooks[index];
       if (!entity) return false;
       return isEvolutionHighlighted(entity);
     };
-    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: true, stepSize: 20 }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => { const book = plotBooks[items[0]?.dataIndex]; return authorMode ? book?.author || "" : `${String(book?.publication_date || "").slice(0, 4)} · ${book?.title || ""}${book?.author ? ` — ${book.author}` : ""}`; }, label: item => format(value(plotBooks[item.dataIndex], key), key) } } } } });
+    const isPcaComponent = RADAR_PCA.some(([field]) => field === key);
+    const lineChart = new Chart(document.getElementById(id), { type: "line", data: { labels: plotBooks.map(book => authorMode ? book.author : book.title), datasets: [{ label, data: plotBooks.map(book => { const n = value(book, key); return n == null ? null : scale(key, n); }), borderColor: lineColor, backgroundColor: lineColor, pointBackgroundColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointBorderColor: context => isHighlighted(context.dataIndex) ? "#1565c0" : lineColor, pointRadius: context => isHighlighted(context.dataIndex) ? 5 : 3, tension: .25, spanGaps: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { display: true, stepSize: 20 }, grid: { color: "#ccd1d5" } }, x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45, color: context => isHighlighted(context.index) ? "#1565c0" : "#666", font: context => ({ weight: isHighlighted(context.index) || isAI(plotBooks[context.index]) ? "700" : "400" }) } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => { const book = plotBooks[items[0]?.dataIndex]; return authorMode ? book?.author || "" : `${String(book?.publication_date || "").slice(0, 4)} · ${book?.title || ""}${book?.author ? ` — ${book.author}` : ""}`; }, label: item => isPcaComponent ? `${Number(item.raw).toFixed(1)} %` : format(value(plotBooks[item.dataIndex], key), key) } } } } });
     lineChart.$years = [];
     lineChart.$pointLabels = [];
     lineChart.$pointEntities = plotBooks;
@@ -779,6 +798,137 @@ function downloadCanvas(canvas, name, format = "png") {
   }
   const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
 }
+function jacobiEigenDecomposition(source) {
+  const size = source.length;
+  const matrix = source.map(row => [...row]);
+  const vectors = Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_, column) => row === column ? 1 : 0));
+  const tolerance = 1e-10;
+  for (let iteration = 0; iteration < Math.max(1, size * size * 50); iteration++) {
+    let p = 0, q = 1, maximum = 0;
+    for (let row = 0; row < size; row++) for (let column = row + 1; column < size; column++) {
+      const candidate = Math.abs(matrix[row][column]);
+      if (candidate > maximum) { maximum = candidate; p = row; q = column; }
+    }
+    if (maximum < tolerance || size < 2) break;
+    const angle = .5 * Math.atan2(2 * matrix[p][q], matrix[q][q] - matrix[p][p]);
+    const cosine = Math.cos(angle), sine = Math.sin(angle);
+    const pp = matrix[p][p], qq = matrix[q][q], pq = matrix[p][q];
+    matrix[p][p] = cosine * cosine * pp - 2 * sine * cosine * pq + sine * sine * qq;
+    matrix[q][q] = sine * sine * pp + 2 * sine * cosine * pq + cosine * cosine * qq;
+    matrix[p][q] = matrix[q][p] = 0;
+    for (let index = 0; index < size; index++) if (index !== p && index !== q) {
+      const ip = matrix[index][p], iq = matrix[index][q];
+      matrix[index][p] = matrix[p][index] = cosine * ip - sine * iq;
+      matrix[index][q] = matrix[q][index] = sine * ip + cosine * iq;
+    }
+    for (let row = 0; row < size; row++) {
+      const vp = vectors[row][p], vq = vectors[row][q];
+      vectors[row][p] = cosine * vp - sine * vq;
+      vectors[row][q] = sine * vp + cosine * vq;
+    }
+  }
+  return Array.from({ length: size }, (_, index) => ({
+    value: Math.max(0, matrix[index][index]),
+    vector: vectors.map(row => row[index]),
+  })).sort((left, right) => right.value - left.value);
+}
+function computePca(books) {
+  const candidates = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))].filter(key => !COMPOSITE_FIELDS.has(key) && !TECHNICAL_KEYS.has(key));
+  const fields = candidates.filter(key => {
+    const values = books.map(book => value(book, key)).filter(Number.isFinite);
+    return values.length >= 2 && (dispersion(values, key) ?? 0) >= DISPERSION_SIGNIFICANCE_POINTS;
+  });
+  const missingValues = fields.flatMap(key => books.filter(book => !Number.isFinite(value(book, key))).map(book => `${key} — ${book.title}`));
+  if (missingValues.length) throw new Error(`PCA impossible, valeurs absentes : ${missingValues.join(" ; ")}`);
+  const columns = fields.map(key => books.map(book => value(book, key)));
+  const standardizedColumns = [], retainedFields = [];
+  columns.forEach((column, index) => {
+    const mean = column.reduce((sum, number) => sum + number, 0) / column.length;
+    const deviation = Math.sqrt(column.reduce((sum, number) => sum + (number - mean) ** 2, 0) / column.length);
+    if (deviation > 1e-12) {
+      retainedFields.push(fields[index]);
+      standardizedColumns.push(column.map(number => (number - mean) / deviation));
+    }
+  });
+  const matrix = books.map((_, row) => standardizedColumns.map(column => column[row]));
+  const dimension = retainedFields.length;
+  const covariance = Array.from({ length: dimension }, (_, row) => Array.from({ length: dimension }, (_, column) => matrix.reduce((sum, values) => sum + values[row] * values[column], 0) / Math.max(books.length, 1)));
+  const eigenpairs = dimension ? jacobiEigenDecomposition(covariance) : [];
+  const components = eigenpairs.map(pair => {
+    const largestIndex = pair.vector.reduce((best, loading, index) => Math.abs(loading) > Math.abs(pair.vector[best] || 0) ? index : best, 0);
+    const direction = pair.vector[largestIndex] < 0 ? -1 : 1;
+    const vector = pair.vector.map(loading => loading * direction);
+    const scores = matrix.map(values => values.reduce((sum, number, index) => sum + number * vector[index], 0));
+    const scoreMean = scores.reduce((sum, score) => sum + score, 0) / Math.max(scores.length, 1);
+    const scoreVariance = scores.reduce((sum, score) => sum + (score - scoreMean) ** 2, 0) / Math.max(scores.length, 1);
+    const tolerance = Math.max(1e-8, Math.abs(pair.value) * 1e-7);
+    if (Math.abs(scoreVariance - pair.value) > tolerance) throw new Error(`PCA incohérente : variance(scores)=${scoreVariance}, valeur propre=${pair.value}`);
+    return { vector, scores, scoreVariance };
+  });
+  const measuredTotalVariance = components.reduce((sum, component) => sum + component.scoreVariance, 0);
+  const totalVariance = dimension || 1;
+  if (Math.abs(measuredTotalVariance - dimension) > Math.max(1e-8, dimension * 1e-7)) throw new Error(`PCA incohérente : variance totale=${measuredTotalVariance}, mesures=${dimension}`);
+  components.forEach(component => { component.variance = component.scoreVariance / totalVariance; });
+  let cumulative = 0, retainedCount = 0;
+  while (retainedCount < Math.min(5, components.length) && (retainedCount === 0 || cumulative < .8)) {
+    cumulative += components[retainedCount].variance;
+    retainedCount++;
+  }
+  let explainedCumulative = 0;
+  const allComponents = components.map((component, index) => {
+    explainedCumulative += component.variance;
+    return { id: `pc${index + 1}`, variance: component.variance, cumulative: explainedCumulative };
+  });
+  const rows = components.slice(0, retainedCount).map((component, componentIndex) => {
+    const loadings = retainedFields.map((id, index) => ({ id, title: metricLabel(id), loading: component.vector[index] })).sort((left, right) => Math.abs(right.loading) - Math.abs(left.loading));
+    const id = `pc${componentIndex + 1}`;
+    const dominantTitles = loadings.slice(0, 3).map(item => item.title);
+    const title = `PC${componentIndex + 1} · ${dominantTitles.join(" / ")}`;
+    const definition = `Dominé par : ${dominantTitles.join(", ")}.`;
+    const values = books.map((book, rowIndex) => ({ entity_id: book.id, title: book.title, author: book.author || "", value: component.scores[rowIndex] }));
+    return { id, title, definition, dispersion: component.variance * 100, score_variance: component.scoreVariance, dispersion_significant: true, loadings, values };
+  });
+  data.tables ||= {};
+  data.tables.pca = { id: "pca", title: "PCA", input_fields: retainedFields, components: allComponents, rows };
+  RADAR_PCA.splice(0, RADAR_PCA.length, ...rows.map(row => [row.id, row.title]));
+  rows.forEach(row => {
+    data.metric_labels[row.id] = row.title;
+    data.note_titles[row.id] = row.title;
+    data.notes[row.id] = row.definition;
+    if (!ALL_METRICS.some(([key]) => key === row.id)) ALL_METRICS.push([row.id, row.title]);
+    row.values.forEach(entry => {
+      const book = books.find(candidate => candidate.id === entry.entity_id);
+      if (book?.analyses?.[0]?.stats) book.analyses[0].stats[row.id] = entry.value;
+    });
+  });
+}
+function pcaTable(books) {
+  const rows = data?.tables?.pca?.rows || [];
+  const header = `<th>Mesure</th><th>Variance</th>${books.map(book => `<th>${book.title || book.author || ""}</th>`).join("")}`;
+  const body = rows.map(row => `<tr><td>${row.title} <button class="table-note-help metric-help" type="button" data-note-id="${row.id}" data-key="${row.id}" aria-label="Afficher la définition">?</button></td><td>${row.dispersion.toFixed(1)} %</td>${books.map(book => `<td>${Number(value(book, row.id)).toFixed(1)}</td>`).join("")}</tr>`).join("");
+  return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+}
+function drawPcaCharts() {
+  pcaCharts.forEach(chart => chart.destroy());
+  pcaCharts = [];
+  const box = document.getElementById("pca-analysis");
+  if (!box) return;
+  box.hidden = radarMode !== "pca";
+  if (box.hidden) return;
+  const pca = data?.tables?.pca;
+  const charts = document.getElementById("pca-charts");
+  charts.innerHTML = '<div class="pca-chart"><h3>Variance expliquée cumulée</h3><canvas id="pca-scree"></canvas></div>';
+  const scree = new Chart(document.getElementById("pca-scree"), { type: "line", data: { labels: pca.components.map(component => component.id.toUpperCase()), datasets: [{ data: pca.components.map(component => component.cumulative * 100), borderColor: COLORS[0], backgroundColor: COLORS[0], pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, title: { display: true, text: "% cumulé" } } } } });
+  pcaCharts.push(scree);
+  pca.rows.forEach((row, index) => {
+    const id = `pca-loadings-${index}`;
+    charts.insertAdjacentHTML("beforeend", `<div class="pca-loading-chart"><h3>${row.title} · ${row.dispersion.toFixed(1)} % de variance</h3><canvas id="${id}"></canvas></div>`);
+    const canvas = document.getElementById(id), ordered = [...row.loadings].sort((left, right) => left.loading - right.loading);
+    canvas.parentElement.style.height = `${Math.max(300, ordered.length * 24 + 70)}px`;
+    const chart = new Chart(canvas, { type: "bar", data: { labels: ordered.map(item => item.title), datasets: [{ data: ordered.map(item => item.loading), backgroundColor: ordered.map(item => item.loading < 0 ? "#d13c36b8" : "#3478b8b8") }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "Loading" } }, y: { ticks: { autoSkip: false } } } } });
+    pcaCharts.push(chart);
+  });
+}
 function renderTables(books) {
   // Les tableaux restent consultables pendant une transition de sélection
   // (les cases peuvent déclencher un dessin intermédiaire avec une liste
@@ -810,8 +960,9 @@ function renderTables(books) {
   const exportMenu = id => `<select class="chart-download table-download" data-table-id="${id}" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select>`;
   const orderLabel = secondaryTableOrder === "delta" ? "Ordre des notes" : "Ordre par delta";
   const orderButton = `<button id="secondary-table-order" class="table-order" type="button">${orderLabel}</button>`;
-  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
+  document.getElementById("tables").innerHTML = `<div class="table-wrap"><h2>Tableau PCA ${exportMenu("table-pca")}</h2><div id="table-pca">${pcaTable(tableBooks)}</div></div><div class="table-wrap"><h2>Tableau 1 · BigFive ${exportMenu("table-bigfive")}</h2><div id="table-bigfive">${table(tableBooks, RADAR.map(canonicalLabel))}</div></div><div class="table-wrap" id="secondary-table-wrap"><h2>Tableau 2 · Mesures ${exportMenu("table-secondary")}${orderButton}</h2><div id="table-secondary">${table(tableBooks, secondaryDefinitions, secondaryTableOrder === "notes")}</div></div><div class="table-wrap"><h2>Tableau 3 · Données ${exportMenu("table-technical")}</h2><div id="table-technical">${table(tableBooks, technical)}</div></div>`;
   renderedTableData = [
+    { id: "pca", title: "Tableau PCA", definitions: RADAR_PCA, books: tableBooks },
     { id: "bigfive", title: "Tableau 1 · BigFive", definitions: RADAR.map(canonicalLabel), books: tableBooks },
     { id: "measures", title: "Tableau 2 · Mesures", definitions: secondaryDefinitions, books: tableBooks },
     { id: "raw_data", title: "Tableau 3 · Données", definitions: technical, books: tableBooks },
@@ -966,29 +1117,41 @@ function saveGeneratedFile(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
 function exportAllTableData() {
+  const round1 = number => Number.isFinite(number) ? Math.round(number * 10) / 10 : null;
+  const displayedNumber = (number, key) => {
+    if (!Number.isFinite(number)) return null;
+    const directed = DISPLAY_INVERTED.has(key) ? 1 - number : number;
+    if (RADAR_PCA.some(([field]) => field === key)) return round1(directed);
+    if (!RAW_DISPLAY_METRICS.has(key)) return round1(directed * 100);
+    return round1(directed);
+  };
   const tables = renderedTableData.map(source => ({
     id: source.id,
     title: source.title,
+    ...(source.id === "pca" ? {
+      input_measure_count: data?.tables?.pca?.input_fields?.length || 0,
+      input_measure_ids: data?.tables?.pca?.input_fields || [],
+    } : {}),
     rows: source.definitions.map(([key]) => {
+      const pcaRow = source.id === "pca" ? data?.tables?.pca?.rows?.find(row => row.id === key) : null;
       const values = source.books.map((book, index) => {
         const rawValue = value(book, key);
-        const displayedValue = DISPLAY_INVERTED.has(key) && rawValue != null ? 1 - rawValue : rawValue;
         return {
           entity_id: book.id ?? (book.author ? `author:${book.author}` : `entity:${index}`),
           title: book.title || book.author || "",
           author: book.author || "",
-          value: rawValue,
-          displayed_value: displayedValue,
+          value: displayedNumber(rawValue, key),
         };
       });
-      const rawValues = values.map(entry => entry.value).filter(Number.isFinite);
+      const rawValues = source.books.map(book => value(book, key)).filter(Number.isFinite);
       const sigma = TECHNICAL_KEYS.has(key) ? null : dispersion(rawValues, key);
       return {
         id: publicMetricId(key),
-        title: metricLabel(key),
-        definition: metricNote(key),
-        dispersion: sigma,
-        dispersion_significant: sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS,
+        title: pcaRow?.title || metricLabel(key),
+        definition: pcaRow?.definition || metricNote(key),
+        dispersion: round1(pcaRow?.dispersion ?? sigma),
+        ...(pcaRow ? { score_variance: round1(pcaRow.score_variance) } : {}),
+        dispersion_significant: pcaRow ? true : sigma != null && sigma >= DISPERSION_SIGNIFICANCE_POINTS,
         values,
       };
     }),
@@ -1090,6 +1253,17 @@ function exportRewritePrompt() {
   dialog.showModal();
 }
 function controls() {
+  const setRadarMode = mode => {
+    radarMode = mode;
+    storageSet("unshiter-radar-mode", mode);
+    document.getElementById("radar-bigfive")?.classList.toggle("active", mode === "bigfive");
+    document.getElementById("radar-pca")?.classList.toggle("active", mode === "pca");
+    draw();
+  };
+  document.getElementById("radar-bigfive")?.addEventListener("click", () => setRadarMode("bigfive"));
+  document.getElementById("radar-pca")?.addEventListener("click", () => setRadarMode("pca"));
+  document.getElementById("radar-bigfive")?.classList.toggle("active", radarMode === "bigfive");
+  document.getElementById("radar-pca")?.classList.toggle("active", radarMode === "pca");
   const distanceTitle = document.querySelector(".distance-box h2");
   if (distanceTitle) {
     distanceTitle.childNodes[0].textContent = "Singularité ";
@@ -1218,6 +1392,7 @@ function controls() {
   const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
   const rewriteButton = document.createElement("button"); rewriteButton.type = "button"; rewriteButton.id = "export-rewrite-prompt"; rewriteButton.textContent = "Prompt de réécriture"; exportBox.appendChild(rewriteButton); rewriteButton.addEventListener("click", exportRewritePrompt);
+  const allDataButton = document.createElement("button"); allDataButton.type = "button"; allDataButton.id = "all-data-download"; allDataButton.textContent = "All data"; exportBox.appendChild(allDataButton); allDataButton.addEventListener("click", exportAllTableData);
   document.querySelector("aside")?.appendChild(exportBox);
   document.body.insertAdjacentHTML("beforeend", '<dialog id="rewrite-prompt-dialog" class="rewrite-prompt-dialog"><div class="rewrite-prompt-heading"><h2>Prompt de réécriture</h2><button type="button" id="rewrite-prompt-close" aria-label="Fermer">×</button></div><textarea id="rewrite-prompt-output" readonly></textarea><div class="rewrite-prompt-actions"><button type="button" id="rewrite-prompt-copy">Copier</button></div></dialog>');
   const rewriteDialog = document.getElementById("rewrite-prompt-dialog");
@@ -1252,7 +1427,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923111810815227000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
@@ -1260,6 +1435,7 @@ fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
   const defaultCorpus = availableCorpora.some(corpus => corpus.id === "bigcorpus") ? "bigcorpus" : availableCorpora[0]?.id;
   const activeCorpus = availableCorpora.some(corpus => corpus.id === requestedCorpus) ? requestedCorpus : defaultCorpus;
   activateCorpusStorage(activeCorpus);
+  radarMode = storageGet("unshiter-radar-mode") === "pca" ? "pca" : "bigfive";
   evolutionHighlight = storageGet("unshiter-evolution-highlight") || "";
   const savedSecondaryTableOrder = storageGet("unshiter-secondary-table-order");
   secondaryTableOrder = ["delta", "notes"].includes(savedSecondaryTableOrder) ? savedSecondaryTableOrder : "delta";
@@ -1290,6 +1466,12 @@ fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
       }, 0);
     }
   }
+  // Les tests de dispersion des mesures en unité native dépendent des
+  // références du corpus. Elles doivent être disponibles avant le filtrage
+  // partagé par Burrows, la singularité, la MDS et le voisinage.
+  for (const [key] of ALL_METRICS) {
+    corpusValues.set(key, data.books.map(book => value(book, key)).filter(Number.isFinite));
+  }
   // Les mesures quasi constantes ne doivent pas être amplifiées par leur
   // centrage-réduction. Le même seuil que dans les tableaux définit l'espace
   // utilisé par Burrows, la singularité, la MDS et le voisinage.
@@ -1305,6 +1487,13 @@ fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
     INTEGER_DISPLAY_METRICS.add(key);
     if (!ALL_METRICS.some(([field]) => field === key)) ALL_METRICS.push([key, data.metric_labels?.[key] || key]);
   }
+  // La dispersion des mesures exprimées dans leur unité native utilise la
+  // moyenne du corpus. Ces références doivent exister avant la sélection
+  // des colonnes PCA, sinon toutes les RAW_DISPLAY_METRICS sont écartées.
+  for (const [key] of ALL_METRICS) {
+    corpusValues.set(key, data.books.map(book => value(book, key)).filter(Number.isFinite));
+  }
+  computePca(data.books);
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,
     book: book.title,
@@ -1347,12 +1536,6 @@ fetch("data.json?v=20260923091912454958000").then(r => r.json()).then(json => {
   const copyright = data.site?.copyright || "© {author} — (date) — {livres} livres";
   const renderedCopyright = copyright.replaceAll("(date)", dateLabel).replaceAll("{date}", dateLabel).replaceAll("{livres}", String(data.books.length)).replaceAll("{author}", data.site?.author || "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   document.querySelector("footer").innerHTML = renderedCopyright;
-  const allDataButton = document.createElement("button");
-  allDataButton.type = "button";
-  allDataButton.id = "all-data-download";
-  allDataButton.textContent = "All data";
-  allDataButton.addEventListener("click", exportAllTableData);
-  document.querySelector("footer").append(" — ", allDataButton);
   const footerHelp = document.createElement("a");
   footerHelp.href = "#";
   footerHelp.textContent = "Aide";

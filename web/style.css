@@ -31,6 +31,11 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .radar-legend span { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; pointer-events: auto; user-select: none; }
 .radar-legend i { display: inline-block; width: 1.2rem; height: .18rem; }
 .radar-tools { display: flex; justify-content: center; gap: .5rem; margin-bottom: .5rem; }
+.radar-tools button.active { background: #514a44; color: white; }
+.pca-analysis { margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; }
+.pca-chart { position: relative; height: 18rem; margin-bottom: 2rem; }
+.pca-loading-chart { position: relative; min-height: 18rem; margin: 1rem 0 2rem; }
+.pca-analysis h3 { margin: 0 0 .5rem; font-size: .95rem; }
 #metrics-reset { display: block; width: 100%; margin-top: .8rem; font-size: .8rem; }
 .config-actions { display: grid; gap: .4rem; margin-top: .45rem; }
 .config-actions button, .config-actions select { width: 100%; }
@@ -82,6 +87,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .evolution-controls label { display: inline-flex; align-items: center; gap: .45rem; }
 .evolution-controls select { max-width: min(26rem, 60vw); }
 .evolution-chart h3 { font-size: .95rem; }
+.evolution-section-title { margin: 2rem 0 .75rem; padding-top: 1rem; border-top: 1px solid #e5e1dc; }
 .evolution-order { display: inline-flex; gap: .3rem; align-items: center; white-space: nowrap; font-weight: 400; }
 .evolution-order button { padding: 0; border: 0; background: none; color: #666; font: inherit; cursor: pointer; }
 .evolution-order button:hover, .evolution-order button.active { color: #111; text-decoration: underline; text-underline-offset: .18em; }
@@ -101,7 +107,6 @@ table { border-collapse: collapse; width: 100%; min-width: 40.625rem; } th, td {
 .dispersion-usable { color: #16823b; font-weight: 700; }
 .dispersion-low { color: #c62828; font-weight: 700; }
 footer { padding: .8rem 1.5rem 1.5rem; color: #6f6962; font-size: .9rem; }
-#all-data-download { padding: .25rem .55rem; color: #514a44; font-size: .85rem; }
 @media (max-width: 50rem) {
   main { display: block; padding: 0; overflow-x: hidden; }
   aside { position: static; width: 100%; box-sizing: border-box; border-right: 0; border-bottom: 1px solid #ddd; }
