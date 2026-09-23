@@ -48,15 +48,14 @@ const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_c
 // La distance stylistique utilise toutes les mesures individuelles, mais
 // exclut les cinq scores BigFive (composites) et les données objectives.
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
-const BURROWS_FIELDS = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))]
-  .filter(key => !TECHNICAL_KEYS.has(key) && !COMPOSITE_FIELDS.has(key));
+const BURROWS_FIELDS = [];
 // L’écart-type brut reste disponible dans les données, mais l’axe affiché
 // est bien la diversité locale (burstiness).
 const REMOVED_KEYS = new Set();
 const MENU_METRICS = ALL_METRICS.filter(([key], index, all) => !TECHNICAL_KEYS.has(key) && !REMOVED_KEYS.has(key) && all.findIndex(item => item[0] === key) === index);
 let COLORS = ["#4a2c20", "#d13c36", "#3478b8", "#57a052", "#8b55a2", "#e19a2d", "#2b9b9b"];
 let IA_COLOR = "#777777";
-let data, chart, surfaceChart, distanceChart, mdsChart, pcaCharts = [], evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar", radarMode = "bigfive";
+let data, chart, surfaceChart, distanceChart, mdsChart, typicityChart, pcaCharts = [], evolutionCharts = [], corpusProfile = false, authorProfile = false, authorLimits = false, currentRadarTitle = "Radar", radarMode = "bigfive";
 const CONFIG_STORAGE_KEYS = [
   "unshiter-evolution-highlight", "unshiter-secondary-table-order",
   "unshiter-neighborhood", "unshiter-books", "unshiter-metrics",
@@ -150,6 +149,15 @@ function burrowsContext(entities) {
   const vectors = entities.map(entity => BURROWS_FIELDS.map((key, i) => { const n = value(entity, key); return Number.isFinite(n) && deviations[i] > 0 ? (n - means[i]) / deviations[i] : null; }));
   const distance = (left, right) => { const parts = left.map((n, i) => Number.isFinite(n) && Number.isFinite(right[i]) ? Math.abs(n - right[i]) : null).filter(Number.isFinite); return parts.length ? parts.reduce((sum, n) => sum + n, 0) / parts.length : 0; };
   return { vectors, distance };
+}
+function significantAtomicFields(books) {
+  const candidates = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))]
+    .filter(key => !COMPOSITE_FIELDS.has(key) && !TECHNICAL_KEYS.has(key));
+  return candidates.filter(key => {
+    const values = books.map(book => value(book, key));
+    if (!values.every(Number.isFinite)) throw new Error(`Mesure atomique incomplète : ${key}`);
+    return (dispersion(values, key) ?? 0) >= DISPERSION_SIGNIFICANCE_POINTS;
+  });
 }
 function selected() { return [...document.querySelectorAll("#authors input[type=checkbox]:not(.author-toggle):checked")].map(x => data.books.find(b => b.id === Number(x.value))).filter(Boolean); }
 function checkedMetrics() { return [...new Set([...document.querySelectorAll("#metrics input:checked")].map(x => metricKey(x.value)))]; }
@@ -249,6 +257,7 @@ function draw() {
   drawDistances(books);
   drawMDS(books);
   drawNeighborhood(books);
+  drawTypicity();
   drawEvolution(books);
   drawPcaCharts();
   // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
@@ -606,6 +615,40 @@ function drawNeighborhood(books) {
   }
   const box = document.querySelector(".neighborhood-box"); if (box) box.style.height = "auto";
 }
+function drawTypicity() {
+  const canvas = document.getElementById("typicity-chart");
+  if (!canvas) return;
+  typicityChart?.destroy();
+  const context = burrowsContext(data.books);
+  const works = data.books.map((book, index) => ({
+    book,
+    score: context.vectors[index].reduce((sum, zscore) => sum + Math.abs(zscore), 0) / Math.max(BURROWS_FIELDS.length, 1),
+  }));
+  const pairDistances = [];
+  for (let left = 0; left < context.vectors.length; left++) for (let right = left + 1; right < context.vectors.length; right++) pairDistances.push(context.distance(context.vectors[left], context.vectors[right]));
+  const meanTypicity = works.reduce((sum, work) => sum + work.score, 0) / Math.max(works.length, 1);
+  const meanPairDistance = pairDistances.reduce((sum, distance) => sum + distance, 0) / Math.max(pairDistances.length, 1);
+  const scaleRatio = meanPairDistance ? meanTypicity / meanPairDistance : 1;
+  console.assert(scaleRatio >= .4 && scaleRatio <= 1.2, `Échelle de typicité incohérente : moyenne=${meanTypicity}, distance moyenne=${meanPairDistance}, ratio=${scaleRatio}`);
+  const authors = works.reduce((groups, work) => {
+    const author = work.book.author || "Auteur inconnu";
+    (groups[author] ||= []).push(work.score);
+    return groups;
+  }, {});
+  const rows = Object.entries(authors).map(([author, scores]) => ({ author, score: scores.reduce((sum, number) => sum + number, 0) / scores.length })).sort((left, right) => left.score - right.score || authorCompare(left.author, right.author));
+  const selectedEntities = authorProfile || authorLimits ? authorAverages(selected()) : selected();
+  const referenceIndex = Number(document.getElementById("neighborhood-reference")?.value || 0);
+  const referenceAuthor = selectedEntities[referenceIndex]?.author || "";
+  const authorOrder = [...rows].sort((left, right) => authorCompare(left.author, right.author));
+  const authorColors = Object.fromEntries(authorOrder.map((row, index) => [row.author, isAI(row.author) ? IA_COLOR : COLORS[index % COLORS.length]]));
+  const corpusLabel = data.corpora?.find(corpus => corpus.id === storageCorpus)?.label || storageCorpus;
+  document.getElementById("typicity-title").textContent = `Typicité stylistique — ${corpusLabel}`;
+  const box = canvas.closest(".typicity-box");
+  if (box) box.style.height = `${Math.max(320, rows.length * 34 + 120)}px`;
+  const valueLabels = { id: "typicityValueLabels", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0), context2d = instance.ctx; context2d.save(); context2d.fillStyle = "#514a44"; context2d.font = "12px system-ui"; context2d.textBaseline = "middle"; meta.data.forEach((bar, index) => context2d.fillText(rows[index].score.toFixed(2), bar.x + 7, bar.y)); context2d.restore(); } };
+  typicityChart = new Chart(canvas, { type: "bar", plugins: [valueLabels], data: { labels: rows.map(row => row.author), datasets: [{ data: rows.map(row => row.score), backgroundColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : `${authorColors[row.author]}b8`), borderColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : authorColors[row.author]), borderWidth: rows.map(row => row.author === referenceAuthor ? 2 : 1) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 55 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => Number(item.raw).toFixed(2) } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: rows[context.index]?.author === referenceAuthor ? "700" : "400" }), color: context => rows[context.index]?.author === referenceAuthor ? "#1565c0" : "#514a44" } } } } });
+  typicityChart.$csvRows = [["Auteur", "Typicité"], ...rows.map(row => [row.author, row.score.toFixed(2)])];
+}
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
   evolutionCharts = [];
@@ -707,6 +750,9 @@ function chartExportTitle(canvas, name) {
   titleClone.querySelectorAll("button, select").forEach(control => control.remove());
   return titleClone.textContent.replace(/\s+/g, " ").trim() || name;
 }
+function chartExportSubtitle(canvas) {
+  return canvas?.closest(".chart-frame")?.querySelector(":scope > p")?.textContent?.replace(/\s+/g, " ").trim() || "";
+}
 function radarLegendEntries() {
   if (chart?.data?.datasets?.length) return chart.data.datasets.map(dataset => ({
     label: String(dataset.label || "").trim(),
@@ -778,9 +824,13 @@ function downloadCanvas(canvas, name, format = "png") {
       const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
     }
     const title = chartExportTitle(canvas, name);
+    const subtitle = chartExportSubtitle(canvas);
     const safeTitle = title.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
-    const exportHeight = canvas.height + 64;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${exportHeight}" viewBox="0 0 ${canvas.width} ${exportHeight}"><rect width="100%" height="100%" fill="white"/><text x="${canvas.width / 2}" y="38" text-anchor="middle" font-family="system-ui" font-size="28" font-weight="600">${safeTitle}</text><image href="${png}" x="0" y="64" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+    const safeSubtitle = subtitle.replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[char] || char));
+    const top = subtitle ? 92 : 64;
+    const exportHeight = canvas.height + top;
+    const subtitleMarkup = subtitle ? `<text x="${canvas.width / 2}" y="62" text-anchor="middle" font-family="system-ui" font-size="16" fill="#6f6962">${safeSubtitle}</text>` : "";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${exportHeight}" viewBox="0 0 ${canvas.width} ${exportHeight}"><rect width="100%" height="100%" fill="white"/><text x="${canvas.width / 2}" y="34" text-anchor="middle" font-family="system-ui" font-size="28" font-weight="600">${safeTitle}</text>${subtitleMarkup}<image href="${png}" x="0" y="${top}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
     const href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
     const a = document.createElement("a"); a.download = `${name}.svg`; a.href = href; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000); return;
   }
@@ -794,6 +844,17 @@ function downloadCanvas(canvas, name, format = "png") {
     context.drawImage(canvas, 0, 0);
     context.font = "13px system-ui"; context.textBaseline = "middle";
     layout.rows.forEach((line, rowIndex) => { let x = (canvas.width - line.width) / 2; const y = canvas.height + 18 + rowIndex * 25; line.items.forEach(item => { context.fillStyle = item.color; context.fillRect(x, y, 22, 4); context.fillStyle = "#222"; context.fillText(item.label, x + 29, y + 2); x += item.width + layout.gap; }); });
+    const link = document.createElement("a"); link.download = `${name}.png`; link.href = composed.toDataURL("image/png"); document.body.appendChild(link); link.click(); link.remove(); return;
+  }
+  const subtitle = chartExportSubtitle(canvas);
+  if (subtitle) {
+    const title = chartExportTitle(canvas, name), composed = document.createElement("canvas");
+    const top = 92;
+    composed.width = canvas.width; composed.height = canvas.height + top;
+    const context = composed.getContext("2d"); context.fillStyle = "#fff"; context.fillRect(0, 0, composed.width, composed.height);
+    context.fillStyle = "#282522"; context.font = "600 28px system-ui"; context.textAlign = "center"; context.fillText(title, composed.width / 2, 34);
+    context.fillStyle = "#6f6962"; context.font = "16px system-ui"; context.fillText(subtitle, composed.width / 2, 62);
+    context.drawImage(canvas, 0, top);
     const link = document.createElement("a"); link.download = `${name}.png`; link.href = composed.toDataURL("image/png"); document.body.appendChild(link); link.click(); link.remove(); return;
   }
   const a = document.createElement("a"); a.download = `${name}.png`; a.href = png; document.body.appendChild(a); a.click(); a.remove();
@@ -833,13 +894,7 @@ function jacobiEigenDecomposition(source) {
   })).sort((left, right) => right.value - left.value);
 }
 function computePca(books) {
-  const candidates = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))].filter(key => !COMPOSITE_FIELDS.has(key) && !TECHNICAL_KEYS.has(key));
-  const fields = candidates.filter(key => {
-    const values = books.map(book => value(book, key)).filter(Number.isFinite);
-    return values.length >= 2 && (dispersion(values, key) ?? 0) >= DISPERSION_SIGNIFICANCE_POINTS;
-  });
-  const missingValues = fields.flatMap(key => books.filter(book => !Number.isFinite(value(book, key))).map(book => `${key} — ${book.title}`));
-  if (missingValues.length) throw new Error(`PCA impossible, valeurs absentes : ${missingValues.join(" ; ")}`);
+  const fields = significantAtomicFields(books);
   const columns = fields.map(key => books.map(book => value(book, key)));
   const standardizedColumns = [], retainedFields = [];
   columns.forEach((column, index) => {
@@ -1270,7 +1325,7 @@ function controls() {
     if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
-  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><section class="typicity-box chart-frame"><div class="chart-heading"><h2 id="typicity-title">Typicité stylistique</h2><select class="chart-download" data-canvas="typicity-chart" aria-label="Télécharger la typicité stylistique"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><p>Plus la barre est courte, plus le texte est proche du profil moyen du corpus.</p><canvas id="typicity-chart"></canvas></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1278,6 +1333,9 @@ function controls() {
   const mdsBox = document.querySelector(".mds-box");
   if (bonusLinks && distanceBox) bonusLinks.before(distanceBox);
   if (bonusLinks && mdsBox) bonusLinks.before(mdsBox);
+  const typicityBox = document.querySelector(".typicity-box");
+  const neighborhoodBox = document.querySelector(".neighborhood-box");
+  if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
   document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Singularité"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
@@ -1293,7 +1351,7 @@ function controls() {
   if (neighborhoodCount) neighborhoodCount.innerHTML = [5, 10, 15, 20, 25, 30, 35, 40, 45].map(value => `<option value="${value}"${value === 5 ? " selected" : ""}>${value}</option>`).join("") + '<option value="all">Tous</option>';
   const savedNeighborhood = JSON.parse(storageGet("unshiter-neighborhood") || "null");
   if (savedNeighborhood?.count && neighborhoodCount.querySelector(`option[value="${savedNeighborhood.count}"]`)) neighborhoodCount.value = savedNeighborhood.count;
-  document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
+  document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); drawTypicity(); });
   document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   const savedBookIds = JSON.parse(storageGet("unshiter-books") || JSON.stringify(savedNeighborhood?.book_ids || [])).map(Number);
@@ -1427,7 +1485,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923111810815227000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923121557204960000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
@@ -1472,15 +1530,6 @@ fetch("data.json?v=20260923111810815227000").then(r => r.json()).then(json => {
   for (const [key] of ALL_METRICS) {
     corpusValues.set(key, data.books.map(book => value(book, key)).filter(Number.isFinite));
   }
-  // Les mesures quasi constantes ne doivent pas être amplifiées par leur
-  // centrage-réduction. Le même seuil que dans les tableaux définit l'espace
-  // utilisé par Burrows, la singularité, la MDS et le voisinage.
-  const significantBurrowsFields = BURROWS_FIELDS.filter(field => {
-    const values = data.books.map(book => value(book, field)).filter(Number.isFinite);
-    return (dispersion(values, field) ?? 0) >= DISPERSION_SIGNIFICANCE_POINTS;
-  });
-  BURROWS_FIELDS.splice(0, BURROWS_FIELDS.length, ...significantBurrowsFields);
-  console.info(`[voisinage] ${BURROWS_FIELDS.length} mesures conservées avec une dispersion ≥ ${DISPERSION_SIGNIFICANCE_POINTS} %`);
   for (const key of data.raw_metrics || []) {
     if (!DETAILS.some(([field]) => field === key)) DETAILS.push([key, data.metric_labels?.[key] || key, false]);
     TECHNICAL_KEYS.add(key);
@@ -1493,6 +1542,8 @@ fetch("data.json?v=20260923111810815227000").then(r => r.json()).then(json => {
   for (const [key] of ALL_METRICS) {
     corpusValues.set(key, data.books.map(book => value(book, key)).filter(Number.isFinite));
   }
+  BURROWS_FIELDS.splice(0, BURROWS_FIELDS.length, ...significantAtomicFields(data.books));
+  console.info(`[voisinage] ${BURROWS_FIELDS.length} mesures atomiques conservées avec une dispersion ≥ ${DISPERSION_SIGNIFICANCE_POINTS} %`);
   computePca(data.books);
   const logicalConnectorValues = data.books.flatMap(book => (book.analyses || []).map(analysis => ({
     value: analysis.stats?.logical_connector_ratio,

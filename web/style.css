@@ -54,6 +54,9 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .app-help-link button { border: 0; background: transparent; color: #6f6962; text-decoration: underline; cursor: pointer; font: inherit; }
 .surface-box, .distance-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; height: auto; box-sizing: border-box; overflow: hidden; }
 .surface-box canvas, .distance-box canvas { display: block; width: 100% !important; max-width: 100%; }
+.typicity-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; min-height: 20rem; box-sizing: border-box; overflow: hidden; }
+.typicity-box > p { margin: .25rem 0 .8rem; color: #6f6962; font-size: .9rem; }
+.typicity-box canvas { display: block; width: 100% !important; max-width: 100%; height: calc(100% - 3.5rem) !important; }
 .mds-box, .neighborhood-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; height: 38.75rem; box-sizing: border-box; overflow: hidden; }
 .mds-box canvas, .neighborhood-box canvas { display: block; width: 100% !important; max-width: 100%; height: calc(100% - 2rem) !important; }
 .mds-controls { display: flex; gap: .35rem; position: static; flex: 0 0 auto; }
