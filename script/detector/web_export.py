@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from .config import (ANALYSIS_WINDOW_WORDS, BIGFIVE_AXES, EPUB_DATABASE, METRICS, RAW_METRICS,
+from .config import (BIGFIVE_AXES, EPUB_DATABASE, METRICS, RAW_METRICS,
                      SITE_CONFIG_FILE, TEXT_ENCODING, WEB_DATA_FILE,
                      CLASSICISM_WEIGHTS, ORNATENESS_WEIGHTS,
                      NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS,
@@ -92,8 +92,7 @@ def notes_by_id() -> tuple[dict[str, str], dict[str, str], list[str], dict[str, 
         if identifier is not None:
             notes[str(identifier)] = "\n\n".join(blocks).strip()
         blocks = []
-    window_label = f"{ANALYSIS_WINDOW_WORDS:,} mots".replace(",", " ")
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).replace("{windows}", window_label).splitlines():
+    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
         stripped = line.strip()
         match = re.match(r"^#{1,6}\s+(.+?)\s+\(([a-z][a-z0-9_]*)\)(?:\s+#web)?\s*$", stripped)
         if match:
@@ -168,7 +167,7 @@ def export_json() -> int:
             books = []
             for book in db.execute("SELECT id,path,title,author,publisher,publication_date,size,sha256 FROM books ORDER BY title COLLATE NOCASE"):
                 analyses = []
-                for row in db.execute("SELECT window_index,char_start,char_end,char_count FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
+                for row in db.execute("SELECT window_index FROM analyses WHERE book_id=? ORDER BY window_index", (book["id"],)):
                     stats_data = cached_metric_values(db, book["id"], row["window_index"])
                     for composite_field in composite_weights:
                         stats_data.pop(composite_field, None)
@@ -178,8 +177,8 @@ def export_json() -> int:
                         raise ValueError(f"Mesures radar absentes pour {book['title']}: {', '.join(missing)}")
                     stats_data.setdefault("document_char_count", book["size"])
                     analyses.append({
-                        "window": row["window_index"], "start": row["char_start"], "end": row["char_end"],
-                        "chars": row["char_count"], "stats": stats_data,
+                        "window": row["window_index"], "start": 0, "end": book["size"],
+                        "chars": book["size"], "stats": stats_data,
                     })
                 books.append({
                     "id": book["id"], "filename": Path(book["path"]).name, "title": book["title"],

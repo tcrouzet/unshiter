@@ -589,7 +589,7 @@ Nombre de transitions entre deux paragraphes analysables consécutifs pour lesqu
 Nombre de transitions entre paragraphes consécutifs contenant au moins un verbe porteur d’une indication de temps. Les paragraphes sans temps verbal reconnu sont ignorés.
 
 ##### Phrases contenant un marqueur de sommaire (summary_sentence_count)
-Nombre de phrases contenant au moins un mot ou une expression de `assets/dictionnaires/duration-markers.txt`, par exemple « souvent », « chaque jour » ou « pendant des années ». Ce repérage lexical signale une condensation temporelle possible sans prétendre l’interpréter.
+Nombre de phrases contenant au moins un mot ou une expression de `assets/dictionnaires/duration_markers.txt`, par exemple « souvent », « chaque jour » ou « pendant des années ». Ce repérage lexical signale une condensation temporelle possible sans prétendre l’interpréter.
 
 ##### Phrases négatives (negative_sentence_count)
 Nombre de phrases contenant au moins un marqueur de négation, dialogues compris. Une phrase n’est comptée qu’une fois, quel que soit le nombre de marqueurs.

@@ -6,19 +6,17 @@ from datetime import datetime, timezone
 import argparse
 from collections import Counter
 import hashlib
-import math
 import re
 import json
 import unicodedata
 from pathlib import Path
 import sqlite3
 
-from .config import (ANALYSIS_WINDOW_WORDS, CORPUS_DIR, DEFAULT_CORPUS_ID,
+from .config import (CORPUS_DIR, DEFAULT_CORPUS_ID,
                      EPUB_ANALYSIS_VERSION, EPUB_DATABASE, METRICS,
-                     PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING,
-                     DURATION_MARKERS_FILE)
-from .metrics import cached_metric_values, windowed_metric_fields
-from .stats import Metrics, WORD_RE, normalize_markdown_text, punctuation_diversity, punctuation_mark_count, punctuation_variety_score, logical_connector_ratio, temporal_connector_ratio
+                     PERSISTED_METRICS, PUBLICATION_FILE, TEXT_ENCODING)
+from .metrics import cached_metric_values
+from .stats import Metrics, normalize_markdown_text
 
 def metric_cache_is_valid(
     connection: sqlite3.Connection,
@@ -77,51 +75,6 @@ def reset_database() -> None:
         connection.execute("DELETE FROM corpora")
         connection.commit()
         connection.execute("VACUUM")
-
-FULL_DOCUMENT_FIELDS = {
-    "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length",
-    "median_sentence_length", "sentence_length_p10", "sentence_length_p90",
-    "paragraph_length_std_dev", "punctuation_ratio", "punctuation_diversity", "document_char_count",
-    "dialogue_ratio", "emotion_sentence_ratio",
-    "logical_connector_ratio", "temporal_connector_ratio", "scene_summary_ratio", "punctuation_variety_score", "modal_generalization_ratio",
-}
-
-def full_document_fields(text: str, max_sentence_length: int | None = None, modal_generalization_value: float = 0.0) -> dict[str, float]:
-    words = re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", text, flags=re.UNICODE)
-    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
-    paragraphs = [part.strip() for part in re.split(r"\n\s*\n+", text) if part.strip()]
-    word_count = len(words)
-    sentence_lengths = [len(re.findall(r"[\wÀ-ÿ]+", s, flags=re.UNICODE)) for s in sentences]
-    paragraph_lengths = [len(re.findall(r"[\wÀ-ÿ]+", p, flags=re.UNICODE)) for p in paragraphs]
-    markers = {line.strip().casefold() for line in DURATION_MARKERS_FILE.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#")} if DURATION_MARKERS_FILE.exists() else set()
-    mean_words = sum(sentence_lengths) / len(sentence_lengths) if sentence_lengths else 0
-    sorted_lengths = sorted(sentence_lengths)
-    percentile = lambda values, q: values[min(len(values) - 1, int(q * (len(values) - 1)))] if values else 0
-    para_mean = sum(paragraph_lengths) / len(paragraph_lengths) if paragraph_lengths else 0
-    para_std = math.sqrt(sum((n - para_mean) ** 2 for n in paragraph_lengths) / len(paragraph_lengths)) if paragraph_lengths else 0
-    dialogue_words = sum(len(re.findall(r"[\wÀ-ÿ]+(?:['’][\wÀ-ÿ]+)?", paragraph)) for paragraph in paragraphs if paragraph.lstrip().startswith(("—", "–", "«")))
-    maximum_sentence_length = max_sentence_length or max((len(sentence) for sentence in sentences), default=0)
-    scene_scores = [
-        float(any(marker in sentence.casefold() for marker in markers))
-        * (1 - len(sentence) / maximum_sentence_length)
-        if maximum_sentence_length else 0.0
-        for sentence in sentences
-    ]
-    return {"document_char_count": len(text), "word_count": word_count, "sentence_count": len(sentences), "paragraph_count": len(paragraphs),
-            "avg_word_length": sum(map(len, words)) / word_count if word_count else 0,
-            "avg_sentence_length": mean_words,
-            "median_sentence_length": percentile(sorted_lengths, .5), "sentence_length_p10": percentile(sorted_lengths, .1),
-            "sentence_length_p90": percentile(sorted_lengths, .9), "paragraph_length_std_dev": para_std,
-            "punctuation_mark_count": punctuation_mark_count(text),
-            "punctuation_ratio": punctuation_mark_count(text) / word_count if word_count else 0,
-            "punctuation_diversity": punctuation_diversity(text),
-            "dialogue_ratio": dialogue_words / word_count if word_count else 0,
-            "logical_connector_ratio": logical_connector_ratio(text, len(sentences)),
-            "temporal_connector_ratio": temporal_connector_ratio(text, len(sentences)),
-            "scene_summary_ratio": sum(scene_scores) / len(scene_scores) if scene_scores else 0.0,
-            "punctuation_variety_score": punctuation_variety_score(text, len(sentences)),
-            "modal_generalization_ratio": modal_generalization_value}
-
 
 SENTENCE_END = re.compile(r"[.!?…]+[\"»”’'\)\]]*(?=\s|$)")
 COPYRIGHT_YEAR = re.compile(r"(?:©|copyright|droits réservés|tous droits)[^\n]{0,180}?\b((?:19|20)\d{2})\b", re.I)
@@ -251,24 +204,6 @@ def canonicalize_database_authors(connection: sqlite3.Connection) -> None:
     for source, target in mapping.items():
         if source != target:
             connection.execute("UPDATE books SET author=? WHERE author=?", (target, source))
-
-
-def word_windows(text: str, size: int = ANALYSIS_WINDOW_WORDS) -> list[tuple[int, int, str]]:
-    """Découpe le texte en fenêtres contiguës de *size* mots."""
-    if not text:
-        return []
-    matches = list(WORD_RE.finditer(text))
-    if not matches:
-        return []
-    windows = []
-    for first in range(0, len(matches), size):
-        start = 0 if first == 0 else matches[first].start()
-        following = first + size
-        end = matches[following].start() if following < len(matches) else len(text)
-        fragment = text[start:end].strip()
-        if fragment:
-            windows.append((start, end, fragment))
-    return windows
 
 
 def init_database(connection: sqlite3.Connection) -> None:
@@ -430,46 +365,43 @@ def analyse_book(connection: sqlite3.Connection, path: Path, author: str | None 
         if full_recompute:
             connection.execute("DELETE FROM analyses WHERE book_id = ?", (book_id,))
             connection.execute("DELETE FROM metric_cache WHERE book_id = ?", (book_id,))
-        windows = word_windows(body)[:1]
-        for index, (start, end, fragment) in enumerate(windows):
+    # Une analyse correspond au document entier. Les blocs successifs de
+    # 1 000 mots sont un détail interne de quelques mesures locales et ne
+    # constituent pas des analyses distinctes dans SQLite.
+    connection.execute(
+        "INSERT INTO analyses(book_id,window_index,char_start,char_end,char_count) VALUES(?,?,?,?,?) "
+        "ON CONFLICT(book_id,window_index) DO UPDATE SET "
+        "char_start=excluded.char_start,char_end=excluded.char_end,char_count=excluded.char_count",
+        (book_id, 0, 0, len(body), len(body)),
+    )
+    if changed:
+        # Les composites peuvent réutiliser leurs composantes déjà
+        # persistées sans relancer spaCy ni les calculs structurels.
+        document_metrics = Metrics(body, progress=progress, shared_metrics=previous_stats)
+        requested = set(PERSISTED_METRICS) if full_recompute else missing_metric_ids
+        total = len(requested)
+        step = 0
+        # METRICS est l'unique plan de génération. En mode partiel, les
+        # méthodes associées aux valeurs présentes ne sont jamais appelées.
+        for field in METRICS:
+            if field not in requested:
+                continue
+            step += 1
+            value = getattr(document_metrics, field)()
+            if value is None and field in {"negation_completeness_ratio", "periphrastic_future_ratio"}:
+                value = 0
+            if value is None:
+                raise RuntimeError(f"Analyse incomplète pour {path.name}: {field}")
+            # Écriture immédiate : une mesure validée est persistée avant
+            # que la suivante soit demandée.
             connection.execute(
-                "INSERT INTO analyses(book_id,window_index,char_start,char_end,char_count) VALUES(?,?,?,?,?) "
-                "ON CONFLICT(book_id,window_index) DO UPDATE SET "
-                "char_start=excluded.char_start,char_end=excluded.char_end,char_count=excluded.char_count",
-                (book_id, index, start, end, len(fragment)),
+                "INSERT OR REPLACE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
+                (book_id, 0, field, json.dumps(value, ensure_ascii=False), digest,
+                 "", datetime.now(timezone.utc).isoformat()),
             )
-            windowed = windowed_metric_fields()
-            # Les composites peuvent réutiliser leurs composantes déjà
-            # persistées sans relancer spaCy ni les calculs structurels.
-            window_metrics = Metrics(fragment, progress=progress, shared_metrics=previous_stats)
-            document_metrics = Metrics(body, progress=progress, shared_metrics=previous_stats)
-            requested = set(PERSISTED_METRICS) if full_recompute else missing_metric_ids
-            total = len(requested)
-            step = 0
-            # METRICS est l'unique plan de génération. En mode partiel, les
-            # méthodes associées aux valeurs présentes ne sont jamais appelées.
-            for field in METRICS:
-                if field not in requested:
-                    continue
-                step += 1
-                source = window_metrics if field in windowed else document_metrics
-                value = getattr(source, field)()
-                if value is None and field in {"negation_completeness_ratio", "periphrastic_future_ratio"}:
-                    value = 0
-                if value is None:
-                    raise RuntimeError(f"Analyse incomplète pour {path.name}: {field}")
-                # Écriture immédiate : une mesure validée est persistée avant
-                # que la suivante soit demandée.
-                connection.execute(
-                    "INSERT OR REPLACE INTO metric_cache(book_id,window_index,metric_name,value_json,content_sha256,function_hash,updated_at) VALUES(?,?,?,?,?,?,?)",
-                    (book_id, index, field, json.dumps(value, ensure_ascii=False), digest,
-                     "", datetime.now(timezone.utc).isoformat()),
-                )
-                if progress:
-                    progress(step, total, field)
-    else:
-        windows = connection.execute("SELECT id FROM analyses WHERE book_id = ?", (book_id,)).fetchall()
-    return changed, len(windows), book_id
+            if progress:
+                progress(step, total, field)
+    return changed, 1, book_id
 
 
 def build_database(paths: list[Path] | None = None, corpus_id: str = DEFAULT_CORPUS_ID, complete_existing: bool = False) -> tuple[int, int]:

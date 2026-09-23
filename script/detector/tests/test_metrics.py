@@ -3,11 +3,9 @@ import sqlite3
 import unittest
 from pathlib import Path
 
-from detector.config import ANALYSIS_WINDOW_WORDS, NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
-from detector.epub_database import word_windows
+from detector.config import NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
 from detector.epub_database import metric_cache_is_valid, reset_champ
-from detector.metrics import windowed_metric_fields
-from detector.stats import Metrics, normalize_markdown_text, tokenize
+from detector.stats import Metrics, normalize_markdown_text
 from burstiness.render_html import build_html as build_burstiness_html
 
 
@@ -32,11 +30,6 @@ class MetricsTests(unittest.TestCase):
             "emotionality_score", "discursivite_score",
         }.issubset(NON_PERSISTED_METRICS))
 
-    def test_analysis_windows_contain_one_thousand_words(self):
-        self.assertEqual(ANALYSIS_WINDOW_WORDS, 1_000)
-        text = " ".join(f"mot{index}" for index in range(2_100))
-        self.assertEqual([len(tokenize(fragment)) for _, _, fragment in word_windows(text)], [1_000, 1_000, 100])
-
     def test_lexical_window_ratios_use_the_whole_analysis_window(self):
         metrics = Metrics("chat chat chien")
         self.assertEqual(metrics.moving_type_token_ratio(), 2 / 3)
@@ -47,7 +40,6 @@ class MetricsTests(unittest.TestCase):
         second = [f"mot{index}" for index in range(1_000)]
         metrics = Metrics(" ".join(first + second))
         self.assertAlmostEqual(metrics.moving_type_token_ratio(), (1 / 1_000 + 1) / 2)
-        self.assertEqual(windowed_metric_fields(), set())
 
     def test_sentence_start_diversity_uses_initial_structural_units(self):
         metrics = Metrics("")

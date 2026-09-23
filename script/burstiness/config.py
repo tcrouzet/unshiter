@@ -5,17 +5,8 @@ Modifie ces valeurs pour changer le comportement par défaut du script
 (elles peuvent aussi être surchargées en ligne de commande, voir cli.py).
 """
 
-# Méthode utilisée pour découper un texte en phrases :
-#   "spacy" -> segmentation via spaCy (voir SPACY_FRENCH_MODEL), plus
-#              robuste sur les cas piégeux (guillemets, dialogue...),
-#              mais nécessite spaCy installé + le modèle téléchargé.
-#   "regex" -> regex maison, zéro dépendance, un peu moins fine sur
-#              certains cas particuliers.
-SENTENCE_SPLIT_MODE = "regex"
-
-# Modèle spaCy français utilisé quand SENTENCE_SPLIT_MODE = "spacy" (le
-# même modèle que script/detector, déjà présent dans requirements.txt du
-# dépôt — pip install spacy + ce modèle, aucune dépendance supplémentaire).
+# Modèle spaCy français disponible pour les appels explicites au mode
+# ``spacy``. Le pipeline de burstiness emploie directement le mode regex.
 SPACY_FRENCH_MODEL = "fr_core_news_lg"
 
 # --- Fichiers ------------------------------------------------------------

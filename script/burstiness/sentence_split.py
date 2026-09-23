@@ -7,20 +7,15 @@ réécrire un parseur Markdown complet, juste de repérer les zones de
 texte "normal" où la notion de "phrase" a un sens, et de laisser de
 côté ce qui n'en a pas (blocs de code, séparateurs, lignes vides).
 
-Le découpage d'un bloc en PHRASES, lui, peut se faire de deux façons au
-choix (voir config.SENTENCE_SPLIT_MODE) :
+Le découpage d'un bloc en PHRASES utilise par défaut le regex maison.
+Un appel explicite peut encore demander l'une des deux implémentations :
   - "spacy" : segmentation via spaCy (modèle français, nlp_loader.py),
     plus robuste sur les cas piégeux (guillemets, dialogue...).
   - "regex" : un regex maison, zéro dépendance.
-Ce choix est entièrement interne à ce module : le reste du pipeline
-(burst_detect.py, render_html.py...) appelle juste split_sentences_batch()
-sans jamais savoir laquelle des deux méthodes est utilisée.
 """
 
 import re
 from dataclasses import dataclass, field
-
-from . import config
 
 _HEADING_RE = re.compile(r'^\s{0,3}#{1,6}\s')
 _LIST_ITEM_RE = re.compile(r'^\s*([-*+]|\d+[.)])\s+')
@@ -98,18 +93,15 @@ def _split_sentences_batch_spacy(texts):
     return results
 
 
-# --- Dispatch, piloté par config.SENTENCE_SPLIT_MODE --------------------
+# --- Dispatch -----------------------------------------------------------
 
 
-def split_sentences_batch(texts, mode: str = None):
+def split_sentences_batch(texts, mode: str = "regex"):
     """Découpe PLUSIEURS textes en phrases en un seul passage (plus rapide
     qu'appeler `split_sentences()` texte par texte sur un document entier).
 
-    Retourne une liste de listes (une par texte d'entrée, même ordre). La
-    méthode utilisée (spaCy ou regex) vient de config.SENTENCE_SPLIT_MODE,
-    sauf si `mode` est explicitement fourni.
+    Retourne une liste de listes (une par texte d'entrée, même ordre).
     """
-    mode = mode or config.SENTENCE_SPLIT_MODE
     if mode == "regex":
         return _split_sentences_batch_regex(texts)
     if mode == "spacy":
@@ -117,7 +109,7 @@ def split_sentences_batch(texts, mode: str = None):
     raise ValueError(f"Mode de découpage de phrases inconnu : {mode!r} (attendu: 'spacy' ou 'regex')")
 
 
-def split_sentences(text: str, mode: str = None):
+def split_sentences(text: str, mode: str = "regex"):
     """Découpe un seul texte en phrases. Pratique pour un usage isolé
     (tests, script ponctuel) ; pour un document entier, préférer
     `split_sentences_batch` pour la performance."""

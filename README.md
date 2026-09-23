@@ -178,9 +178,13 @@ Projection en deux dimensions des distances de Burrows calculées sur les seules
 
 <a id="note_neighborhood"></a>
 ##### Voisinage stylistique (note_neighborhood)
+
+Cette mesure s'inspire du principe de la **Delta de Burrows**, la méthode de référence en stylométrie pour comparer des textes et estimer leur proximité d'auteur. Le principe — standardiser chaque mesure en z-score sur l'ensemble du corpus, puis calculer la distance entre deux œuvres comme la moyenne des écarts absolus entre leurs vecteurs de z-scores — a été introduit par John Burrows en 2002 et affiné depuis par plusieurs travaux en humanités numériques.
+
 Pour l’œuvre choisie, les œuvres les plus proches sont classées par percentile décroissant. L’axe affiche le percentile de proximité dans toutes les distances du corpus : 90 % signifie que l’œuvre est plus proche que 90 % des paires comparées. Le titre du tableau donne directement le nombre de voisins par auteur. Les couleurs identifient les auteurs ; l’auteur de référence est affiché en couleur pleine afin que le nombre de voisins du même auteur soit immédiatement lisible. Une œuvre peut être épinglée pour apparaître en ligne supplémentaire, avec son rang réel dans le classement. Ces repères sont descriptifs et ne constituent pas une preuve d’attribution.
 
 Mathématiquement, chaque œuvre est représentée par le vecteur des mesures dont la [dispersion](#note_dispersion) atteint au moins 5 % sur le corpus complet, jamais sur la seule sélection affichée. Pour chaque mesure retenue `j`, on calcule sur toutes les œuvres du corpus la moyenne `μⱼ` et l’écart-type `σⱼ`, puis le score centré-réduit `zⱼ = (xⱼ − μⱼ) / σⱼ`. La distance entre deux œuvres `A` et `B` est la moyenne des écarts absolus sur les `p` mesures : `d(A,B) = (1/p) × Σ |zAⱼ − zBⱼ|`. Les voisins sont ensuite triés par distance croissante. Le percentile affiché est la proportion des distances du corpus qui sont supérieures à cette distance, multipliée par 100.
+
 
 ### Mesures
 
@@ -202,9 +206,50 @@ Entropie de Shannon de la répartition entre les dix comptages élémentaires :
 ##### Densité de ponctuation savante (punctuation_variety_score)
 Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-points](#colon_count) et du [nombre de tirets](#dash_count), divisée par le [nombre de phrases](#sentence_count).
 
+<a id="comma_ratio"></a>
+##### Virgules par phrase (comma_ratio)
+[Nombre de virgules](#comma_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="colon_ratio"></a>
+##### Deux-points par phrase (colon_ratio)
+[Nombre de deux-points](#colon_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="semicolons_ratio"></a>
+##### Points-virgules par phrase (semicolons_ratio)
+[Nombre de points-virgules](#semicolons_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="exclamation_ratio"></a>
+##### Points d’exclamation par phrase (exclamation_ratio)
+[Nombre de points d’exclamation](#exclamation_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="question_mark_ratio"></a>
+##### Points d’interrogation par phrase (question_mark_ratio)
+[Nombre de points d’interrogation](#question_mark_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="ellipsis_ratio"></a>
+##### Points de suspension par phrase (ellipsis_ratio)
+[Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="dash_ratio"></a>
+##### Tirets par phrase (dash_ratio)
+[Nombre de tirets](#dash_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="parenthesis_ratio"></a>
+##### Parenthèses par phrase (parenthesis_ratio)
+[Nombre de parenthèses](#parenthesis_count) divisé par le [nombre de phrases](#sentence_count).
+
+<a id="quote_mark_ratio"></a>
+##### Guillemets par phrase (quote_mark_ratio)
+[Nombre de guillemets](#quote_mark_count) divisé par le [nombre de phrases](#sentence_count).
+
 
 
 #### Syntaxe et grammaire
+
+
+<a id="burstiness_ratio"></a>
+##### Burstiness (burstiness_ratio)
+Un moins le [Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count), soit `1 − (burstiness_count / sentence_count)`. Plus ce score est bas, plus le rythme est monotone.
 
 <a id="structural_diversity"></a>
 ##### **Diversité syntaxique** / Régularité syntaxique (structural_diversity)
@@ -507,18 +552,6 @@ Indice français calculé avec le [nombre de mots](#word_count), le [nombre de p
 <a id="negation_ratio"></a>
 ##### **Négativité** / Positivité (negation_ratio)
 [Nombre de phrases négatives](#negative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
-
-<a id="ellipsis_ratio"></a>
-##### Densité de points de suspension (ellipsis_ratio)
-[Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
-
-<a id="question_mark_ratio"></a>
-##### Points d'interrogation (question_mark_ratio)
-[Nombre total de points d’interrogation](#question_mark_count) rapporté [au nombre de phrases](#sentence_count).
-
-<a id="exclamation_ratio"></a>
-##### Exclamations (exclamation_ratio)
-[Nombre de points d’exclamation](#exclamation_point_count) rapporté [au nombre de phrases](#sentence_count). Cette mesure repère la ponctuation expressive, sans interpréter le contenu.
 
 <a id="exclamative_construction_ratio"></a>
 ##### Constructions exclamatives (exclamative_construction_ratio)
@@ -830,7 +863,7 @@ Nombre de transitions entre paragraphes consécutifs contenant au moins un verbe
 
 <a id="summary_sentence_count"></a>
 ##### Phrases contenant un marqueur de sommaire (summary_sentence_count)
-Nombre de phrases contenant au moins un mot ou une expression de `assets/dictionnaires/duration-markers.txt`, par exemple « souvent », « chaque jour » ou « pendant des années ». Ce repérage lexical signale une condensation temporelle possible sans prétendre l’interpréter.
+Nombre de phrases contenant au moins un mot ou une expression de `assets/dictionnaires/duration_markers.txt`, par exemple « souvent », « chaque jour » ou « pendant des années ». Ce repérage lexical signale une condensation temporelle possible sans prétendre l’interpréter.
 
 <a id="negative_sentence_count"></a>
 ##### Phrases négatives (negative_sentence_count)
@@ -870,7 +903,9 @@ Une phrase ne compte qu’une fois si elle contient plusieurs incises. Un tiret 
 ##### Phrases avec accumulation coordonnée (coordination_accumulation_count)
 Nombre de phrases comportant plus de deux coordinations reconnues par spaCy (`dep_ == "cc"`). Les virgules seules ne sont pas comptées.
 
-
+<a id="burstiness_count"></a>
+##### Burstiness brut (burstiness_count)
+Nombre de phrases prises dans des séries de phrases de longueur proche. Plus ce nombre augmente, plus le style est monotomne.
 
 <a id="punctuation_mark_count"></a>
 ##### Signes de ponctuation (punctuation_mark_count)

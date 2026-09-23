@@ -51,7 +51,7 @@ def build_html(
     #    liste globale des phrases.
     analyzable = {"paragraph", "heading", "list_item", "blockquote"}
     block_texts = [b.text if (b.kind in analyzable and b.text.strip()) else "" for b in blocks]
-    block_sentences: List[List[str]] = split_sentences_batch(block_texts)
+    block_sentences: List[List[str]] = split_sentences_batch(block_texts, mode="regex")
 
     block_ranges: List[tuple] = []
     all_sentences: List[str] = []

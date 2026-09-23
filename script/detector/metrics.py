@@ -1,10 +1,9 @@
 """Utilitaires communs liés au registre des mesures."""
 
-import re
 import json
 import math
 
-from .config import METRICS, STATS_NOTES_FILE, TEXT_ENCODING
+from .config import METRICS
 
 
 def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dict:
@@ -205,18 +204,3 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
         emotional_total = sum(emotion_counts)
         values["emotion_intensification_ratio"] = sum(intensified_counts) / emotional_total if emotional_total else 0
     return values
-
-
-def windowed_metric_fields() -> set[str]:
-    """Champs dont la note demande explicitement le calcul par fenêtre."""
-    if not STATS_NOTES_FILE.exists():
-        return set()
-    fields: set[str] = set()
-    current_field = None
-    for line in STATS_NOTES_FILE.read_text(encoding=TEXT_ENCODING).splitlines():
-        heading = re.match(r"^#{1,6} .* \(([a-z][a-z0-9_]*)\)\s*$", line.strip())
-        if heading:
-            current_field = heading.group(1)
-        elif current_field and "{windows}" in line:
-            fields.add(current_field)
-    return fields.intersection(METRICS)

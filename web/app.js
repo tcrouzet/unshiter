@@ -48,6 +48,19 @@ const TECHNICAL_KEYS = new Set(["document_char_count", "word_count", "sentence_c
 // La distance stylistique utilise toutes les mesures individuelles, mais
 // exclut les cinq scores BigFive (composites) et les données objectives.
 const COMPOSITE_FIELDS = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
+// Mesures dont la valeur dérive de la longueur du texte et non du style.
+// Loi de Heaps : le vocabulaire croît en N^0,6, donc tout rapport au nombre
+// de mots décroît en N^-0,4. Le taux de trigrammes répétés croît
+// symétriquement. Ces champs restent affichés dans les tableaux, ils sortent
+// seulement du Δ de Burrows, de la carte MDS et de l'ACP.
+// Leurs équivalents calculés par blocs de 1 000 mots sont conservés.
+const LENGTH_SENSITIVE_FIELDS = new Set([
+  "hapax_ratio",
+  "trigram_repetition",
+  "global_repetition_ratio",
+  "global_phonetic_repetition_ratio",
+  "absolute_repetition_rate",
+]);
 const BURROWS_FIELDS = [];
 // L’écart-type brut reste disponible dans les données, mais l’axe affiché
 // est bien la diversité locale (burstiness).
@@ -142,17 +155,51 @@ const value = (book, key) => {
   const read = field => stats[publicMetricId(field)] ?? stats[field];
   return read(key) == null ? null : Number(read(key));
 };
+// Le Δ de Burrows moyenne des écarts de z-scores : chaque champ vaut une voix.
+// Or plusieurs familles mesurent la même chose sous plusieurs angles, dont
+// certaines avec une dépendance linéaire exacte : common + proper ≈ noun,
+// et la somme des huit catégories ≈ emotion_word_ratio.
+// Une famille de k champs pèse donc k voix au lieu d'une. On la ramène à une.
+const FIELD_FAMILIES = [
+  ["avg_sentence_length", "median_sentence_length", "sentence_length_p10", "sentence_length_p90"],
+  ["sentence_length_std_dev", "burstiness", "burstiness_ratio"],
+  ["noun_ratio", "common_noun_ratio", "proper_noun_ratio"],
+  ["joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio",
+   "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio"],
+  ["emotion_word_ratio", "emotion_sentence_ratio", "emotion_intensification_ratio"],
+  ["local_repetition_ratio", "local_phonetic_repetition_ratio"],
+];
+const FIELD_WEIGHT = new Map();
+FIELD_FAMILIES.forEach(family => family.forEach(field => FIELD_WEIGHT.set(field, 1 / family.length)));
 function burrowsContext(entities) {
   const corpusVectors = data.books.map(book => BURROWS_FIELDS.map(key => value(book, key)));
   const means = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite); return values.reduce((sum, n) => sum + n, 0) / (values.length || 1); });
   const deviations = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite), mean = means[i]; return Math.sqrt(values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (values.length || 1)); });
   const vectors = entities.map(entity => BURROWS_FIELDS.map((key, i) => { const n = value(entity, key); return Number.isFinite(n) && deviations[i] > 0 ? (n - means[i]) / deviations[i] : null; }));
-  const distance = (left, right) => { const parts = left.map((n, i) => Number.isFinite(n) && Number.isFinite(right[i]) ? Math.abs(n - right[i]) : null).filter(Number.isFinite); return parts.length ? parts.reduce((sum, n) => sum + n, 0) / parts.length : 0; };
+  const weights = BURROWS_FIELDS.map(key => FIELD_WEIGHT.get(key) ?? 1);
+  const distance = (left, right) => {
+    let sum = 0, total = 0;
+    for (let index = 0; index < left.length; index++) {
+      if (!Number.isFinite(left[index]) || !Number.isFinite(right[index])) continue;
+      sum += weights[index] * Math.abs(left[index] - right[index]);
+      total += weights[index];
+    }
+    return total ? sum / total : 0;
+  };
   return { vectors, distance };
+}
+function burrowsDistancesToCenter(context, centerContext = context) {
+  const centroid = BURROWS_FIELDS.map((_, index) => {
+    const column = centerContext.vectors.map(vector => vector[index]).filter(Number.isFinite);
+    return column.length ? column.reduce((sum, number) => sum + number, 0) / column.length : null;
+  });
+  return context.vectors.map(vector => context.distance(vector, centroid));
 }
 function significantAtomicFields(books) {
   const candidates = [...new Set([...SUMMARY, ...DETAILS].map(([key]) => key))]
-    .filter(key => !COMPOSITE_FIELDS.has(key) && !TECHNICAL_KEYS.has(key));
+    .filter(key => !COMPOSITE_FIELDS.has(key)
+      && !TECHNICAL_KEYS.has(key)
+      && !LENGTH_SENSITIVE_FIELDS.has(key));
   return candidates.filter(key => {
     const values = books.map(book => value(book, key));
     if (!values.every(Number.isFinite)) throw new Error(`Mesure atomique incomplète : ${key}`);
@@ -323,18 +370,12 @@ function drawDistances(books) {
   const canvas = document.getElementById("distances");
   if (!canvas || books.length < 2) return;
   const entities = (authorProfile || authorLimits ? authorAverages(books) : books).map((entity, index) => ({ ...entity, __color: isAI(entity) ? IA_COLOR : COLORS[index % COLORS.length] }));
-  const { vectors, distance } = burrowsContext(entities);
-  const nearest = vectors.map((vector, index) => {
-    const distances = vectors.map((other, otherIndex) => {
-      if (index === otherIndex) return null;
-      return distance(vector, other);
-    }).filter(Number.isFinite);
-    return distances.length ? Math.min(...distances) : 0;
-  });
-  const ordered = entities.map((entity, index) => ({ label: entity.title || entity.author || "Œuvre", distance: nearest[index], color: entity.__color, isAI: isAI(entity) })).sort((a, b) => a.distance - b.distance);
+  const context = burrowsContext(entities);
+  const centerDistances = burrowsDistancesToCenter(context, burrowsContext(data.books));
+  const ordered = entities.map((entity, index) => ({ label: entity.title || entity.author || "Œuvre", distance: centerDistances[index], color: entity.__color, isAI: isAI(entity) })).sort((a, b) => a.distance - b.distance);
   const box = canvas.closest(".distance-box");
   if (box) box.style.height = `${Math.max(300, ordered.length * 30 + 90)}px`;
-  distanceChart = new Chart(canvas, { type: "bar", data: { labels: ordered.map(item => item.label), datasets: [{ label: "Δ Burrows", data: ordered.map(item => item.distance), backgroundColor: ordered.map(item => `${item.color}b8`), borderColor: ordered.map(item => item.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => `Δ ${Number(item.raw).toFixed(2)}` } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance moyenne entre z-scores" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: ordered[context.index]?.isAI ? "700" : "400" }) } } } } });
+  distanceChart = new Chart(canvas, { type: "bar", data: { labels: ordered.map(item => item.label), datasets: [{ label: "Δ Burrows au centre", data: ordered.map(item => item.distance), backgroundColor: ordered.map(item => `${item.color}b8`), borderColor: ordered.map(item => item.color), borderWidth: 1 }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => `Δ ${Number(item.raw).toFixed(2)}` } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: ordered[context.index]?.isAI ? "700" : "400" }) } } } } });
 }
 function classicalMDS(entities) {
   const context = burrowsContext(entities), n = entities.length;
@@ -620,10 +661,8 @@ function drawTypicity() {
   if (!canvas) return;
   typicityChart?.destroy();
   const context = burrowsContext(data.books);
-  const works = data.books.map((book, index) => ({
-    book,
-    score: context.vectors[index].reduce((sum, zscore) => sum + Math.abs(zscore), 0) / Math.max(BURROWS_FIELDS.length, 1),
-  }));
+  const centerDistances = burrowsDistancesToCenter(context);
+  const works = data.books.map((book, index) => ({ book, score: centerDistances[index] }));
   const pairDistances = [];
   for (let left = 0; left < context.vectors.length; left++) for (let right = left + 1; right < context.vectors.length; right++) pairDistances.push(context.distance(context.vectors[left], context.vectors[right]));
   const meanTypicity = works.reduce((sum, work) => sum + work.score, 0) / Math.max(works.length, 1);
@@ -1321,7 +1360,7 @@ function controls() {
   document.getElementById("radar-pca")?.classList.toggle("active", radarMode === "pca");
   const distanceTitle = document.querySelector(".distance-box h2");
   if (distanceTitle) {
-    distanceTitle.childNodes[0].textContent = "Singularité ";
+    distanceTitle.childNodes[0].textContent = "Distance au centre ";
     if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
@@ -1336,14 +1375,14 @@ function controls() {
   const typicityBox = document.querySelector(".typicity-box");
   const neighborhoodBox = document.querySelector(".neighborhood-box");
   if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
-  document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Singularité"));
+  document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Distance au centre"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
   if (oldTableDownload?.tagName === "BUTTON") {
     const tableDownload = document.createElement("select"); tableDownload.id = "neighborhood-download"; tableDownload.className = "chart-download table-download"; tableDownload.dataset.table = "neighborhood-table"; tableDownload.setAttribute("aria-label", "Télécharger le tableau"); tableDownload.innerHTML = '<option value="" selected>Télécharger le tableau</option><option value="png">PNG</option><option value="svg">SVG</option>'; oldTableDownload.replaceWith(tableDownload); document.getElementById("neighborhood-table")?.before(tableDownload);
   }
-  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { const show = distanceBox.hidden; distanceBox.hidden = !show; if (show && mdsBox) { mdsBox.hidden = true; document.getElementById("show-mds").textContent = "Carte MDS"; } event.currentTarget.textContent = distanceBox.hidden ? "Singularité" : "Masquer Singularité"; } });
-  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { const show = box.hidden; box.hidden = !show; if (show && distanceBox) { distanceBox.hidden = true; document.getElementById("show-distance").textContent = "Singularité"; } event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
+  document.getElementById("show-distance")?.addEventListener("click", event => { if (distanceBox) { const show = distanceBox.hidden; distanceBox.hidden = !show; if (show && mdsBox) { mdsBox.hidden = true; document.getElementById("show-mds").textContent = "Carte MDS"; } event.currentTarget.textContent = distanceBox.hidden ? "Distance au centre" : "Masquer Distance au centre"; } });
+  document.getElementById("show-mds")?.addEventListener("click", event => { const box = document.querySelector(".mds-box"); if (box) { const show = box.hidden; box.hidden = !show; if (show && distanceBox) { distanceBox.hidden = true; document.getElementById("show-distance").textContent = "Distance au centre"; } event.currentTarget.textContent = box.hidden ? "Carte MDS" : "Masquer Carte MDS"; if (!box.hidden) { mdsChart?.resize(); mdsChart?.update(); } } });
   document.getElementById("mds-zoom-out")?.addEventListener("click", () => mdsZoom(1.25));
   document.getElementById("mds-zoom-in")?.addEventListener("click", () => mdsZoom(.8));
   document.getElementById("mds-reset")?.addEventListener("click", mdsReset);
@@ -1485,7 +1524,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923131221539000000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923140427595789000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
