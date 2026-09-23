@@ -1072,8 +1072,8 @@ function computePca(books) {
 }
 function pcaTable(books) {
   const rows = data?.tables?.pca?.rows || [];
-  const header = `<th>Mesure</th><th>Variance</th>${books.map(book => `<th>${book.title || book.author || ""}</th>`).join("")}`;
-  const body = rows.map(row => `<tr><td>${row.title} <button class="table-note-help metric-help" type="button" data-note-id="${row.id}" data-key="${row.id}" aria-label="Afficher la définition">?</button></td><td>${row.dispersion.toFixed(1)} %</td>${books.map(book => `<td>${Number(value(book, row.id)).toFixed(1)}</td>`).join("")}</tr>`).join("");
+  const header = `<th>Mesure</th>${dispersionTableHeader()}${books.map(book => `<th>${book.title || book.author || ""}</th>`).join("")}`;
+  const body = rows.map(row => `<tr><td>${row.title} <button class="table-note-help metric-help" type="button" data-note-id="${row.id}" data-key="${row.id}" aria-label="Afficher la définition">?</button></td><td class="dispersion-usable">${row.dispersion.toFixed(1)} %</td>${books.map(book => `<td>${Number(value(book, row.id)).toFixed(1)}</td>`).join("")}</tr>`).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
 }
 function drawPcaCharts() {
@@ -1216,9 +1216,12 @@ function dispersion(values, key) {
   return Math.sqrt(percentages.reduce((sum, value) => sum + (value - mean) ** 2, 0) / percentages.length);
 }
 const DISPERSION_SIGNIFICANCE_POINTS = 5;
+function dispersionTableHeader() {
+  return '<th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>';
+}
 function table(books, definitions, withSections = false) {
   const escapeHtml = text => String(text).replace(/[&<>\"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[char]));
-  const header = `<th>Mesure</th><th>σ <button class="table-note-help" type="button" data-note-id="note_dispersion" title="Afficher la note Dispersion">?</button></th>${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}`;
+  const header = `<th>Mesure</th>${dispersionTableHeader()}${books.map(b => `<th class="${isEvolutionHighlighted(b) ? "highlighted-entity" : ""}">${b.title}</th>`).join("")}`;
   let previousSection = null;
   const rows = definitions.map(([key, label]) => {
     const section = withSections ? data?.metric_sections?.[key] : null;
@@ -1631,7 +1634,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923165457990962000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923174321965338000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
