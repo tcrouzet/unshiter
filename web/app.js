@@ -699,49 +699,68 @@ function extremeMetricKeys() {
 }
 function drawExtremeValues() {
   const select = document.getElementById("extreme-entity");
+  const compareSelect = document.getElementById("extreme-compare");
   const orderSelect = document.getElementById("extreme-order");
   const output = document.getElementById("extreme-values");
   if (!select || !output) return;
   const escapeHtml = text => String(text ?? "").replace(/[&<>\"]/g, character => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[character]));
   const saved = JSON.parse(storageGet("unshiter-extreme-selection") || "null");
   const previous = select.value || saved?.entity || "";
+  const previousComparison = compareSelect?.value || saved?.comparison || "";
   if (orderSelect && !orderSelect.dataset.restored) {
     if (["1", "2", "3", "4", "5"].includes(String(saved?.order))) orderSelect.value = String(saved.order);
     orderSelect.dataset.restored = "true";
   }
   const authors = authorAverages(data.books).sort((left, right) => authorCompare(left.author, right.author));
   const works = [...data.books].sort((left, right) => authorCompare(left, right) || String(left.title).localeCompare(String(right.title), "fr"));
-  select.innerHTML = `<optgroup label="Auteurs">${authors.map(author => `<option value="author:${escapeHtml(author.author)}">${escapeHtml(author.author)}</option>`).join("")}</optgroup><optgroup label="Œuvres">${works.map(book => `<option value="work:${book.id}">${escapeHtml(book.title)} — ${escapeHtml(book.author || "Auteur inconnu")}</option>`).join("")}</optgroup>`;
+  const entityOptions = `<optgroup label="Auteurs">${authors.map(author => `<option value="author:${escapeHtml(author.author)}">${escapeHtml(author.author)}</option>`).join("")}</optgroup><optgroup label="Œuvres">${works.map(book => `<option value="work:${book.id}">${escapeHtml(book.title)} — ${escapeHtml(book.author || "Auteur inconnu")}</option>`).join("")}</optgroup>`;
+  select.innerHTML = entityOptions;
+  if (compareSelect) compareSelect.innerHTML = `<option value="">Aucune comparaison</option>${entityOptions}`;
   if ([...select.options].some(option => option.value === previous)) select.value = previous;
-  const [kind, identifier] = select.value.split(/:(.*)/s);
-  const population = kind === "author" ? authors : data.books;
-  const target = kind === "author" ? authors.find(author => author.author === identifier) : data.books.find(book => String(book.id) === identifier);
+  if (compareSelect && [...compareSelect.options].some(option => option.value === previousComparison)) compareSelect.value = previousComparison;
+  const resolve = reference => {
+    if (!reference) return null;
+    const [kind, identifier] = reference.split(/:(.*)/s);
+    return {
+      population: kind === "author" ? authors : data.books,
+      target: kind === "author" ? authors.find(author => author.author === identifier) : data.books.find(book => String(book.id) === identifier),
+    };
+  };
+  const primary = resolve(select.value), comparison = resolve(compareSelect?.value || "");
   const extremeOrder = Math.max(1, Number(orderSelect?.value) || 2);
-  if (!target || population.length < 2) { output.innerHTML = "<p>Pas assez d’entités pour calculer des rangs.</p>"; return; }
-  const rows = [];
-  for (const key of extremeMetricKeys()) {
-    const targetValue = value(target, key);
-    const values = population.map(entity => value(entity, key)).filter(Number.isFinite);
-    if (!Number.isFinite(targetValue) || values.length < 2) continue;
+  if (!primary?.target || primary.population.length < 2) { output.innerHTML = "<p>Pas assez d’entités pour calculer des rangs.</p>"; return; }
+  const positionFor = (resolved, key) => {
+    if (!resolved?.target || resolved.population.length < 2) return null;
+    const targetValue = value(resolved.target, key);
+    const values = resolved.population.map(entity => value(entity, key)).filter(Number.isFinite);
+    if (!Number.isFinite(targetValue) || values.length < 2) return null;
     const lower = values.filter(number => number < targetValue).length;
     const higher = values.filter(number => number > targetValue).length;
     const lowRank = lower + 1, highRank = higher + 1;
-    if (lowRank > extremeOrder && highRank > extremeOrder) continue;
-    const percentile = values.length > 1 ? lower / (values.length - 1) * 100 : 50;
     const ordinal = rank => `${rank}e`;
-    const position = lowRank <= extremeOrder
+    const useLower = lowRank <= highRank;
+    const position = useLower
       ? (lowRank === 1 ? "Plus bas" : `${ordinal(lowRank)} plus bas`)
       : (highRank === 1 ? "Plus haut" : `${ordinal(highRank)} plus haut`);
-    rows.push({ key, targetValue, percentile, position });
+    return { position, side: useLower ? "low" : "high", rank: useLower ? lowRank : highRank, percentile: lower / (values.length - 1) * 100, extreme: lowRank <= extremeOrder || highRank <= extremeOrder };
+  };
+  const rows = [];
+  for (const key of extremeMetricKeys()) {
+    const first = positionFor(primary, key), second = positionFor(comparison, key);
+    if (!first || (!first.extreme && !second?.extreme)) continue;
+    rows.push({ key, first, second, closePosition: Boolean(second && first.side === second.side && Math.abs(first.rank - second.rank) <= 1) });
   }
-  rows.sort((left, right) => left.percentile - right.percentile || metricLabel(left.key).localeCompare(metricLabel(right.key), "fr"));
+  rows.sort((left, right) => left.first.percentile - right.first.percentile || metricLabel(left.key).localeCompare(metricLabel(right.key), "fr"));
   if (!rows.length) { output.innerHTML = "<p>Aucune valeur ne figure aux deux extrémités du classement.</p>"; return; }
-  output.innerHTML = `<table><thead><tr><th>Mesure</th><th>Classement</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(metricLabel(row.key))} <button class="table-note-help metric-help" type="button" data-note-id="${row.key}" data-key="${row.key}" aria-label="Afficher la définition">?</button></td><td>${row.position}</td></tr>`).join("")}</tbody></table>`;
+  const firstLabel = select.selectedOptions[0]?.textContent || "Classement";
+  const secondLabel = compareSelect?.selectedOptions[0]?.textContent || "";
+  output.innerHTML = `<table><thead><tr><th>Mesure</th><th>${escapeHtml(firstLabel)}</th>${comparison ? `<th>${escapeHtml(secondLabel)}</th>` : ""}</tr></thead><tbody>${rows.map(row => `<tr${row.closePosition ? ' class="close-position"' : ""}><td>${escapeHtml(metricLabel(row.key))} <button class="table-note-help metric-help" type="button" data-note-id="${row.key}" data-key="${row.key}" aria-label="Afficher la définition">?</button></td><td>${row.first.position}</td>${comparison ? `<td>${row.second?.position || "—"}</td>` : ""}</tr>`).join("")}</tbody></table>`;
 }
 function saveExtremeSelection() {
   const entity = document.getElementById("extreme-entity")?.value || "";
+  const comparison = document.getElementById("extreme-compare")?.value || "";
   const order = document.getElementById("extreme-order")?.value || "2";
-  storageSet("unshiter-extreme-selection", JSON.stringify({ entity, order }));
+  storageSet("unshiter-extreme-selection", JSON.stringify({ entity, comparison, order }));
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
@@ -1124,6 +1143,7 @@ function downloadRenderedTable(container, name, format) {
   const escapeXml = text => String(text ?? "").replace(/[&<>\"]/g, character => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[character]));
   const sourceRows = format === "csv" ? [...table.rows].filter(row => !row.classList.contains("metric-section")) : [...table.rows];
   const rows = sourceRows.map(row => [...row.cells].map(cell => cell.textContent.trim()));
+  const rowColors = sourceRows.map(row => row.classList.contains("close-position") ? "#c62828" : "#222222");
   const link = document.createElement("a");
   if (format === "csv") {
     const csv = rows.map(row => row.map(cell => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\n");
@@ -1131,12 +1151,13 @@ function downloadRenderedTable(container, name, format) {
   } else {
     const widths = rows[0].map((_, i) => Math.max(80, ...rows.map(row => (row[i] || "").length * 7 + 20)));
     const selectedLabel = name === "extreme-values" ? document.getElementById("extreme-entity")?.selectedOptions?.[0]?.textContent?.trim() : "";
-    const exportTitle = selectedLabel ? `Valeurs extrêmes — ${selectedLabel}` : "";
+    const comparedLabel = name === "extreme-values" ? document.getElementById("extreme-compare")?.selectedOptions?.[0]?.textContent?.trim() : "";
+    const exportTitle = selectedLabel ? `Valeurs extrêmes — ${selectedLabel}${document.getElementById("extreme-compare")?.value ? ` / ${comparedLabel}` : ""}` : "";
     const titleHeight = exportTitle ? 46 : 0;
     const tableWidth = widths.reduce((left, right) => left + right, 0) + 10;
     const exportWidth = Math.max(tableWidth, exportTitle.length * 9 + 30);
     const height = rows.length * 28 + 20 + titleHeight; let y = 22 + titleHeight;
-    const body = rows.map((row, ri) => { let x = 5; const cells = row.map((cell, i) => { const out = `<rect x="${x}" y="${y - 18}" width="${widths[i]}" height="28" fill="${ri === 0 ? "#eee" : "white"}" stroke="#ddd"/><text x="${x + 5}" y="${y}" font-family="system-ui" font-size="12">${escapeXml(cell)}</text>`; x += widths[i]; return out; }).join(""); y += 28; return cells; }).join("");
+    const body = rows.map((row, ri) => { let x = 5; const cells = row.map((cell, i) => { const out = `<rect x="${x}" y="${y - 18}" width="${widths[i]}" height="28" fill="${ri === 0 ? "#eee" : "white"}" stroke="#ddd"/><text x="${x + 5}" y="${y}" font-family="system-ui" font-size="12" fill="${rowColors[ri]}"${rowColors[ri] === "#c62828" ? ' font-weight="600"' : ""}>${escapeXml(cell)}</text>`; x += widths[i]; return out; }).join(""); y += 28; return cells; }).join("");
     const titleMarkup = exportTitle ? `<text x="${exportWidth / 2}" y="30" text-anchor="middle" font-family="system-ui" font-size="18" font-weight="600">${escapeXml(exportTitle)}</text>` : "";
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${exportWidth}" height="${height}"><rect width="100%" height="100%" fill="white"/>${titleMarkup}${body}</svg>`;
     const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
@@ -1446,6 +1467,8 @@ function controls() {
     extremeHeading.querySelector(".table-download")?.remove();
     extremeHeading.insertAdjacentHTML("beforeend", tableExportMenu("extreme-values"));
   }
+  const extremeEntityLabel = document.getElementById("extreme-entity")?.closest("label");
+  if (extremeEntityLabel && !document.getElementById("extreme-compare")) extremeEntityLabel.insertAdjacentHTML("afterend", '<label class="reference-select">Comparer avec <select id="extreme-compare"><option value="">Aucune comparaison</option></select></label>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1457,6 +1480,7 @@ function controls() {
   const neighborhoodBox = document.querySelector(".neighborhood-box");
   if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
   document.getElementById("extreme-entity")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
+  document.getElementById("extreme-compare")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
   document.getElementById("extreme-order")?.addEventListener("change", () => { saveExtremeSelection(); drawExtremeValues(); });
   document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Distance au centre"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
@@ -1607,7 +1631,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923162515789083000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923165457990962000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

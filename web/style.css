@@ -63,6 +63,7 @@ details { margin: .4rem 0; } summary { cursor: pointer; font-weight: 600; } .boo
 .extreme-values table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .extreme-values th, .extreme-values td { padding: .35rem .5rem; border-bottom: 1px solid #e4dfda; text-align: left; }
 .extreme-values th:not(:first-child), .extreme-values td:not(:first-child) { white-space: nowrap; }
+.extreme-values tr.close-position td { color: #c62828; font-weight: 600; }
 .mds-box, .neighborhood-box { position: relative; width: 100%; max-width: 100%; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: .75rem; height: 38.75rem; box-sizing: border-box; overflow: hidden; }
 .mds-box canvas, .neighborhood-box canvas { display: block; width: 100% !important; max-width: 100%; height: calc(100% - 2rem) !important; }
 .mds-controls { display: flex; gap: .35rem; position: static; flex: 0 0 auto; }
