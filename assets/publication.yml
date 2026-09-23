@@ -1,17 +1,17 @@
 # Dates vérifiées ou complétées depuis Wikipédia/Wikidata.
 # Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
 
+# Ananda Devi
+chronique-dun-royaume-perdu-devi-ananda.epub: {date: "", author: "Ananda Devi"}
+
 # Anne Godard
 nous-aussi-anne-godard.epub: {date: ""}
 
-# Bergmann Boris
-minotaure-boris-bergman.epub: {date: ""}
+# Boris Bergmann
+minotaure-boris-bergman.epub: {date: "", author: "Boris Bergmann"}
 
 # Clémentine Mélois
 choses-que-je-croyais-perdues-clementine-melois.epub: {date: ""}
-
-# Devi Ananda
-chronique-dun-royaume-perdu-devi-ananda.epub: {date: ""}
 
 # François Bon
 sortie-dusine-bon-francois.epub: {date: "1982"}

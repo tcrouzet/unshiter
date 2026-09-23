@@ -171,8 +171,8 @@ const FIELD_FAMILIES = [
 ];
 const FIELD_WEIGHT = new Map();
 FIELD_FAMILIES.forEach(family => family.forEach(field => FIELD_WEIGHT.set(field, 1 / family.length)));
-function burrowsContext(entities) {
-  const corpusVectors = data.books.map(book => BURROWS_FIELDS.map(key => value(book, key)));
+function burrowsContext(entities, referenceEntities = data.books) {
+  const corpusVectors = referenceEntities.map(entity => BURROWS_FIELDS.map(key => value(entity, key)));
   const means = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite); return values.reduce((sum, n) => sum + n, 0) / (values.length || 1); });
   const deviations = BURROWS_FIELDS.map((_, i) => { const values = corpusVectors.map(row => row[i]).filter(Number.isFinite), mean = means[i]; return Math.sqrt(values.reduce((sum, n) => sum + (n - mean) ** 2, 0) / (values.length || 1)); });
   const vectors = entities.map(entity => BURROWS_FIELDS.map((key, i) => { const n = value(entity, key); return Number.isFinite(n) && deviations[i] > 0 ? (n - means[i]) / deviations[i] : null; }));
@@ -304,7 +304,8 @@ function draw() {
   drawDistances(books);
   drawMDS(books);
   drawNeighborhood(books);
-  drawTypicity();
+  drawTypicity(books);
+  drawExtremeValues();
   drawEvolution(books);
   drawPcaCharts();
   // Le menu reste visuellement une icône ; aucune option n'est présélectionnée,
@@ -370,8 +371,10 @@ function drawDistances(books) {
   const canvas = document.getElementById("distances");
   if (!canvas || books.length < 2) return;
   const entities = (authorProfile || authorLimits ? authorAverages(books) : books).map((entity, index) => ({ ...entity, __color: isAI(entity) ? IA_COLOR : COLORS[index % COLORS.length] }));
-  const context = burrowsContext(entities);
-  const centerDistances = burrowsDistancesToCenter(context, burrowsContext(data.books));
+  // La typicité est relative à la sélection courante : les œuvres
+  // décochées ne participent ni à la standardisation ni au centre.
+  const context = burrowsContext(entities, books);
+  const centerDistances = burrowsDistancesToCenter(context, burrowsContext(books, books));
   const ordered = entities.map((entity, index) => ({ label: entity.title || entity.author || "Œuvre", distance: centerDistances[index], color: entity.__color, isAI: isAI(entity) })).sort((a, b) => a.distance - b.distance);
   const box = canvas.closest(".distance-box");
   if (box) box.style.height = `${Math.max(300, ordered.length * 30 + 90)}px`;
@@ -656,13 +659,13 @@ function drawNeighborhood(books) {
   }
   const box = document.querySelector(".neighborhood-box"); if (box) box.style.height = "auto";
 }
-function drawTypicity() {
+function drawTypicity(selectedBooks) {
   const canvas = document.getElementById("typicity-chart");
   if (!canvas) return;
   typicityChart?.destroy();
-  const context = burrowsContext(data.books);
+  const context = burrowsContext(selectedBooks, selectedBooks);
   const centerDistances = burrowsDistancesToCenter(context);
-  const works = data.books.map((book, index) => ({ book, score: centerDistances[index] }));
+  const works = selectedBooks.map((book, index) => ({ book, score: centerDistances[index] }));
   const pairDistances = [];
   for (let left = 0; left < context.vectors.length; left++) for (let right = left + 1; right < context.vectors.length; right++) pairDistances.push(context.distance(context.vectors[left], context.vectors[right]));
   const meanTypicity = works.reduce((sum, work) => sum + work.score, 0) / Math.max(works.length, 1);
@@ -675,7 +678,7 @@ function drawTypicity() {
     return groups;
   }, {});
   const rows = Object.entries(authors).map(([author, scores]) => ({ author, score: scores.reduce((sum, number) => sum + number, 0) / scores.length })).sort((left, right) => left.score - right.score || authorCompare(left.author, right.author));
-  const selectedEntities = authorProfile || authorLimits ? authorAverages(selected()) : selected();
+  const selectedEntities = authorProfile || authorLimits ? authorAverages(selectedBooks) : selectedBooks;
   const referenceIndex = Number(document.getElementById("neighborhood-reference")?.value || 0);
   const referenceAuthor = selectedEntities[referenceIndex]?.author || "";
   const authorOrder = [...rows].sort((left, right) => authorCompare(left.author, right.author));
@@ -687,6 +690,47 @@ function drawTypicity() {
   const valueLabels = { id: "typicityValueLabels", afterDatasetsDraw(instance) { const meta = instance.getDatasetMeta(0), context2d = instance.ctx; context2d.save(); context2d.fillStyle = "#514a44"; context2d.font = "12px system-ui"; context2d.textBaseline = "middle"; meta.data.forEach((bar, index) => context2d.fillText(rows[index].score.toFixed(2), bar.x + 7, bar.y)); context2d.restore(); } };
   typicityChart = new Chart(canvas, { type: "bar", plugins: [valueLabels], data: { labels: rows.map(row => row.author), datasets: [{ data: rows.map(row => row.score), backgroundColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : `${authorColors[row.author]}b8`), borderColor: rows.map(row => row.author === referenceAuthor ? "#1565c0" : authorColors[row.author]), borderWidth: rows.map(row => row.author === referenceAuthor ? 2 : 1) }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 55 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => Number(item.raw).toFixed(2) } } }, scales: { x: { beginAtZero: true, title: { display: true, text: "Distance Δ de Burrows au centre" } }, y: { grid: { display: false }, ticks: { font: context => ({ weight: rows[context.index]?.author === referenceAuthor ? "700" : "400" }), color: context => rows[context.index]?.author === referenceAuthor ? "#1565c0" : "#514a44" } } } } });
   typicityChart.$csvRows = [["Auteur", "Typicité"], ...rows.map(row => [row.author, row.score.toFixed(2)])];
+}
+function extremeMetricKeys() {
+  // Même univers que les analyses stylistiques : mesures atomiques dont la
+  // dispersion normalisée atteint le seuil de significativité du corpus.
+  return significantAtomicFields(data.books).filter(key => !REMOVED_KEYS.has(key));
+}
+function drawExtremeValues() {
+  const select = document.getElementById("extreme-entity");
+  const orderSelect = document.getElementById("extreme-order");
+  const output = document.getElementById("extreme-values");
+  if (!select || !output) return;
+  const escapeHtml = text => String(text ?? "").replace(/[&<>\"]/g, character => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[character]));
+  const previous = select.value;
+  const authors = authorAverages(data.books).sort((left, right) => authorCompare(left.author, right.author));
+  const works = [...data.books].sort((left, right) => authorCompare(left, right) || String(left.title).localeCompare(String(right.title), "fr"));
+  select.innerHTML = `<optgroup label="Auteurs">${authors.map(author => `<option value="author:${escapeHtml(author.author)}">${escapeHtml(author.author)}</option>`).join("")}</optgroup><optgroup label="Œuvres">${works.map(book => `<option value="work:${book.id}">${escapeHtml(book.title)} — ${escapeHtml(book.author || "Auteur inconnu")}</option>`).join("")}</optgroup>`;
+  if ([...select.options].some(option => option.value === previous)) select.value = previous;
+  const [kind, identifier] = select.value.split(/:(.*)/s);
+  const population = kind === "author" ? authors : data.books;
+  const target = kind === "author" ? authors.find(author => author.author === identifier) : data.books.find(book => String(book.id) === identifier);
+  const extremeOrder = Math.max(1, Number(orderSelect?.value) || 2);
+  if (!target || population.length < 2) { output.innerHTML = "<p>Pas assez d’entités pour calculer des rangs.</p>"; return; }
+  const rows = [];
+  for (const key of extremeMetricKeys()) {
+    const targetValue = value(target, key);
+    const values = population.map(entity => value(entity, key)).filter(Number.isFinite);
+    if (!Number.isFinite(targetValue) || values.length < 2) continue;
+    const lower = values.filter(number => number < targetValue).length;
+    const higher = values.filter(number => number > targetValue).length;
+    const lowRank = lower + 1, highRank = higher + 1;
+    if (lowRank > extremeOrder && highRank > extremeOrder) continue;
+    const percentile = values.length > 1 ? lower / (values.length - 1) * 100 : 50;
+    const ordinal = rank => `${rank}e`;
+    const position = lowRank <= extremeOrder
+      ? (lowRank === 1 ? "Plus bas" : `${ordinal(lowRank)} plus bas`)
+      : (highRank === 1 ? "Plus haut" : `${ordinal(highRank)} plus haut`);
+    rows.push({ key, targetValue, percentile, position });
+  }
+  rows.sort((left, right) => left.percentile - right.percentile || metricLabel(left.key).localeCompare(metricLabel(right.key), "fr"));
+  if (!rows.length) { output.innerHTML = "<p>Aucune valeur ne figure aux deux extrémités du classement.</p>"; return; }
+  output.innerHTML = `<table><thead><tr><th>Mesure</th><th>Classement</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(metricLabel(row.key))} <button class="table-note-help metric-help" type="button" data-note-id="${row.key}" data-key="${row.key}" aria-label="Afficher la définition">?</button></td><td>${row.position}</td></tr>`).join("")}</tbody></table>`;
 }
 function drawEvolution(selectedBooks) {
   evolutionCharts.forEach(item => item.destroy());
@@ -1364,7 +1408,7 @@ function controls() {
     if (!distanceTitle.querySelector(".metric-help")) distanceTitle.insertAdjacentHTML("beforeend", ' <button class="metric-help help" data-note-id="note_singularity" type="button" aria-label="Afficher l’explication">?</button>');
   }
   const distanceBox = document.querySelector(".distance-box");
-  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><section class="typicity-box chart-frame"><div class="chart-heading"><h2 id="typicity-title">Typicité stylistique</h2><select class="chart-download" data-canvas="typicity-chart" aria-label="Télécharger la typicité stylistique"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><p>Plus la barre est courte, plus le texte est proche du profil moyen du corpus.</p><canvas id="typicity-chart"></canvas></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
+  if (distanceBox && !document.querySelector(".mds-box")) distanceBox.insertAdjacentHTML("afterend", '<section class="mds-box chart-frame" hidden><div class="chart-heading"><h2>Carte stylistique MDS <button class="metric-help help" data-note-id="note_mds" type="button" aria-label="Afficher l’explication">?</button></h2><div class="mds-controls" aria-label="Navigation de la carte"><button type="button" id="mds-zoom-out" aria-label="Dézoomer">−</button><button type="button" id="mds-zoom-in" aria-label="Zoomer">+</button><button type="button" id="mds-reset" aria-label="Réinitialiser la vue">Réinitialiser</button></div><select class="chart-download" data-canvas="mds" aria-label="Télécharger la carte stylistique MDS"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><canvas id="mds"></canvas></section><section class="neighborhood-box chart-frame"><h2>Voisinage stylistique <button class="metric-help help" data-note-id="note_neighborhood" type="button" aria-label="Afficher l’explication">?</button></h2><label class="reference-select">Œuvre de référence <select id="neighborhood-reference"></select></label><label class="reference-select">Œuvre épinglée <select id="neighborhood-pinned"><option value="">Aucune œuvre épinglée</option></select></label><label class="reference-select">Nombre de voisins <select id="neighborhood-count"><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="all">Tous</option></select></label><h3 id="neighborhood-verdict" class="neighborhood-verdict"></h3><div id="neighborhood-table" class="neighborhood-table"></div><button type="button" id="neighborhood-download" class="table-download">Télécharger le tableau</button></section><section class="typicity-box chart-frame"><div class="chart-heading"><h2 id="typicity-title">Typicité stylistique</h2><select class="chart-download" data-canvas="typicity-chart" aria-label="Télécharger la typicité stylistique"><option value="png">PNG</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><p>Plus la barre est courte, plus le texte est proche du profil moyen du corpus.</p><canvas id="typicity-chart"></canvas></section><section class="extreme-box chart-frame"><div class="chart-heading"><h2>Valeurs extrêmes</h2><select class="chart-download table-download" data-table-id="extreme-values" aria-label="Télécharger le tableau" title="Télécharger le tableau"><option value="">Télécharger</option><option value="svg">SVG</option><option value="csv">CSV</option></select></div><label class="reference-select">Auteur ou œuvre <select id="extreme-entity"></select></label><label class="reference-select">Ordre <select id="extreme-order"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><p>Mesures classées parmi les valeurs les plus basses ou les plus hautes du corpus, selon l’ordre choisi.</p><div id="extreme-values" class="extreme-values"></div></section><div class="bonus-links"><button type="button" id="show-distance" class="bonus-link">Afficher Singularité (bonus)</button><button type="button" id="show-mds" class="bonus-link">Afficher la carte MDS (bonus)</button></div>');
   if (distanceBox) distanceBox.hidden = true;
   const bonusLinks = document.querySelector(".bonus-links");
   const tablesBlock = document.getElementById("tables");
@@ -1375,6 +1419,8 @@ function controls() {
   const typicityBox = document.querySelector(".typicity-box");
   const neighborhoodBox = document.querySelector(".neighborhood-box");
   if (neighborhoodBox && typicityBox) neighborhoodBox.after(typicityBox);
+  document.getElementById("extreme-entity")?.addEventListener("change", drawExtremeValues);
+  document.getElementById("extreme-order")?.addEventListener("change", drawExtremeValues);
   document.getElementById("show-distance")?.replaceChildren(document.createTextNode("Distance au centre"));
   document.getElementById("show-mds")?.replaceChildren(document.createTextNode("Carte MDS"));
   const oldTableDownload = document.getElementById("neighborhood-download");
@@ -1390,7 +1436,7 @@ function controls() {
   if (neighborhoodCount) neighborhoodCount.innerHTML = [5, 10, 15, 20, 25, 30, 35, 40, 45].map(value => `<option value="${value}"${value === 5 ? " selected" : ""}>${value}</option>`).join("") + '<option value="all">Tous</option>';
   const savedNeighborhood = JSON.parse(storageGet("unshiter-neighborhood") || "null");
   if (savedNeighborhood?.count && neighborhoodCount.querySelector(`option[value="${savedNeighborhood.count}"]`)) neighborhoodCount.value = savedNeighborhood.count;
-  document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); drawTypicity(); });
+  document.getElementById("neighborhood-reference")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); drawTypicity(selected()); });
   document.getElementById("neighborhood-pinned")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   document.getElementById("neighborhood-count")?.addEventListener("change", () => { saveNeighborhoodState(); drawNeighborhood(selected()); });
   const savedBookIds = JSON.parse(storageGet("unshiter-books") || JSON.stringify(savedNeighborhood?.book_ids || [])).map(Number);
@@ -1524,7 +1570,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923140427595789000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923160919551435000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
