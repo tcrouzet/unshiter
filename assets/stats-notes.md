@@ -95,7 +95,7 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 ##### Points d’exclamation par phrase (exclamation_ratio) #web
 [Nombre de points d’exclamation](#exclamation_point_count) divisé par le [nombre de phrases](#sentence_count).
 
-##### Points d’interrogation pour phrase (question_mark_ratio) #web
+##### Points d’interrogation par phrase (question_mark_ratio) #web
 [Nombre de points d’interrogation](#question_mark_count) divisé par le [nombre de phrases](#sentence_count).
 
 ##### Points de suspension par phrase (ellipsis_ratio) #web
@@ -113,6 +113,10 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 
 
 #### Syntaxe et grammaire
+
+
+##### Burstiness (burstiness_ratio) #web
+[Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count). Plus ce score est élevé, plus le rythme est monotomne.
 
 ##### **Diversité syntaxique** / Régularité syntaxique (structural_diversity)
 Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions n'ont pas de rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.
@@ -612,7 +616,8 @@ Une phrase ne compte qu’une fois si elle contient plusieurs incises. Un tiret 
 ##### Phrases avec accumulation coordonnée (coordination_accumulation_count)
 Nombre de phrases comportant plus de deux coordinations reconnues par spaCy (`dep_ == "cc"`). Les virgules seules ne sont pas comptées.
 
-
+##### Burstiness brut (burstiness_count)
+Nombre de phrases prises dans des séries de phrases de longueur proche. Plus ce nombre augmente, plus le style est monotomne.
 
 ##### Signes de ponctuation (punctuation_mark_count)
 Somme des nombres de [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count).

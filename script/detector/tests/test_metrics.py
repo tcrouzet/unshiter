@@ -8,6 +8,7 @@ from detector.epub_database import word_windows
 from detector.epub_database import metric_cache_is_valid, reset_champ
 from detector.metrics import windowed_metric_fields
 from detector.stats import Metrics, normalize_markdown_text, tokenize
+from burstiness.render_html import build_html as build_burstiness_html
 
 
 class MetricsTests(unittest.TestCase):
@@ -66,6 +67,10 @@ class MetricsTests(unittest.TestCase):
     def test_incise_count_includes_parentheses_and_paired_long_dashes(self):
         metrics = Metrics("Il part (sans attendre). Elle reste — bien sûr — ici.")
         self.assertEqual(metrics.incise_count(), 2)
+
+    def test_burstiness_count_matches_colored_html_sentences(self):
+        text = "Chat dort. Paul court. Jean marche. Cette phrase est volontairement beaucoup plus longue que les précédentes."
+        self.assertEqual(Metrics(text).burstiness_count(), build_burstiness_html(text).count('class="burst"'))
 
     def test_punctuation_total_is_the_sum_of_detailed_counts(self):
         metrics = Metrics('. , : ; ! ? … - – — () « » “ ” "')

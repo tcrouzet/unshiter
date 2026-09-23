@@ -86,6 +86,7 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             "ellipsis_ratio": "suspention_point_count",
             "exclamation_ratio": "exclamation_point_count",
             "exclamative_construction_ratio": "exclamative_sentence_count",
+            "burstiness_ratio": "burstiness_count",
             "comma_ratio": "comma_count",
             "colon_ratio": "colon_count",
             "semicolons_ratio": "semicolons_count",

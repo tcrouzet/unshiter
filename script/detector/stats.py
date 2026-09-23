@@ -13,6 +13,8 @@ from .demonette import family_lexemes, family_map, phonetic_map
 from .morphalou import contextual_lemma_map, lemma_map, lexical_map
 from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth
 from .lexical_frequency import frequency_map
+from burstiness.burst_detect import detect_bursts
+from burstiness.sentence_split import iter_blocks as burstiness_blocks, split_sentences_batch as split_burstiness_sentences
 
 
 def normalize_markdown_text(text: str) -> str:
@@ -498,6 +500,17 @@ class Metrics:
     def sentence_length_std_dev(self): return _std(self.sentence_word_lengths)
     def avg_paragraph_length(self): return sum(self.paragraph_word_lengths)/len(self.paragraph_word_lengths) if self.paragraph_word_lengths else 0
     def paragraph_length_std_dev(self): return _std(self.paragraph_word_lengths)
+    @cached_property
+    def burstiness_sentences(self):
+        analyzable = {"paragraph", "heading", "list_item", "blockquote"}
+        blocks = list(burstiness_blocks(self.text))
+        block_texts = [block.text if block.kind in analyzable and block.text.strip() else "" for block in blocks]
+        return [sentence for sentences in split_burstiness_sentences(block_texts, mode="regex") for sentence in sentences]
+    def burstiness_count(self):
+        _counts, runs = detect_bursts(self.burstiness_sentences)
+        return sum(run.length for run in runs)
+    def burstiness_ratio(self):
+        return self.burstiness_count() / self.sentence_count() if self.sentence_count() else 0
     def burstiness(self):
         return (sum(abs(b-a) for a,b in zip(self.sentence_word_lengths,self.sentence_word_lengths[1:]))/(len(self.sentence_word_lengths)-1)/self.avg_sentence_length()) if len(self.sentence_word_lengths)>1 and self.avg_sentence_length() else 0
     def gzip_compression_ratio(self): return self.gzip_byte_count()/self.utf8_byte_count() if self.utf8_byte_count() else 0

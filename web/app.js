@@ -10,7 +10,7 @@ const SUMMARY = [
   ["structural_diversity", null], ["structural_rhythm", null],
   ["average_syntactic_depth", null], ["sentence_start_diversity", null],
   ["sentence_start_recurrence_distance", null],
-  ["burstiness", null], ["noun_verb_ratio", null], ["local_repetition_ratio", null],
+  ["burstiness", null], ["burstiness_ratio", null, true], ["noun_verb_ratio", null], ["local_repetition_ratio", null],
 ];
 const DETAILS = [
   ["action_verb_ratio", null, true], ["temporal_connector_ratio", null, true], ["personal_subject_ratio", null, true], ["narrative_past_ratio", null, true],
@@ -1210,7 +1210,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923074508658244000").then(r => r.json()).then(json => {
+fetch("data.json?v=20260923084837948415000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

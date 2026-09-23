@@ -1,6 +1,18 @@
 # Dates vérifiées ou complétées depuis Wikipédia/Wikidata.
 # Clé : nom du fichier EPUB normalisé ; valeur : année ou date complète.
 
+# Anne Godard
+nous-aussi-anne-godard.epub: {date: ""}
+
+# Bergmann Boris
+minotaure-boris-bergman.epub: {date: ""}
+
+# Clémentine Mélois
+choses-que-je-croyais-perdues-clementine-melois.epub: {date: ""}
+
+# Devi Ananda
+chronique-dun-royaume-perdu-devi-ananda.epub: {date: ""}
+
 # François Bon
 sortie-dusine-bon-francois.epub: {date: "1982"}
 prison-bon-francois.epub: {date: "1997"}
@@ -34,6 +46,15 @@ les-maitres-feu.epub: {date: "1982"}
 le-createur-chimerique.epub: {date: "1988"}
 pollen.epub: {date: "2002"}
 
+# Jouannais Jean-Yves
+une-foret-jean-yves-jouannais.epub: {date: ""}
+
+# Lilia Hassaine
+je-lilia-hassaine.epub: {date: ""}
+
+# Louise Chennevière
+faire-la-peau-louise-chenneviere.epub: {date: ""}
+
 # Madame de la Fayette
 la-princesse-de-cleves-madame-de-la-fayette.epub: {date: "1678"}
 
@@ -56,6 +77,12 @@ la-carte-et-le-territoire-houellebecq-michel.epub: {date: "2010", title: "La Car
 soumission-houellebecq-michel.epub: {date: "2015"}
 aneantir-michel-houellebecq.epub: {date: "2022"}
 
+# Olivier Grondeau
+joseph-dans-la-nuit-olivier-grondeau.epub: {date: ""}
+
+# Olivier Rolin
+la-guerre-eternelle-olivier-rolin.epub: {date: ""}
+
 # Philippe Castelneau
 motel-valparaiso-philippe-castelneau.epub: {date: "2022"}
 
@@ -65,6 +92,9 @@ nouvelles-humouristiques-2-caza.epub: {date: "2014"}
 ginkoo-bilooba-chronique-d-une-utopie-mod-philippe-caza.epub: {date: "2022"}
 les-aventures-g-lactiques-de-lola-lokidor-caza.epub: {date: "2024", author: "Philippe Caza"}
 nouvelles-caza.epub: {date: "2025", author: "Philippe Caza"}
+
+# Philippe Jaenada
+l-inconnue-du-quai-de-javel-jaenada-philippe.epub: {date: ""}
 
 # Pierre Michon
 vies-minuscules-michon-pierre.epub: {date: "1984"}
@@ -78,9 +108,15 @@ fourth-wing-tome-1.epub: {date: "2023"}
 # Romain Gary
 l-angoisse-du-roi-salomon-emile-ajar-romain-gary.epub: {date: "2013", author: "Romain Gary"}
 
+# Sonia Devillers
+le-fabuleux-piano-sonia-devillers.epub: {date: ""}
+
 # Stéphanie Dupays
 comme-elle-limagine-stephanie-dupays-dupays-stephanie.epub: {date: "2019"}
 un-puma-dans-le-coeur-stephanie-dupays.epub: {date: "2022"}
+
+# Sylvain Prudhomme
+de-lautre-cote-du-lac-sylvain-prudhomme.epub: {date: ""}
 
 # Thélyson Orélien
 cetait-ca-ou-mourir-thelyson-orelien.epub: {date: "2026"}
@@ -95,3 +131,6 @@ mon-pere-ce-tueur.epub: {date: "2019"}
 codeh.epub: {date: "2024"}
 rush.epub: {date: "2025"}
 isa.epub: {date: "2026"}
+
+# Yannick Haenel
+la-solitude-des-professeurs-est-infinie-haenel-yannick.epub: {date: ""}
