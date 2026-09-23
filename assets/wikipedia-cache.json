@@ -138164,6 +138164,2286 @@
           }
         }
       }
+    },
+    "https://fr.wikipedia.org/w/api.php?action=query&list=search&srsearch=%22Th%C3%A9lyson+Or%C3%A9lien%22&srlimit=5&format=json": {
+      "batchcomplete": "",
+      "continue": {
+        "sroffset": 5,
+        "continue": "-||"
+      },
+      "query": {
+        "searchinfo": {
+          "totalhits": 16
+        },
+        "search": [
+          {
+            "ns": 0,
+            "title": "Thélyson Orélien",
+            "pageid": 4709141,
+            "size": 20916,
+            "wordcount": 1956,
+            "snippet": "<span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> en 2026. <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> est un écrivain québécois d’origine haïtienne. Poète, romancier, essayiste, chroniqueur et",
+            "timestamp": "2026-09-23T02:59:46Z"
+          },
+          {
+            "ns": 0,
+            "title": "Orélien",
+            "pageid": 16411910,
+            "size": 255,
+            "wordcount": 51,
+            "snippet": "nom de famille. Orélien est un nom de famille notamment porté par : <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> (1988-), un écrivain et chroniqueur québécois de double nationalité",
+            "timestamp": "2024-08-04T14:12:23Z"
+          },
+          {
+            "ns": 0,
+            "title": "Prix du roman Fnac",
+            "pageid": 2614602,
+            "size": 8328,
+            "wordcount": 261,
+            "snippet": "Les Âmes féroces l&#039;Olivier (3) 2025 John Boyne Les Éléments Lattès (2) également prix Fémina étranger 2026 <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> C&#039;était ça ou mourir Grasset",
+            "timestamp": "2026-09-22T18:43:38Z"
+          },
+          {
+            "ns": 0,
+            "title": "Prix Première Plume",
+            "pageid": 15203659,
+            "size": 8961,
+            "wordcount": 288,
+            "snippet": "Première Plume 2026. Titres Auteurs Éditeurs C&#039;était ça ou mourir <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> Éditions Grasset Lauréat L&#039;Âge de déplaire Abibou Diouf Albin Michel",
+            "timestamp": "2026-09-16T14:47:17Z"
+          },
+          {
+            "ns": 0,
+            "title": "Prix Méduse",
+            "pageid": 15848575,
+            "size": 3613,
+            "wordcount": 298,
+            "snippet": "Raphaël Sigal pour Géographie de l’oubli (Robert Laffont). 2026 : <span class=\"searchmatch\">Thélyson</span> <span class=\"searchmatch\">Orélien</span> pour C&#039;était ça ou mourir (Grasset) https://www.prixmeduse.fr/ Stanislas",
+            "timestamp": "2026-08-19T20:54:45Z"
+          }
+        ]
+      }
+    },
+    "https://fr.wikipedia.org/w/api.php?action=query&pageids=4709141&prop=pageprops&format=json": {
+      "batchcomplete": "",
+      "query": {
+        "pages": {
+          "4709141": {
+            "pageid": 4709141,
+            "ns": 0,
+            "title": "Thélyson Orélien",
+            "pageprops": {
+              "defaultsort": "Orélien, Thélyson",
+              "page_image_free": "Thélyson_Orélien_écrivain.jpg",
+              "wikibase_item": "Q3526284"
+            }
+          }
+        }
+      }
+    },
+    "https://www.wikidata.org/wiki/Special:EntityData/Q3526284.json": {
+      "entities": {
+        "Q3526284": {
+          "pageid": 3357339,
+          "ns": 0,
+          "title": "Q3526284",
+          "lastrevid": 2548618400,
+          "modified": "2026-09-22T22:38:17Z",
+          "type": "item",
+          "id": "Q3526284",
+          "labels": {
+            "fr": {
+              "language": "fr",
+              "value": "Thélyson Orélien"
+            },
+            "ht": {
+              "language": "ht",
+              "value": "Thélyson Orélien"
+            },
+            "en": {
+              "language": "en",
+              "value": "Thélyson Orélien"
+            },
+            "nl": {
+              "language": "nl",
+              "value": "Thélyson Orélien"
+            },
+            "sl": {
+              "language": "sl",
+              "value": "Thélyson Orélien"
+            },
+            "ast": {
+              "language": "ast",
+              "value": "Thélyson Orélien"
+            },
+            "es": {
+              "language": "es",
+              "value": "Thélyson Orélien"
+            },
+            "ga": {
+              "language": "ga",
+              "value": "Thélyson Orélien"
+            },
+            "sq": {
+              "language": "sq",
+              "value": "Thelyson Orelien"
+            },
+            "de": {
+              "language": "de",
+              "value": "Thélyson Orélien"
+            }
+          },
+          "descriptions": {
+            "en": {
+              "language": "en",
+              "value": "Haitian poet and writer"
+            },
+            "nl": {
+              "language": "nl",
+              "value": "dichter uit Haïti"
+            },
+            "fr": {
+              "language": "fr",
+              "value": "poète et écrivain canado-haïtien"
+            },
+            "ga": {
+              "language": "ga",
+              "value": "file agus scríbhneoir Háítíoch"
+            },
+            "de": {
+              "language": "de",
+              "value": "haitianisch-kanadischer Schriftsteller, Journalist und Politiloge"
+            },
+            "bn": {
+              "language": "bn",
+              "value": "হাইতিয়ান কবি ও লেখক"
+            },
+            "hi": {
+              "language": "hi",
+              "value": "हाईटियन कवि और लेखक"
+            },
+            "as": {
+              "language": "as",
+              "value": "হাইটিয়ান কবি আৰু লেখক"
+            }
+          },
+          "aliases": {
+            "nl": [
+              {
+                "language": "nl",
+                "value": "Thelyson Orelien"
+              }
+            ],
+            "en": [
+              {
+                "language": "en",
+                "value": "Thelyson Orelien"
+              }
+            ]
+          },
+          "claims": {
+            "P31": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P31",
+                  "hash": "ad7d38a03cdd40cdc373de0dc4e7b7fcbccb31d9",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 5,
+                      "id": "Q5"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$FFBB1AC7-0C3F-4861-B99B-3EFAA8FE5936",
+                "rank": "normal"
+              }
+            ],
+            "P21": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P21",
+                  "hash": "85ad4b1c7348f7a5aac521135040d74e91fb5939",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 6581097,
+                      "id": "Q6581097"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$8972298F-BF12-4EDC-8787-D6319B4ADA7A",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "5c0fa0d334b12fb6fd96eeccd70c1bfbc0491a41",
+                    "snaks": {
+                      "P887": [
+                        {
+                          "snaktype": "value",
+                          "property": "P887",
+                          "hash": "0f89b02e7a7b9408e3cd5c2b9cae2f47d84944d5",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 69652498,
+                              "id": "Q69652498"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P887"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P106": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P106",
+                  "hash": "6650bb22bab6f6e5844595fd20ddcec6163cc6a5",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 49757,
+                      "id": "Q49757"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$6C2E599C-35BA-4F7A-ADBE-2D38B5844D2D",
+                "rank": "normal"
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P106",
+                  "hash": "70541c2eb72d85fa5f74008b4ee33b004a1ff7eb",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 36180,
+                      "id": "Q36180"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$AA9049E0-A592-433C-B796-77EF3CC65E28",
+                "rank": "normal"
+              }
+            ],
+            "P1412": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1412",
+                  "hash": "543873045e76aaa5fc3d1324950d21da09e66612",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 150,
+                      "id": "Q150"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$D5AB93D2-9A88-4437-A0DF-2C1F0004B3B1",
+                "rank": "normal"
+              }
+            ],
+            "P19": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P19",
+                  "hash": "7be429fb5510f0f0384d540d7397b79a305b1104",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 852550,
+                      "id": "Q852550"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$125FCF18-A946-4FEC-A38A-218822D41171",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "9587661a6b3eb006b9833a355fcc64b1920df342",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "98c3e2d91fb367f539ff7c035f397c5e8bd3d1d8",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133005/prix-litteraires/thelyson-orelien-remporte-le-prix-meduse-2026-avec-c-etait-ca-ou-mourir",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ],
+                      "P1476": [
+                        {
+                          "snaktype": "value",
+                          "property": "P1476",
+                          "hash": "c991e9cd27f5fb5c39695d07813c01775d003281",
+                          "datavalue": {
+                            "value": {
+                              "text": "Thélyson Orélien remporte le Prix Méduse 2026 avec C’était ça ou mourir",
+                              "language": "fr"
+                            },
+                            "type": "monolingualtext"
+                          },
+                          "datatype": "monolingualtext"
+                        }
+                      ],
+                      "P407": [
+                        {
+                          "snaktype": "value",
+                          "property": "P407",
+                          "hash": "d197d0a5efa4b4c23a302a829dd3ef43684fe002",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 150,
+                              "id": "Q150"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bd5274dfa0cf8458cfbe5cfbfb368f7475c9fe6a",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-07-31T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854",
+                      "P1476",
+                      "P407",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P27": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P27",
+                  "hash": "b6904834866d86e58e0c022f431c948186fb6d6d",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 790,
+                      "id": "Q790"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$15404DA0-D554-49A9-B966-3E62DF79BB47",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "044c262b3fb2de87bdfdd730dbb2624f3387afa6",
+                    "snaks": {
+                      "P887": [
+                        {
+                          "snaktype": "value",
+                          "property": "P887",
+                          "hash": "2e252bcf55ec7eb03b718e5f10256022d0df8742",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 91770864,
+                              "id": "Q91770864"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P887"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P27",
+                  "hash": "cb9b638fa0a9cc8499b44b83d9766590fade938b",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 16,
+                      "id": "Q16"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$1aaacd32-4a60-3eb9-7624-4dfb5abe7003",
+                "rank": "normal"
+              }
+            ],
+            "P1559": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1559",
+                  "hash": "0ee37580434565df1a3f5b92f2d5f5f6a8ef7f8d",
+                  "datavalue": {
+                    "value": {
+                      "text": "Thélyson Orélien",
+                      "language": "fr"
+                    },
+                    "type": "monolingualtext"
+                  },
+                  "datatype": "monolingualtext"
+                },
+                "type": "statement",
+                "id": "Q3526284$b5ba4c96-43de-7447-3812-d077e676d701",
+                "rank": "normal"
+              }
+            ],
+            "P569": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P569",
+                  "hash": "d0d9f715263f6dac9abb9b1514e39759db49656f",
+                  "datavalue": {
+                    "value": {
+                      "time": "+1988-05-23T00:00:00Z",
+                      "timezone": 0,
+                      "before": 0,
+                      "after": 0,
+                      "precision": 11,
+                      "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                    },
+                    "type": "time"
+                  },
+                  "datatype": "time"
+                },
+                "type": "statement",
+                "id": "Q3526284$c33a18cb-41df-93a1-86c9-362c365a49ff",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "cdd6ba84e8343202f388739433559ecca25d3846",
+                    "snaks": {
+                      "P143": [
+                        {
+                          "snaktype": "value",
+                          "property": "P143",
+                          "hash": "ea1bd1024f7641d20b11a0a540eb5de2e6832b2f",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 1066461,
+                              "id": "Q1066461"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "3771084f952cb37e1a57e0cd39688bcb9f8d97e2",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2017-08-08T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P143",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P735": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P735",
+                  "hash": "626d085c557d4d01b7322cc67d3e77275226c973",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 60589703,
+                      "id": "Q60589703"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "id": "Q3526284$720A90FE-9688-4B94-B61D-95CCF2FC099B",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "323be97becfd18ea6625da4b3770079385901a18",
+                    "snaks": {
+                      "P887": [
+                        {
+                          "snaktype": "value",
+                          "property": "P887",
+                          "hash": "b40d6c0ac6eb965460f92fade101fe40a3c44239",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 97033143,
+                              "id": "Q97033143"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P887"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P2671": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P2671",
+                  "hash": "7b1c58f478dc51b0cf28b7b10f7e4ce6b8a2be24",
+                  "datavalue": {
+                    "value": "/g/121y01p8",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$7EE7FB15-ACE6-4B54-B834-4E2E9322DB22",
+                "rank": "normal"
+              }
+            ],
+            "P3630": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P3630",
+                  "hash": "a79b605a0d0ab5532236a86e9867e25ce2f626fe",
+                  "datavalue": {
+                    "value": "327313",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$3D8C3C25-AC59-406B-A8B8-1F8E11B7C904",
+                "rank": "normal"
+              }
+            ],
+            "P373": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P373",
+                  "hash": "040e990fb0f20d90055e6416bfb438d6cd820542",
+                  "datavalue": {
+                    "value": "Thélyson Orélien",
+                    "type": "string"
+                  },
+                  "datatype": "string"
+                },
+                "type": "statement",
+                "id": "Q3526284$a2fb975a-d0f3-446a-ba44-af09feb8ecae",
+                "rank": "normal"
+              }
+            ],
+            "P4514": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P4514",
+                  "hash": "0f471300588d32ce9bfa5527d01b1e4f4e59e37e",
+                  "datavalue": {
+                    "value": "20403",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$9434E325-8D8B-421B-82F3-34C3B25E273A",
+                "rank": "normal"
+              }
+            ],
+            "P214": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P214",
+                  "hash": "fb9af06b5b068fb6fcb688e63f4b1bf76fc171f4",
+                  "datavalue": {
+                    "value": "41155707095722412471",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$10851071-4a03-5a8f-41ef-cbfc368edde1",
+                "rank": "normal"
+              }
+            ],
+            "P18": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P18",
+                  "hash": "86713d66c918a5f96534987cd9d9ea1deef7424a",
+                  "datavalue": {
+                    "value": "Thélyson Orélien écrivain.jpg",
+                    "type": "string"
+                  },
+                  "datatype": "commonsMedia"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$A5E28FB7-F177-403F-BEAD-21927BF3C0BF",
+                "rank": "normal"
+              }
+            ],
+            "P244": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P244",
+                  "hash": "8dabcd4d127db38dd8303c4ef7d839b04c4949fe",
+                  "datavalue": {
+                    "value": "no2026039583",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P1810": [
+                    {
+                      "snaktype": "value",
+                      "property": "P1810",
+                      "hash": "7208bbc9c66140fe6397115471222c6d4b1a40fa",
+                      "datavalue": {
+                        "value": "Orélien, Thélyson, 1988-",
+                        "type": "string"
+                      },
+                      "datatype": "string"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P1810"
+                ],
+                "id": "Q3526284$410A3545-3505-47D1-A8BE-5C4F2A2752D1",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "b44c2a5bd703b2fd7153e4d97467a7243c8c7f67",
+                    "snaks": {
+                      "P248": [
+                        {
+                          "snaktype": "value",
+                          "property": "P248",
+                          "hash": "d29d09e6acaeb2bde42bcc6eb145b6c39fd49019",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 18912790,
+                              "id": "Q18912790"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bc42a64f677716b6063574735dc4f3e0b47e833b",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-04-13T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P248",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P856": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P856",
+                  "hash": "50f3731271e4642b9fc4b24385b7e27b6de7027b",
+                  "datavalue": {
+                    "value": "https://thelysonorelien.com/",
+                    "type": "string"
+                  },
+                  "datatype": "url"
+                },
+                "type": "statement",
+                "id": "Q3526284$b29fb3b9-467e-7df4-1c81-21f89040ad73",
+                "rank": "normal"
+              }
+            ],
+            "P3280": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P3280",
+                  "hash": "f970185fe2c8051ed91c3eac753b2e1b6461907f",
+                  "datavalue": {
+                    "value": "0001687176",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "q3526284$9ebf5922-4593-2348-f701-5e3ef5b0d8d4",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "4c678058c1258cb6753780cb3c8568856c30194e",
+                    "snaks": {
+                      "P248": [
+                        {
+                          "snaktype": "value",
+                          "property": "P248",
+                          "hash": "6b7d4330c4aac4caec4ede9de0311ce273f88ecd",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 54919,
+                              "id": "Q54919"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P214": [
+                        {
+                          "snaktype": "value",
+                          "property": "P214",
+                          "hash": "fb9af06b5b068fb6fcb688e63f4b1bf76fc171f4",
+                          "datavalue": {
+                            "value": "41155707095722412471",
+                            "type": "string"
+                          },
+                          "datatype": "external-id"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bd5274dfa0cf8458cfbe5cfbfb368f7475c9fe6a",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-07-31T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P248",
+                      "P214",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P8179": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P8179",
+                  "hash": "0b134d173873ac5ac5b011159a9b6c3f6687839b",
+                  "datavalue": {
+                    "value": "ncf13836691",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "q3526284$0568af96-4ef5-b259-169b-9e3d440038b2",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "4c678058c1258cb6753780cb3c8568856c30194e",
+                    "snaks": {
+                      "P248": [
+                        {
+                          "snaktype": "value",
+                          "property": "P248",
+                          "hash": "6b7d4330c4aac4caec4ede9de0311ce273f88ecd",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 54919,
+                              "id": "Q54919"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P214": [
+                        {
+                          "snaktype": "value",
+                          "property": "P214",
+                          "hash": "fb9af06b5b068fb6fcb688e63f4b1bf76fc171f4",
+                          "datavalue": {
+                            "value": "41155707095722412471",
+                            "type": "string"
+                          },
+                          "datatype": "external-id"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bd5274dfa0cf8458cfbe5cfbfb368f7475c9fe6a",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-07-31T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P248",
+                      "P214",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P213": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P213",
+                  "hash": "28a8440188d207eb96e7867695d683198d1933b3",
+                  "datavalue": {
+                    "value": "000000047479611X",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "q3526284$fe44dc0b-4d72-f986-15aa-eaf11dcdbbf7",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "4c678058c1258cb6753780cb3c8568856c30194e",
+                    "snaks": {
+                      "P248": [
+                        {
+                          "snaktype": "value",
+                          "property": "P248",
+                          "hash": "6b7d4330c4aac4caec4ede9de0311ce273f88ecd",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 54919,
+                              "id": "Q54919"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P214": [
+                        {
+                          "snaktype": "value",
+                          "property": "P214",
+                          "hash": "fb9af06b5b068fb6fcb688e63f4b1bf76fc171f4",
+                          "datavalue": {
+                            "value": "41155707095722412471",
+                            "type": "string"
+                          },
+                          "datatype": "external-id"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bd5274dfa0cf8458cfbe5cfbfb368f7475c9fe6a",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-07-31T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P248",
+                      "P214",
+                      "P813"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P166": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P166",
+                  "hash": "d3e15ebcaf42df13a9f7835ea2656b7cb0694f84",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 122145980,
+                      "id": "Q122145980"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$79ce9b0d-4b5f-842f-05cd-fad2422f43e1",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "9587661a6b3eb006b9833a355fcc64b1920df342",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "98c3e2d91fb367f539ff7c035f397c5e8bd3d1d8",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133005/prix-litteraires/thelyson-orelien-remporte-le-prix-meduse-2026-avec-c-etait-ca-ou-mourir",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ],
+                      "P1476": [
+                        {
+                          "snaktype": "value",
+                          "property": "P1476",
+                          "hash": "c991e9cd27f5fb5c39695d07813c01775d003281",
+                          "datavalue": {
+                            "value": {
+                              "text": "Thélyson Orélien remporte le Prix Méduse 2026 avec C’était ça ou mourir",
+                              "language": "fr"
+                            },
+                            "type": "monolingualtext"
+                          },
+                          "datatype": "monolingualtext"
+                        }
+                      ],
+                      "P407": [
+                        {
+                          "snaktype": "value",
+                          "property": "P407",
+                          "hash": "d197d0a5efa4b4c23a302a829dd3ef43684fe002",
+                          "datavalue": {
+                            "value": {
+                              "entity-type": "item",
+                              "numeric-id": 150,
+                              "id": "Q150"
+                            },
+                            "type": "wikibase-entityid"
+                          },
+                          "datatype": "wikibase-item"
+                        }
+                      ],
+                      "P813": [
+                        {
+                          "snaktype": "value",
+                          "property": "P813",
+                          "hash": "bd5274dfa0cf8458cfbe5cfbfb368f7475c9fe6a",
+                          "datavalue": {
+                            "value": {
+                              "time": "+2026-07-31T00:00:00Z",
+                              "timezone": 0,
+                              "before": 0,
+                              "after": 0,
+                              "precision": 11,
+                              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                            },
+                            "type": "time"
+                          },
+                          "datatype": "time"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854",
+                      "P1476",
+                      "P407",
+                      "P813"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P166",
+                  "hash": "43e9b0d6678f8fc1c8c1ebe14fbfc0a83fa554a3",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 114239773,
+                      "id": "Q114239773"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$d1f67ec9-4a5b-50cf-7754-265fd469ce8c",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "5f2c7f650f31bb60b63e477df2545fa8128e1cc1",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "28f0584cd3728327f3928a15605b12e5f8edacf5",
+                          "datavalue": {
+                            "value": "https://www.lavoixdunord.fr/instant/1733228/article/2026-08-31/thelyson-orelien-remporte-le-prix-premiere-plume-2026",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  },
+                  {
+                    "hash": "dcf761705a23849989695950cf8746476bbb52d8",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "65b74cd98ea57507c585fc9331f864167d8d437b",
+                          "datavalue": {
+                            "value": "https://www.decitre.fr/rentree-litteraire.html",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P166",
+                  "hash": "9c7b2552a2b73f1945e9dccdbfc94e3a8f5a8ffb",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 140306930,
+                      "id": "Q140306930"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$93f96ae7-48da-efd1-8112-67015b8f9061",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "4c4dc5b09f56a0ec6be8c43139f1b9d29317b5ef",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "f83da8452fe4a19a37cc6d76a599943e92bc1dfd",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133505/prix-litteraires/les-nouveaux-prix-strasbourg-presentent-leur-premier-palmares",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  },
+                  {
+                    "hash": "e99a54678e541d22761414d9b85a975ad9ce2f5e",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "19ef87be1e1a5cd212f58c44fbf3db3b9b659441",
+                          "datavalue": {
+                            "value": "https://www.livreshebdo.fr/article/le-palmares-des-prix-strasbourg-2026",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P166",
+                  "hash": "910cdc354aa57a85460aa75b8ade1a4e4c173a58",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 952687,
+                      "id": "Q952687"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$8acb60df-419d-41a0-4ed9-2a6d615027f3",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "d3f3999719fd47c0f5e751a0ecef78c9df4a5a12",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "80ac452ef29b470fa5bf7a0705046ef6f548388b",
+                          "datavalue": {
+                            "value": "https://ici.radio-canada.ca/nouvelle/2285703/thelyson-orelien-prix-fnac-france",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P1411": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "3955272914c9ae071b384275dcf5b9012ec0b515",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 131070491,
+                      "id": "Q131070491"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$e00f37d5-445c-2636-e895-b938b6f1fb23",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "4c4dc5b09f56a0ec6be8c43139f1b9d29317b5ef",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "f83da8452fe4a19a37cc6d76a599943e92bc1dfd",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133505/prix-litteraires/les-nouveaux-prix-strasbourg-presentent-leur-premier-palmares",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "bb60a7ecd7e866e7215406a0bc1125f93761fa1d",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 952687,
+                      "id": "Q952687"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$ca4fa0a5-4658-f053-bd0f-6a739598c972",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "0afd1ef3967c40e804c2abdf07e415be216f2d29",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "f9c0493a2a913b7c52dddfb6bc3f40165d4a868d",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133542/prix-litteraires/5-titres-finalistes-pour-le-25e-prix-du-roman-fnac",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "a92350943b13ed63c575154f8929f3c46f980a83",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 187300,
+                      "id": "Q187300"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$65e41f29-4a2f-79c4-f075-7e7bb71b3604",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "741344b30ff41b4469d16c711cc4ea409b0f7640",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "ea71a55ef9ce3a801ea8a0eb2ec391a7c658b5e5",
+                          "datavalue": {
+                            "value": "https://www.livreshebdo.fr/article/prix-goncourt-2026-la-premiere-selection-devoilee",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "19e717abe135440f9efcd4a6e9b9532ea363ba03",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 1680241,
+                      "id": "Q1680241"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$8df1d836-48df-6118-8964-fbbf1a9a24b2",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "c46104860c0811c4ff3f2020fe498cc45f09ceb2",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "0a1ff4200b5b0b3a4d6fc87af14088f221ccf47c",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133627/prix-litteraires/prix-decembre-2026-10-livres-dans-la-premiere-selection",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "799574991243220a552c30a109aa1edf1b3cf0fb",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 755723,
+                      "id": "Q755723"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$ac6e9440-4b4e-7682-e8f5-bb74a5d8faa5",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "7315a2d1ae1e1542557be56da737f030afe0c928",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "523dfd0f97fadbcbffea8699fb7cd68a48cfa118",
+                          "datavalue": {
+                            "value": "https://www.livreshebdo.fr/article/la-premiere-selection-du-prix-renaudot-2026",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "ecc78b7a49aba91579608ceb4a9cd4f773a0d40b",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 21711286,
+                      "id": "Q21711286"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$e64a92bc-4617-7e74-c7d7-1e1af39a51ff",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "7fe63e540f61e2bf3e25d573763d90f8e67ae0f4",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "65444dc593502228be6b7bb35e66e3ff27bab1dd",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133685/prix-litteraires/prix-renaudot-des-lyceens-2026-cinq-romans-pour-400-jures",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "a9d353250f186aaa91f3391e3ef843d776623a5d",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 136674082,
+                      "id": "Q136674082"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$4a3b9a4f-4a0b-2bcb-8a6a-3fb309cbb685",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "e8e45642aa2541f37332fec308d9aa37e1b96635",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "dee76f36614cabb7b2f9fb7db96e5500896cdb22",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133678/prix-litteraires/prix-du-premier-roman-2026-la-premiere-selection-devoilee",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "e0bc58c6acad52d394ce1be89ef4cba5d976aa84",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 130755846,
+                      "id": "Q130755846"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$463ffc9e-4fac-da84-6d92-58a461dcc11b",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "10926a4b806d9c659d195cc1ed8765b86cc2c596",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "bc7623cb65c2551517c04d989f5caa43fe33144b",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133672/prix-litteraires/prix-andre-malraux-2026-16-livres-dans-la-premiere-selection",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "ac4d9e4af273810c1d036f9b0f95e4eab5601bf6",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 73783037,
+                      "id": "Q73783037"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$7d636b9f-4b38-da30-6588-e13da53f760a",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "9682ff1c869c2dd119663fac856b2a6c8c2fe367",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "d68e625f1022547faa3e1b824c8f45b44f319209",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133767/prix-litteraires/prix-femina-2026-les-premieres-selections-33-romans-en-lice",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "70ce3a359aae538034de868f61d436a9f3ab9abc",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 29048103,
+                      "id": "Q29048103"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$9955d186-4b9d-87e1-6a38-2d4b41ad085a",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "9682ff1c869c2dd119663fac856b2a6c8c2fe367",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "d68e625f1022547faa3e1b824c8f45b44f319209",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133767/prix-litteraires/prix-femina-2026-les-premieres-selections-33-romans-en-lice",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "d4e3e1ee2bc61cb7ed89252ed6a44ad17a2724dd",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 141446145,
+                      "id": "Q141446145"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$a8ca86d4-4e9b-eed9-38b9-291583625903",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "744452ab4ec789a0051376f38dcf1d0d74ace72d",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "3842abba3c605eb81026dbe1794722acc0fd50da",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133755/prix-litteraires/a-bayonne-la-rue-en-pente-lance-son-propre-prix-litteraire",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              },
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P1411",
+                  "hash": "54b935b242e95c2b5300b9b793614b4925b7c334",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 58352,
+                      "id": "Q58352"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                },
+                "type": "statement",
+                "qualifiers": {
+                  "P585": [
+                    {
+                      "snaktype": "value",
+                      "property": "P585",
+                      "hash": "bd4e608fca97bfd620514f81e735833b9d96e34d",
+                      "datavalue": {
+                        "value": {
+                          "time": "+2026-00-00T00:00:00Z",
+                          "timezone": 0,
+                          "before": 0,
+                          "after": 0,
+                          "precision": 9,
+                          "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                        },
+                        "type": "time"
+                      },
+                      "datatype": "time"
+                    }
+                  ]
+                },
+                "qualifiers-order": [
+                  "P585"
+                ],
+                "id": "Q3526284$c3fd09a8-440f-5d7b-8ed5-0c259d209e6e",
+                "rank": "normal",
+                "references": [
+                  {
+                    "hash": "c69c7a9b5719eb274f2d6f13b98634cb767aa930",
+                    "snaks": {
+                      "P854": [
+                        {
+                          "snaktype": "value",
+                          "property": "P854",
+                          "hash": "b65b6d78c349c4df9e48948a0a310e156c6aef3f",
+                          "datavalue": {
+                            "value": "https://actualitte.com/article/133843/prix-litteraires/prix-medicis-2026-35-livres-retenus-aucun-gallimard-cote-francais",
+                            "type": "string"
+                          },
+                          "datatype": "url"
+                        }
+                      ]
+                    },
+                    "snaks-order": [
+                      "P854"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "P268": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P268",
+                  "hash": "8e6b27568f4c2876fc8d61a4b2b091b586e458d6",
+                  "datavalue": {
+                    "value": "165419352",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$36370CD3-3396-47AD-8E7E-EAD9149A69DE",
+                "rank": "normal"
+              }
+            ],
+            "P269": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P269",
+                  "hash": "ddad070bcf0cc0ef75f54fd0cfbe18707f9cf9e9",
+                  "datavalue": {
+                    "value": "298427494",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$5113dc82-4f01-b816-a94b-7168f9f6b0d2",
+                "rank": "normal"
+              }
+            ],
+            "P345": [
+              {
+                "mainsnak": {
+                  "snaktype": "value",
+                  "property": "P345",
+                  "hash": "c3faa58536374bebf7bb747bc7e8c3934c413d93",
+                  "datavalue": {
+                    "value": "nm18889641",
+                    "type": "string"
+                  },
+                  "datatype": "external-id"
+                },
+                "type": "statement",
+                "id": "Q3526284$bd0ffa50-48d9-168a-f1bd-da52f290cd91",
+                "rank": "normal"
+              }
+            ]
+          },
+          "sitelinks": {
+            "frwiki": {
+              "site": "frwiki",
+              "title": "Thélyson Orélien",
+              "badges": [],
+              "url": "https://fr.wikipedia.org/wiki/Th%C3%A9lyson_Or%C3%A9lien"
+            },
+            "htwiki": {
+              "site": "htwiki",
+              "title": "Thélyson Orélien",
+              "badges": [],
+              "url": "https://ht.wikipedia.org/wiki/Th%C3%A9lyson_Or%C3%A9lien"
+            },
+            "commonswiki": {
+              "site": "commonswiki",
+              "title": "Category:Thélyson Orélien",
+              "badges": [],
+              "url": "https://commons.wikimedia.org/wiki/Category:Th%C3%A9lyson_Or%C3%A9lien"
+            },
+            "dewiki": {
+              "site": "dewiki",
+              "title": "Thélyson Orélien",
+              "badges": [],
+              "url": "https://de.wikipedia.org/wiki/Th%C3%A9lyson_Or%C3%A9lien"
+            },
+            "enwiki": {
+              "site": "enwiki",
+              "title": "Thélyson Orélien",
+              "badges": [],
+              "url": "https://en.wikipedia.org/wiki/Th%C3%A9lyson_Or%C3%A9lien"
+            }
+          }
+        }
+      }
     }
   },
   "authors": {
@@ -138509,6 +140789,11 @@
     "caza": {
       "page_id": 7798348,
       "page_title": "La caza de la codorniz",
+      "works": {}
+    },
+    "thelyson orelien": {
+      "page_id": 4709141,
+      "page_title": "Thélyson Orélien",
       "works": {}
     }
   }

@@ -95,7 +95,7 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 ##### Points d’exclamation par phrase (exclamation_ratio) #web
 [Nombre de points d’exclamation](#exclamation_point_count) divisé par le [nombre de phrases](#sentence_count).
 
-##### Points d’interrogation par phrase (question_mark_ratio) #web
+##### Points d’interrogation pour phrase (question_mark_ratio) #web
 [Nombre de points d’interrogation](#question_mark_count) divisé par le [nombre de phrases](#sentence_count).
 
 ##### Points de suspension par phrase (ellipsis_ratio) #web
