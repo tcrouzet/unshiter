@@ -120,7 +120,7 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 
 
 ##### Burstiness (burstiness_ratio) #web
-[Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count). Plus ce score est élevé, plus le rythme est monotomne.
+Un moins le [Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count), soit `1 − (burstiness_count / sentence_count)`. Plus ce score est bas, plus le rythme est monotone.
 
 ##### **Diversité syntaxique** / Régularité syntaxique (structural_diversity)
 Chaque phrase est d’abord transformée en propositions simplifiées, par exemple `SUJET VERBE COMPLÉMENT` ou `PROPOSITION_SUBORDONNÉE`. Les déterminants et prépositions n'ont pas de rôles. Les virgules et les points sont conservés dans les propositions ordinaires. Les répétitions internes sont comptées : une phrase peut ainsi devenir `SUJET VERBE COMPLÉMENT + 5 PROPOSITIONS_SUBORDONNÉES`.

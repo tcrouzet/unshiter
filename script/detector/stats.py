@@ -510,7 +510,7 @@ class Metrics:
         _counts, runs = detect_bursts(self.burstiness_sentences)
         return sum(run.length for run in runs)
     def burstiness_ratio(self):
-        return self.burstiness_count() / self.sentence_count() if self.sentence_count() else 0
+        return 1 - self.burstiness_count() / self.sentence_count() if self.sentence_count() else 0
     def burstiness(self):
         return (sum(abs(b-a) for a,b in zip(self.sentence_word_lengths,self.sentence_word_lengths[1:]))/(len(self.sentence_word_lengths)-1)/self.avg_sentence_length()) if len(self.sentence_word_lengths)>1 and self.avg_sentence_length() else 0
     def gzip_compression_ratio(self): return self.gzip_byte_count()/self.utf8_byte_count() if self.utf8_byte_count() else 0

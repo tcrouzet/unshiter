@@ -95,7 +95,8 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             "quote_mark_ratio": "quote_mark_count",
         }.items():
             if count in values:
-                values[ratio] = values[count] / sentence_count
+                derived = values[count] / sentence_count
+                values[ratio] = 1 - derived if ratio == "burstiness_ratio" else derived
         if "temporal_connector_count" in values:
             values["temporal_connector_ratio"] = values["temporal_connector_count"] / sentence_count * 100
     if word_count:

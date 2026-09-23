@@ -70,7 +70,9 @@ class MetricsTests(unittest.TestCase):
 
     def test_burstiness_count_matches_colored_html_sentences(self):
         text = "Chat dort. Paul court. Jean marche. Cette phrase est volontairement beaucoup plus longue que les précédentes."
-        self.assertEqual(Metrics(text).burstiness_count(), build_burstiness_html(text).count('class="burst"'))
+        metrics = Metrics(text)
+        self.assertEqual(metrics.burstiness_count(), build_burstiness_html(text).count('class="burst"'))
+        self.assertAlmostEqual(metrics.burstiness_ratio(), 1 - metrics.burstiness_count() / metrics.sentence_count())
 
     def test_punctuation_total_is_the_sum_of_detailed_counts(self):
         metrics = Metrics('. , : ; ! ? … - – — () « » “ ” "')
