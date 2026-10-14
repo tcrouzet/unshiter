@@ -128,7 +128,7 @@ Score qui agrège l’usage des [subjonctifs imparfaits ou plus-que-parfaits](#l
 
 <a id="baroque_score"></a>
 ##### **Maximaliste** / Minimaliste (baroque_score)
-Score composite : proche de 0, minimalisme ; proche de 100, maximalisme. Il combine l'[enrichissement des groupes nominaux](#heavily_modified_noun_ratio), les [comparaisons](#metaphorical_comme_ratio), les [chaînes adjectivales](#adjective_chain_ratio), la [distance de répétition des débuts de phrase](#sentence_start_recurrence_distance), la [profondeur d'expansion en fin de phrase](#right_branching_depth), la [densité d'incises](#incise_density) et l'[accumulation de coordinations](#coordination_accumulation_ratio). La longueur moyenne des phrases reste une mesure indépendante afin de ne pas renforcer une seconde fois la complexité syntaxique.
+Score composite : proche de 0, minimalisme ; proche de 100, maximalisme. Il combine l'[enrichissement des groupes nominaux](#heavily_modified_noun_ratio), les [comparaisons](#metaphorical_comme_ratio), les [chaînes adjectivales](#adjective_chain_ratio), la [distance de répétition des débuts de phrase](#sentence_start_recurrence_distance), la [profondeur d'expansion en fin de phrase](#right_branching_depth) et l'[accumulation de coordinations](#coordination_accumulation_ratio). La longueur moyenne des phrases reste une mesure indépendante afin de ne pas renforcer une seconde fois la complexité syntaxique.
 
 **Limite :** plusieurs composantes sont sensibles à la qualité de l'analyse syntaxique et à la segmentation des phrases. Une prose générée artificiellement peut empiler des expansions ou espacer mécaniquement ses patrons sans réelle cohérence rhétorique — un pastiche peut ainsi obtenir un score élevé sans être « maximaliste » au sens littéraire du terme.
 
@@ -194,6 +194,10 @@ Tentent de capturer les diverses caractéristiques d'un texte.
 
 #### Ponctuation
 
+<a id="punctuation_mark_count"></a>
+##### Signes de ponctuation (punctuation_mark_count)
+Somme des nombres de [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count).
+
 <a id="punctuation_ratio"></a>
 ##### **Densité de ponctuations** / Sparsité de ponctuations (punctuation_ratio)
 [Nombre total de signes de ponctuation](#punctuation_mark_count) divisé par le [nombre de mots](#word_count).
@@ -210,33 +214,49 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 ##### Virgules par phrase (comma_ratio)
 [Nombre de virgules](#comma_count) divisé par le [nombre de phrases](#sentence_count).
 
+> Virgule(s): y pour x phrase(s). | Pas de virgule.
+
 <a id="colon_ratio"></a>
 ##### Deux-points par phrase (colon_ratio)
 [Nombre de deux-points](#colon_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Deux-point(s): y pour x phrase(s). | Pas de deux-points.
 
 <a id="semicolons_ratio"></a>
 ##### Points-virgules par phrase (semicolons_ratio)
 [Nombre de points-virgules](#semicolons_count) divisé par le [nombre de phrases](#sentence_count).
 
+> Point(s)-virgule(s): y pour x phrase(s). | Pas de points-virgules.
+
 <a id="exclamation_ratio"></a>
 ##### Points d’exclamation par phrase (exclamation_ratio)
 [Nombre de points d’exclamation](#exclamation_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Point(s) d'exclamation: y pour x phrase(s). | Pas de points d'exclamation.
 
 <a id="question_mark_ratio"></a>
 ##### Points d’interrogation par phrase (question_mark_ratio)
 [Nombre de points d’interrogation](#question_mark_count) divisé par le [nombre de phrases](#sentence_count).
 
+> Point(s) d'interrogation: y pour x phrase(s). | Pas de point d'interrogation.
+
 <a id="ellipsis_ratio"></a>
 ##### Points de suspension par phrase (ellipsis_ratio)
 [Nombre de points de suspension](#suspention_point_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Point(s) de suspension: y pour x phrase(s). | Pas de point de suspension.
 
 <a id="dash_ratio"></a>
 ##### Tirets par phrase (dash_ratio)
 [Nombre de tirets](#dash_count) divisé par le [nombre de phrases](#sentence_count).
 
+> Tiret(s) d'incise: y pour x phrase(s). | Pas de tiret d'incise.
+
 <a id="parenthesis_ratio"></a>
 ##### Parenthèses par phrase (parenthesis_ratio)
 [Nombre de parenthèses](#parenthesis_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Parenthèse(s): y pour x phrase(s). | Pas de parenhèses.
 
 <a id="quote_mark_ratio"></a>
 ##### Guillemets par phrase (quote_mark_ratio)
@@ -246,10 +266,6 @@ Somme du [nombre de points-virgules](#semicolons_count), du [nombre de deux-poin
 
 #### Syntaxe et grammaire
 
-
-<a id="burstiness_ratio"></a>
-##### Burstiness (burstiness_ratio)
-Un moins le [Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count), soit `1 − (burstiness_count / sentence_count)`. Plus ce score est bas, plus le rythme est monotone.
 
 <a id="structural_diversity"></a>
 ##### **Diversité syntaxique** / Régularité syntaxique (structural_diversity)
@@ -275,7 +291,7 @@ Compare chaque structure de phrase à la suivante dans l’ordre du texte. La di
 
 <a id="noun_verb_ratio"></a>
 ##### Style nominal / **Style verbal** (noun_verb_ratio)
-[Nombre de noms communs](#common_noun_count) et de [noms propres](#proper_noun_count), divisé par le [nombre de verbes du profil grammatical](#grammatical_verb_count). Une valeur de 2 indique deux noms pour un verbe.
+[Nombre de noms communs](#common_noun_count) et de [noms propres](#proper_noun_count), divisé par le [nombre de verbes finis](#grammatical_verb_count). Une valeur de 2 indique deux noms pour un verbe.
 
 Un ratio élevé traduit un style nominal : le texte s'appuie sur des substantifs plutôt que sur des actions, souvent au prix d'une syntaxe plus statique — descriptions, énumérations, écriture administrative ou théorique, phrases qui exposent plutôt qu'elles ne racontent. À l'inverse, un ratio bas traduit un style verbal : le texte progresse par l'action, les procès, les enchaînements d'événements — un rythme plus narratif et dynamique, où les choses se passent plutôt qu'elles ne sont.
 
@@ -287,31 +303,70 @@ Une valeur élevée signifie que le texte s'appuie beaucoup sur le matériel gra
 
 <a id="noun_ratio"></a>
 ##### Densité des noms / Sparcité des noms (noun_ratio)
-Somme des [noms communs](#common_noun_count) et [noms propres](#proper_noun_count), divisée par le [total du profil grammatical](#grammatical_token_count).
+Somme des [noms communs](#common_noun_count) et [noms propres](#proper_noun_count), divisée par le [nombre de mots](#word_count).
+
+> Noms: y pour x mots.
+
+<a id="common_noun_ratio"></a>
+##### Part de noms communs (common_noun_ratio)
+Part des [noms communs](#common_noun_count) / [nombre de mots](#word_count).
+
+> Noms communs: y pour x mots.
+
+<a id="proper_noun_ratio"></a>
+##### Part des noms propres (proper_noun_ratio)
+Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
+
+> Noms propres: y pour x mots.
+
+<a id="abstract_noun_ratio"></a>
+##### Noms abstraits (abstract_noun_ratio)
+[Nombre de noms abstraits](#abstract_noun_count) / [nombre de mots](#word_count).
+
+> Noms abstraits: y pour x mots.
+
+<a id="concrete_noun_ratio"></a>
+##### Noms concrets (concrete_noun_ratio)
+[Nombre de noms concrets](#concrate_noun_count) / [nombre de mots](#word_count).
+
+> Noms concrets: y sur x mots.
+
 
 <a id="verb_ratio"></a>
 ##### Densité des Verbes / Sparcité des verbes (verb_ratio)
-[Nombre de verbes du profil grammatical](#grammatical_verb_count) divisé par le [total du profil grammatical](#grammatical_token_count).
+[Nombre de verbes finis](#grammatical_verb_count) divisé par le [nombre de mots](#word_count).
+
+> Verbes: y pour x mots.
 
 <a id="adjective_ratio"></a>
 ##### Densité des adjectifs / Sparcité des adjectifs (adjective_ratio)
-[Nombre d’adjectifs](#adjective_count) divisé par le [total du profil grammatical](#grammatical_token_count).
+[Nombre d’adjectifs](#adjective_count) divisé par le [nombre de mots](#word_count).
+
+> Adjectifs: y pour x mots.
 
 <a id="adverb_ratio"></a>
 ##### Densité des adverbes / Sparcité des adverbes (adverb_ratio)
-[Nombre d’adverbes](#adverb_count) divisé par le [total du profil grammatical](#grammatical_token_count).
+[Nombre d’adverbes](#adverb_count) divisé par le [nombre de mots](#word_count).
+
+> Adverbes: y pour x mots.
 
 <a id="relative_clause_ratio"></a>
 ##### **Densité de relatives** / Sparcité de relatives (relative_clause_ratio)
 Nombre de dépendances de proposition relative (`acl:relcl`) reconnues par spaCy, divisé par le [nombre de phrases](#sentence_count). Une phrase peut contenir plusieurs relatives, la valeur peut donc dépasser 100 %. Les autres subordonnées sont mesurées séparément par `subordinate_clause_ratio`.
 
+> Relatives: y pour x phrase(s).
+
 <a id="nominal_sentence_ratio"></a>
 ##### Densité de phrases nominales / Sparcité de phrases nominales (nominal_sentence_ratio)
 Part des [phrases nominales](#nominal_sentence_count) / [nombre de phrases](#sentence_count). Les infinitifs et participes isolés ne suffisent pas à rendre la phrase verbale. La mesure repère notamment des ruptures comme « Un cauchemar. Encore un. ».
 
+> Phrases nominales: y pour x phrase(s).
+
 <a id="active_voice_ratio"></a>
 ##### **Densité de voix active** / Densité de voix passive (active_voice_ratio)
 [Nombre de phrases actives](#active_sentence_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Voix actives: y pour x phrase(s).
 
 <a id="average_syntactic_depth"></a>
 ##### **Complexité syntaxique** / Minimalisme syntaxique (average_syntactic_depth)
@@ -327,13 +382,7 @@ Part des signatures syntaxiques de phrases déjà rencontrées dans le texte.
 ##### Densité de subordonnées (subordinate_clause_ratio)
 [Nombre de propositions subordonnées](#subordinate_clause_count) divisé par le [nombre de phrases](#sentence_count). Une phrase contenant plusieurs subordonnées contribue plusieurs fois au numérateur ; la valeur peut donc dépasser 100 %.
 
-<a id="common_noun_ratio"></a>
-##### Part de noms communs (common_noun_ratio)
-Part des [noms communs](#common_noun_count) / [nombre de mots](#word_count).
-
-<a id="proper_noun_ratio"></a>
-##### Part des noms propres (proper_noun_ratio)
-Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
+> Subordonnées: y pour x phrase(s).
 
 <a id="avg_modifiers_per_noun"></a>
 ##### **Modificateurs par nom** (avg_modifiers_per_noun)
@@ -351,10 +400,6 @@ Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
 ##### **Longueur des chaînes adjectivales** (avg_adjective_chain_length)
 [Nombre d’adjectifs appartenant aux chaînes](#adjective_in_chain_count) divisé par le [nombre de chaînes adjectivales](#adjective_chain_count).
 
-<a id="incise_density"></a>
-##### Densité d'incises (incise_density)
-[Nombre de phrases contenant une incise](#incise_count) divisé par le [nombre de phrases](#sentence_count).
-
 <a id="coordination_accumulation_ratio"></a>
 ##### Taux d'accumulation coordonnée (coordination_accumulation_ratio)
 [Nombre de phrases contenant une accumulation coordonnée](#coordination_accumulation_count) divisé par le [nombre de phrases](#sentence_count).
@@ -363,6 +408,11 @@ Part des [noms propres](#proper_noun_count) / [nombre de mots](#word_count).
 ##### Profondeur d'expansion finale (right_branching_depth)
 Pour chaque phrase, le dernier mot non ponctué est repéré, puis le programme compte le nombre de liens de dépendance syntaxique à remonter pour atteindre la racine de la phrase. Le résultat est la moyenne de ces nombres sur toutes les phrases. Son unité est donc le **nombre moyen de liens syntaxiques**, et non un pourcentage. Par exemple, si le dernier mot dépend directement du verbe principal, sa profondeur vaut 1 ; s’il dépend d’un mot qui dépend lui-même du verbe principal, elle vaut 2. Une valeur élevée indique que les fins de phrase sont souvent intégrées à des constructions syntaxiques emboîtées.
 
+<a id="incise_ratio"></a>
+##### Incises grammaticales (incise_ratio)
+[Nombre de phrases contenant au moins une insertion qui interrompt la construction principale](#incise_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Incises grammaticale qui rompent le rythme: y pour x phrase(s).
 
 
 #### Lexique et répétitions
@@ -429,6 +479,16 @@ Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un v
 
 #### Rythme, longueurs et lisibilité
 
+<a id="burstiness_ratio"></a>
+##### Burstiness (burstiness_ratio)
+Un moins le [Burstiness brut](#burstiness_count) divisé par le [nombre de phrases](#sentence_count), soit `1 − (burstiness_count / sentence_count)`. Plus ce score est bas, plus le rythme est monotone.
+
+<a id="burstiness_word"></a>
+##### Burstiness en mots (burstiness_word)
+[Diversité locale](#burstiness) multipliée par la [longueur moyenne des phrases](#avg_sentence_length).
+
+> Différence moyenne de longueur entre phrase consécutives: x mot(s).
+
 <a id="burstiness"></a>
 ##### **Diversité locale de longueur de phrase** / Uniformité locale de longueur de phrase (burstiness)
 Moyenne des différences absolues de longueur en mots entre chaque paire de phrases consécutives, divisée par la longueur moyenne des phrases. Cette normalisation rend comparables les textes aux phrases globalement courtes ou longues.
@@ -445,6 +505,8 @@ Somme des longueurs des mots en caractères divisée par le [nombre de mots](#wo
 ##### Longueur moyenne des phrases (mots) (avg_sentence_length)
 Somme des nombres de mots relevés phrase par phrase, divisée par le [nombre de phrases](#sentence_count).
 
+> Longueur moyenne des phrases: x mots.
+
 <a id="median_sentence_length"></a>
 ##### Longueur médiane des phrases (mots) (median_sentence_length)
 Médiane de la distribution ordonnée du nombre de mots par [phrase](#sentence_count). Cette statistique de rang ne peut pas être reconstruite à partir d’une simple somme.
@@ -453,9 +515,13 @@ Médiane de la distribution ordonnée du nombre de mots par [phrase](#sentence_c
 ##### Longueur P10 des phrases (mots) (sentence_length_p10)
 Interpolation au rang 10 % de la distribution ordonnée du nombre de mots par phrase.
 
+> Longueur moyenne des 10% des phrases les plus courtes: x mots.
+
 <a id="sentence_length_p90"></a>
 ##### Longueur P90 des phrases (mots) (sentence_length_p90)
 Interpolation au rang 90 % de la distribution ordonnée du nombre de mots par phrase.
+
+> Longueur moyenne des 10% des phrases les plus longues: x mots:
 
 <a id="paragraph_length_std_dev"></a>
 ##### Écart-type des paragraphes (paragraph_length_std_dev)
@@ -477,69 +543,115 @@ Somme des nombres de mots relevés paragraphe par paragraphe, divisée par le [n
 ##### Lisibilité de Flesch (flesch)
 Indice français calculé avec le [nombre de mots](#word_count), le [nombre de phrases](#sentence_count) et le [nombre de syllabes](#syllable_count) : `207 − 1,015 × mots/phrases − 73,6 × syllabes/mots`.
 
+
+
 #### Narration, temps et registre
 
 <a id="metaphorical_comme_ratio"></a>
 ##### Densité de métaphores / Sparcité de métaphores (metaphorical_comme_ratio)
 [Nombre de phrases contenant une comparaison](#methaphore_count) divisé par le [nombre de phrases](#sentence_count).
 
+> "comme": y pour x phrase(s). | Pas de "comme".
+
 <a id="present_participle_ratio"></a>
 ##### **Densité de participes présents** / Sparcité de participes présents (present_participle_ratio)
-[Nombre de participes présents](#present_participe_count) divisé par le [nombre de mots](#word_count).
+[Nombre de participes présents](#present_participe_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Participe(s) présent(s): y pour x phrase(s). | Pas de participe présent.
 
 <a id="past_participle_ratio"></a>
 ##### **Densité de participes passés** / Sparcité de participes passés (past_participle_ratio)
-[Nombre de participes passés](#past_participe_count) divisé par le [nombre de mots](#word_count).
+[Nombre de participes passés](#past_participe_count) divisé par le [nombre de phrases](#sentence_count).
 
-<a id="simple_past_ratio"></a>
-##### **Passé simple** / Présence du passé simple (simple_past_ratio)
-[Nombre de passés simples](#simple_past_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
+> Participe(s) passé(s): y pour x phrase(s). | Pas de participe passé.
 
 <a id="literary_subjunctive_ratio"></a>
 ##### **Subjonctif imparfait ou plus-que-parfait** / Subjonctif littéraire (literary_subjunctive_ratio)
-[Nombre de subjonctifs littéraires](#subjonctive_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
+[Nombre de subjonctifs littéraires](#subjonctive_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Subjonctif imparfait ou plus-que-parfait: y pour x phrase(s). | Pas de subjonctif imparfait ou plus-que-parfait.
 
 <a id="negation_completeness_ratio"></a>
 ##### **Négations complètes** / Négations sans « ne » (negation_completeness_ratio)
 [Nombre de négations avec « ne »](#verb_negation_count) divisé par le [nombre de négations](#negation_count).
 
+> Négations avec "ne": y sur x négations. | Toutes les négations gardent "ne".
+
+<a id="verb_present_ratio"></a>
+##### Verbes au présent (verb_present_ratio)
+[Nombre de verbes au présent](#verb_present_count) divisé par le [nombre de verbes](#verb_count).
+
+> Présent: x sur y verbe(s).
+
+<a id="verb_imp_ratio"></a>
+##### Verbes à l'imparfait (verb_imp_ratio)
+[Nombre de verbes à l'imparfait](#verb_imp_count) divisé par le [nombre de verbes](#verb_count).
+
+> Imparfait: x sur y verbe(s).
+
+<a id="verb_fut_ratio"></a>
+##### Verbes au futur (verb_fut_ratio)
+[Nombre de verbes au futur](#verb_fut_count) divisé par le [nombre de verbes](#verb_count).
+
+> Futur: x sur y verbe(s).
+
+<a id="simple_past_ratio"></a>
+##### Verbes au passé simple (simple_past_ratio)
+[Nombre de verbes au passé simple](#simple_past_count) divisé par le [nombre de verbes](#verb_count).
+
+> Passé simple: x sur y verbe(s). | Pas de passé simple.
+
+<a id="passe_compose_ratio"></a>
+##### Verbes au passé composé (passe_compose_ratio)
+[Nombre de verbes au passé composé](#passe_compose_count) divisé par le [nombre de verbes](#verb_count).
+
+> Passé composé: x sur y verbe(s).
+
+
 <a id="periphrastic_future_ratio"></a>
 ##### **Futur périphrastique** / Futur simple (periphrastic_future_ratio)
-[Nombre de futurs périphrastiques](#va_count) divisé par la somme des [futurs périphrastiques](#va_count) et des [futurs simples](#future_count).
+[Nombre de futurs périphrastiques](#va_count) divisé par de [nombre de verbes](#verb_count).
+
+> "aller + infinitif": y pour x verbe(s).| Pas de "aller +infinitif".
 
 <a id="oral_familiarity_ratio"></a>
 ##### **Familiarité orale** / Registre soutenu (oral_familiarity_ratio)
 [Nombre de marqueurs de familiarité orale](#familiarity_marker_count) rapporté au [nombre de mots](#word_count), pour 100 mots.
 
+> Familiarité orale: y pour x mot(s). | Quasiement pas de familiarité orale.
+
 <a id="action_verb_ratio"></a>
 ##### **Verbes d’action** (action_verb_ratio)
-[Nombre de verbes d’action](#active_verb_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
+[Nombre de verbes d’action](#active_verb_count) divisé par le [nombre de verbes](#verb_count).
 
-<a id="temporal_connector_ratio"></a>
-##### **Connecteurs temporels** (temporal_connector_ratio)
-[Nombre de connecteurs temporels](#temporal_connector_count) rapporté au [nombre de phrases](#sentence_count), pour 100 phrases.
+> Verbes d'action: y pour x verbe(s).
 
 <a id="personal_subject_ratio"></a>
-##### **Sujets personnels** (personal_subject_ratio)
-[Nombre de sujets personnels](#personal_subject_count) divisé par le [nombre de sujets classables](#classifiable_subject_count).
+##### **Sujets personnels** / Sujets impersonnels (personal_subject_ratio)
+[Nombre de sujets personnels](#personal_subject_count) divisé par le [nombre de sujets classables](#classifiable_subject_count). Un sujet est personnel s'il s'agit d'un nom propre, ou d'un pronom parmi je/tu/nous/vous/elle/elles/ils, ou de "il" quand il n'est pas impersonnel (pleuvoir, falloir, il y a…). Les sujets non classables (noms communs, etc.) sont exclus du calcul, au numérateur comme au dénominateur.
 
-<!-- Note conservée pour référence historique : la mesure n’est plus calculée ni exposée. -->
+> Sujets personnels (je, tu, nous, vous, il/elle, ils/elles, noms propres): y sur x sujets identifiables.
+
+
+<a id="first_person_subject_ratio"></a>
+##### Narration à la première personne (first_person_subject_ratio)
+[Nombre de phrases à la première personne](#first_person_subject_count) divisé par le [nombre de phrases](#sentence_count).
+
+> Première personne: y pour x phrase(s). | Pas de phrase à la première personne.
 
 <a id="narrative_past_ratio"></a>
 ##### **Passé narratif** (narrative_past_ratio)
-[Nombre de verbes narratifs au passé](#narrative_past_count) divisé par le [nombre de verbes narratifs](#narrative_verb_count).
+[Nombre de verbes au passé](#narrative_past_count) divisé par le [nombre de verbes](#verb_count).
 
 <a id="dialogue_ratio"></a>
 ##### **Dialogue** (dialogue_ratio)
 [Nombre de mots en dialogue](#dialog_word_count) divisé par le [nombre de mots](#word_count).
 
+> Dialogues: x % du texte. | Pas de dialogue.
+
 <a id="proper_noun_density"></a>
 ##### Densité de noms propres (proper_noun_density)
 [Nombre de noms propres](#proper_noun_count) divisé par le [nombre de tokens lexicaux spaCy](#lexical_token_count).
-
-<a id="concrete_noun_ratio"></a>
-##### Noms concrets (concrete_noun_ratio)
-[Nombre de noms concrets](#concrate_noun_count) divisé par le [nombre de noms communs](#common_noun_count).
 
 <a id="tense_shift_rate"></a>
 ##### Taux de rupture temporelle (tense_shift_rate)
@@ -553,9 +665,14 @@ Indice français calculé avec le [nombre de mots](#word_count), le [nombre de p
 ##### **Négativité** / Positivité (negation_ratio)
 [Nombre de phrases négatives](#negative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
 
+> Phrases négatives: y pour x phrase(s).
+
 <a id="exclamative_construction_ratio"></a>
 ##### Constructions exclamatives (exclamative_construction_ratio)
 [Nombre de constructions exclamatives](#exclamative_sentence_count) divisé par le [nombre de phrases](#sentence_count).
+
+
+
 
 #### Émotions
 
@@ -570,6 +687,8 @@ Indice français calculé avec le [nombre de mots](#word_count), le [nombre de p
 <a id="intensifier_adjective_ratio"></a>
 ##### Intensificateurs devant adjectif (intensifier_adjective_ratio)
 [Nombre d’adjectifs intensifiés](#intensified_adjective_count) divisé par le [nombre d’adjectifs](#adjective_count).
+
+> Intensificateurs (très, vraiment, extrêmement…): y pour x adjectif(s). | Pas d'intensificateurs.
 
 <a id="emotion_intensification_ratio"></a>
 ##### Intensification émotionnelle (emotion_intensification_ratio)
@@ -611,15 +730,28 @@ Somme des huit comptages d’occurrences émotionnelles intensifiées — de la 
 ##### Entropie émotionnelle (emotional_category_entropy)
 Entropie de Shannon brute, en bits, calculée sur les huit comptages allant de la [joie](#joy_emotion_count) aux [manifestations somatiques](#somatic_emotion_count). Une valeur proche de 0 indique qu’un seul registre domine ; le maximum théorique de 3 bits correspond à huit registres mobilisés de façon équilibrée. La mesure est indépendante du nombre total d’occurrences.
 
+
+
 #### Discours et modalité
 
 <a id="logical_connector_ratio"></a>
 ##### Connecteurs logiques (logical_connector_ratio)
-[Nombre de connecteurs logiques ou argumentatifs](#logical_connector_count) rapporté au [nombre de phrases](#sentence_count). Les marqueurs sont définis dans `assets/dictionnaires/logical-connectors.txt`.
+[Nombre de connecteurs logiques ou argumentatifs](#logical_connector_count) rapporté au [nombre de phrases](#sentence_count).
 
-<a id="abstract_noun_ratio"></a>
-##### Noms abstraits (abstract_noun_ratio)
-[Nombre de noms abstraits](#abstract_noun_count) divisé par le [nombre de noms communs](#common_noun_count).
+> Connecteurs logiques (donc, cependant, néanmoins, ainsi…): y pour x phrase(s).
+
+<a id="temporal_connector_ratio"></a>
+##### Connecteurs temporel (temporal_connector_ratio)
+[Nombre de connecteurs temporels](#temporal_connector_count) rapporté au [nombre de phrases](#sentence_count).
+
+> Connecteurs temporels (puis, ensuite, aussitôt, soudain…): y pour x phrase(s).
+
+<a id="ternary_ratio"></a>
+### Séquences ternaires (ternary_ratio)
+[Nombre de séquences ternaires](#ternary_count) divsisé par le [nombre de phrases](#sentence_count).
+
+> Séquences ternaires : y pour x phrase(s). | Pas de séquences ternaires.
+
 
 <a id="gnomic_present_ratio"></a>
 ##### Ratio de présents gnomiques (gnomic_present_ratio)
@@ -628,6 +760,9 @@ Entropie de Shannon brute, en bits, calculée sur les huit comptages allant de l
 <a id="modal_generalization_ratio"></a>
 ##### Taux de modalité généralisante (modal_generalization_ratio)
 [Nombre de modaux généralisants](#modal_generalization_count) divisé par le [nombre total de verbes](#verb_count).
+
+
+
 
 ### Données brutes
 
@@ -733,17 +868,13 @@ Somme obtenue après parcours de tous les blocs successifs de 1 000 mots du doc
 ##### Répétitions sonores globales (global_phonetic_repetition_count)
 Même comptage phonétique sur le document entier : toute occurrence possédant un écho antérieur est comptée, quelle que soit leur distance. Ce compte est toujours supérieur ou égal au compte local.
 
-<a id="verb_count"></a>
-##### Verbes (verb_count)
-Nombre de tokens reconnus comme verbes ou auxiliaires par spaCy.
-
 <a id="grammatical_verb_count"></a>
-##### Verbes du profil grammatical (grammatical_verb_count)
-Nombre de verbes finis retenus dans le profil grammatical spaCy.
+##### Verbes finis (grammatical_verb_count)
+Nombre de verbes finis reconnus par spaCy.
 
 <a id="grammatical_token_count"></a>
-##### Total du profil grammatical (grammatical_token_count)
-Somme des noms communs, noms propres, verbes finis, adjectifs et adverbes utilisée comme dénominateur commun des quatre densités grammaticales.
+##### Mots classés comme noms, verbes, adjectifs ou adverbes (grammatical_token_count)
+Nombre de mots reconnus par spaCy comme [nom commun](#common_noun_count), [nom propre](#proper_noun_count), [verbe fini](#grammatical_verb_count), [adjectif](#adjective_count) ou [adverbe](#adverb_count).
 
 <a id="function_word_count"></a>
 ##### Mots grammaticaux (function_word_count)
@@ -777,21 +908,10 @@ Nombre de formes verbales identifiées par spaCy comme participes présents (`Ve
 ##### Participes passés (past_participe_count)
 Nombre de formes verbales identifiées par spaCy comme participes passés (`VerbForm=Part`, `Tense=Past`). Un participe étiqueté comme adjectif n’est pas compté ici.
 
-<a id="simple_past_count"></a>
-##### Passés simples (simple_past_count)
-Nombre de verbes au passé simple reconnus hors dialogues. Le filtrage des formes ambiguës exige un contexte verbal passé dans la phrase afin de limiter les faux positifs homographes du présent.
-
-<a id="va_count"></a>
-##### Futurs périphrastiques (va_count)
-Nombre de constructions au futur périphrastique reconnues dans la narration.
-
-<a id="future_count"></a>
-##### Futurs simples (future_count)
-Nombre de verbes au futur simple reconnus dans la narration.
 
 <a id="subjonctive_count"></a>
 ##### Subjonctifs (subjonctive_count)
-Nombre de subjonctifs imparfaits ou plus-que-parfaits reconnus dans la narration.
+Nombre de subjonctifs imparfaits ou plus-que-parfaits reconnus dans le document.
 
 <a id="negation_count"></a>
 ##### Négations (negation_count)
@@ -803,7 +923,7 @@ Nombre de négations complètes comportant « ne » dans la narration.
 
 <a id="dialog_word_count"></a>
 ##### Mots en dialogue (dialog_word_count)
-Nombre de mots appartenant aux paragraphes dont le premier caractère hors espaces est un tiret cadratin, un tiret demi-cadratin ou un guillemet ouvrant. Le paragraphe entier est alors considéré comme dialogué.
+Nombre de mots appartenant aux paragraphes dont le premier caractère hors espaces est un tiret cadratin, un tiret demi-cadratin. Le paragraphe entier est alors considéré comme dialogué. Impossible de ceryifier sans analyse sémantique que les guillemet français ouvrant débute un dialogue, donc pas pris en comptes.
 
 <a id="familiarity_marker_count"></a>
 ##### Marqueurs de familiarité orale (familiarity_marker_count)
@@ -825,17 +945,47 @@ Nombre de phrases contenant au moins une comparaison reconnue. Le programme dist
 ##### Noms concrets (concrate_noun_count)
 Nombre de noms communs sans suffixe de nominalisation abstraite. Les exceptions de `assets/dictionnaires/concrete-noun-exceptions.txt` sont retirées.
 
+
 <a id="active_verb_count"></a>
 ##### Verbes d’action (active_verb_count)
-Nombre de verbes narratifs qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Cette opposition lexicale ne tient pas compte du sens contextuel du verbe.
+Nombre de verbes conjugué qui ne figurent pas dans `assets/dictionnaires/stative-verbs.txt`. Cette opposition lexicale ne tient pas compte du sens contextuel du verbe.
+
+<a id="verb_count"></a>
+##### Verbes (verb_count)
+Nombre de verbes conjugués.
 
 <a id="narrative_verb_count"></a>
 ##### Verbes narratifs (narrative_verb_count)
 Nombre de verbes conjugués situés hors dialogue.
 
 <a id="narrative_past_count"></a>
-##### Verbes narratifs au passé (narrative_past_count)
-Nombre de verbes narratifs dont spaCy indique le temps morphologique `Past`.
+##### Verbes au passé (narrative_past_count)
+Nombre de verbes conjugués dont spaCy indique le temps morphologique `Past`, passé simple brut, affiné par [simple_past_count](#simple_past_count).
+
+<a id="verb_present_count"></a>
+##### Verbes au présent (verb_present_count)
+Nombre de verbes conjugués dont spaCy indique le temps morphologique `Pres`, hors auxiliaires au présent servant à construire un passé composé. Ces auxiliaires sont remplacés par leur [passé composé](#passe_compose_count) afin que les catégories temporelles ne se chevauchent pas.
+
+<a id="verb_imp_count"></a>
+##### Verbes à l'imparfaits (verb_imp_count)
+Nombre de verbes conjugués dont spaCy indique le temps morphologique `Imp`.
+
+<a id="verb_fut_count"></a>
+##### Verbes au futur (verb_fut_count)
+Nombre de verbes conjugués dont spaCy indique le temps morphologique `fut`.
+
+<a id="simple_past_count"></a>
+##### Passés simples (simple_past_count)
+Nombre de verbes au passé simple reconnus dans le document. Le filtrage des formes ambiguës exige un contexte verbal passé dans la phrase afin de limiter les faux positifs homographes du présent.
+
+<a id="passe_compose_count"></a>
+##### Passés composés (passe_compose_count)
+Nombre de participes passés (`VerbForm=Part`) rattachés à un auxiliaire "avoir" ou "être" conjugué au présent de l'indicatif (`Tense=Pres`, `Mood=Ind`) via la dépendance `aux`, reconnus dans le document. La dépendance `aux:pass` (passif) est exclue pour ne pas confondre passé composé actif et voix passive.
+
+<a id="va_count"></a>
+##### Futurs périphrastiques (va_count)
+Nombre de constructions de structure "aller + infinitif" (futur périphrastique) reconnues dans le document.
+
 
 <a id="gnomic_present_count"></a>
 ##### Présents gnomiques (gnomic_present_count)
@@ -848,6 +998,10 @@ Nombre de sujets personnels reconnus parmi les sujets classables.
 <a id="classifiable_subject_count"></a>
 ##### Sujets classables (classifiable_subject_count)
 Nombre de sujets que l’heuristique peut classer comme personnels ou non personnels. Les noms propres et les pronoms personnels sont classés ; les noms communs et les pronoms ambigus sont laissés de côté. `Il` est considéré non personnel seulement avec une liste restreinte de constructions impersonnelles.
+
+<a id="first_person_subject_count"></a>
+##### Sujets à la première personne (first_person_subject_count)
+Nombre de phrases contenant au moins un sujet dont spaCy indique `Person=1` (`nsubj` ou `nsubj:pass`), dans le document entier, dialogues compris.
 
 <a id="lexical_token_count"></a>
 ##### Tokens lexicaux spaCy (lexical_token_count)
@@ -907,10 +1061,6 @@ Nombre de phrases comportant plus de deux coordinations reconnues par spaCy (`de
 ##### Burstiness brut (burstiness_count)
 Nombre de phrases prises dans des séries de phrases de longueur proche. Plus ce nombre augmente, plus le style est monotomne.
 
-<a id="punctuation_mark_count"></a>
-##### Signes de ponctuation (punctuation_mark_count)
-Somme des nombres de [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count).
-
 <a id="period_count"></a>
 ##### Points (period_count)
 Nombre de caractères `.`.
@@ -929,7 +1079,7 @@ Nombre de deux-points.
 
 <a id="exclamation_point_count"></a>
 ##### Points d’exclamation (exclamation_point_count)
-Nombre de points d’exclamation.
+Nombre de points d’exclamation hors dialogue.
 
 <a id="question_mark_count"></a>
 ##### Points d’interrogation (question_mark_count)
@@ -941,11 +1091,11 @@ Nombre de points-virgules.
 
 <a id="dash_count"></a>
 ##### Tirets (dash_count)
-Nombre de tirets demi-cadratins (–) et cadratins (—).
+Nombre de tirets demi-cadratins (–) et cadratins (—), hors tirets ouvrant une réplique en tête de phrase.
 
 <a id="parenthesis_count"></a>
 ##### Parenthèses (parenthesis_count)
-Nombre de signes ouvrants ou fermants de parenthèse.
+Nombre de parenthèse ouvrantes (on ne compte pas les fermantes).
 
 <a id="quote_mark_count"></a>
 ##### Guillemets (quote_mark_count)
@@ -1032,4 +1182,8 @@ Nombre d’occurrences rattachées à la catégorie « Manifestations somatiques
 <a id="somatic_intensified_emotion_count"></a>
 ##### Manifestations somatiques intensifiées (somatic_intensified_emotion_count)
 Nombre de manifestations somatiques intensifiées ou qualifiées.
+
+<a id="ternary_count"></a>
+### Séquences ternaires (ternary_count)
+Séquences de trois adjectifs qui s'enchaînent. Par exemple : "il est grand, élancé, vif.".
 <!-- STATS:END -->
