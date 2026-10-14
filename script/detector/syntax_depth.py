@@ -6,6 +6,8 @@ import re
 
 from .config import (
     COMPARISON_MARKERS_FILE,
+    ANTITHESIS_MARKERS_FILE,
+    STEREOTYPES_FILE,
     NEGATION_COMPLETE_MARKERS_FILE,
     ABSTRACT_NOUN_SUFFIXES_FILE, CONCRETE_NOUN_EXCEPTIONS_FILE,
     STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE,
@@ -14,7 +16,7 @@ from .config import (
     SPACY_RELATIVE_DEPENDENCIES,
     SPACY_SUBORDINATE_DEPENDENCIES,
 )
-from .morphalou import lexical_map
+from .morphalou import contextual_lemma_map, lexical_map
 
 NOMINAL_MODIFIER_DEPS = {"amod", "nmod", "acl:relcl", "acl"}
 ALWAYS_PERSONAL_PRONOUNS = {"je", "j", "tu", "nous", "vous", "elle", "elles", "ils"}
@@ -170,15 +172,118 @@ def _coordinated_modifier_chains(doc) -> list[int]:
     return chains
 
 
-def _ternary_sequence_count(text: str) -> int:
-    count = 0
-    sentences = re.split(r"(?<=[.!?…])(?:\s+|$)", text)
-    for sentence in sentences:
-        for clause in re.split(r"[;:—–]", sentence):
+def _split_char_ranges(text: str, start: int, end: int, separator: str):
+    cursor = start
+    for match in re.finditer(separator, text[start:end]):
+        yield cursor, start + match.start()
+        cursor = start + match.end()
+    yield cursor, end
+
+
+_TERNARY_DETERMINERS = {"le", "la", "les", "un", "une", "des", "du", "ce", "cet", "cette", "ces", "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses", "notre", "nos", "votre", "vos", "leur", "leurs"}
+_TERNARY_PREPOSITIONS = {"à", "de", "dans", "par", "pour", "en", "vers", "avec", "sans", "sous", "sur", "chez", "entre", "devant", "derrière"}
+_TERNARY_PRONOUNS = {"je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles", "me", "te", "se", "moi", "toi", "lui", "eux"}
+_TERNARY_RELATIVES = {"qui", "que", "quoi", "dont", "où", "lequel", "laquelle", "lesquels", "lesquelles"}
+_TERNARY_AUXILIARIES = {"être", "avoir", "ai", "as", "a", "avons", "avez", "ont", "suis", "es", "est", "sommes", "êtes", "sont"}
+
+
+def _ternary_word_signature(word: str) -> tuple[str, ...]:
+    prefix, separator, remainder = word.partition("'")
+    result = []
+    if separator and remainder:
+        if prefix == "l":
+            result.append("DET")
+        elif prefix == "d":
+            result.append("PREP")
+        elif prefix in {"j", "m", "t", "s", "n"}:
+            result.append("PRON")
+        elif prefix == "qu":
+            result.append("REL")
+        word = remainder
+    if word in _TERNARY_DETERMINERS:
+        result.append("DET")
+    elif word in _TERNARY_PREPOSITIONS:
+        result.append("PREP")
+    elif word in _TERNARY_PRONOUNS:
+        result.append("PRON")
+    elif word in _TERNARY_RELATIVES:
+        result.append("REL")
+    elif word in _TERNARY_AUXILIARIES:
+        result.append("AUX")
+    else:
+        result.append("WORD")
+    return tuple(result)
+
+
+def _ternary_group_signature(group: str) -> tuple[str, ...]:
+    signature = []
+    for word in (token.casefold().replace("’", "'") for token in WORD_RE.findall(group)):
+        signature.extend(_ternary_word_signature(word))
+    return tuple(signature)
+
+
+def _ternary_group_ranges(text: str, clause_start: int, clause_end: int, groups: list[str]):
+    ranges = []
+    cursor = clause_start
+    for group in groups:
+        start = text.find(group, cursor, clause_end)
+        end = start + len(group)
+        ranges.append((start, end))
+        cursor = end
+    return ranges
+
+
+def _ternary_is_binary_qualification(doc, group_ranges) -> bool:
+    if doc is None:
+        return False
+    focal_tokens = []
+    for start, end in group_ranges:
+        tokens = [token for token in doc if start <= token.idx < end and not token.is_space and not token.is_punct]
+        focal_tokens.append(tokens[-1] if tokens else None)
+    first, second, third = focal_tokens
+    def modifier_category(token):
+        if token.pos_ == "ADJ" or "Part" in token.morph.get("VerbForm"):
+            return "QUALIFIER"
+        if token.pos_ == "ADV":
+            return "ADVERB"
+        return None
+    second_category = modifier_category(second) if second else None
+    return bool(
+        first and second and third
+        and second_category
+        and modifier_category(third) == second_category
+        and modifier_category(first) != second_category
+    )
+
+
+def ternary_char_ranges(text: str, doc=None) -> tuple[tuple[int, int], ...]:
+    ranges = []
+    sentence_separator = r'(?<=[.!?…])(?:[»”"]*(?:\s+|$)|(?=[«“]))'
+    for sentence_start, sentence_end in _split_char_ranges(text, 0, len(text), sentence_separator):
+        for clause_start, clause_end in _split_char_ranges(text, sentence_start, sentence_end, r"[;:—–]"):
+            clause = text[clause_start:clause_end]
             groups = re.split(r"\s*(?:,|\b(?:et|ou|ni)\b)\s*", clause, flags=re.I)
-            if len(groups) == 3 and all(re.search(r"\w", group) for group in groups):
-                count += 1
-    return count
+            signatures = [_ternary_group_signature(group) for group in groups]
+            group_ranges = _ternary_group_ranges(text, clause_start, clause_end, groups)
+            parallel = (
+                "," in clause
+                and len(signatures) == 3
+                and signatures[1]
+                and signatures[1] == signatures[2]
+                and signatures[0][-len(signatures[1]):] == signatures[1]
+                and not _ternary_is_binary_qualification(doc, group_ranges)
+            )
+            if parallel:
+                while clause_start < clause_end and text[clause_start].isspace():
+                    clause_start += 1
+                while clause_end > clause_start and text[clause_end - 1].isspace():
+                    clause_end -= 1
+                ranges.append((clause_start, clause_end))
+    return tuple(ranges)
+
+
+def _ternary_sequence_count(text: str, doc=None) -> int:
+    return len(ternary_char_ranges(text, doc))
 
 
 def proper_noun_density(doc) -> float:
@@ -441,6 +546,86 @@ def _comparison_markers() -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=1)
+def _antithesis_markers() -> tuple[tuple[str, str], ...]:
+    markers = []
+    for line in ANTITHESIS_MARKERS_FILE.read_text(encoding="utf-8").splitlines():
+        raw = line.split("#", 1)[0].strip()
+        if not raw:
+            continue
+        opener, separator, hinge = raw.partition("|")
+        if separator and opener.strip() and hinge.strip():
+            markers.append((opener.strip(), hinge.strip()))
+    return tuple(markers)
+
+
+def _marker_pattern(phrase: str) -> str:
+    return re.escape(phrase).replace(r"\ ", r"\s+").replace("'", "['’]")
+
+
+def _member_pos_pattern(tokens) -> tuple[str, ...]:
+    return tuple(token.pos_ for token in tokens if not token.is_punct and token.pos_ not in {"CCONJ", "SCONJ", "PART"})
+
+
+def _mechanical_antithesis_count(doc) -> int:
+    count = 0
+    for sentence in doc.sents:
+        for opener, hinge in _antithesis_markers():
+            pattern = re.compile(
+                rf"{_marker_pattern(opener)}(?P<left>.+?){_marker_pattern(hinge)}(?P<right>[^,;:.!?…]+)",
+                re.I,
+            )
+            for match in pattern.finditer(sentence.text):
+                left_start = sentence.start_char + match.start("left")
+                left_end = sentence.start_char + match.end("left")
+                right_start = sentence.start_char + match.start("right")
+                right_end = sentence.start_char + match.end("right")
+                left = _member_pos_pattern(token for token in sentence if left_start <= token.idx < left_end)
+                right = _member_pos_pattern(token for token in sentence if right_start <= token.idx < right_end)
+                if left and left == right:
+                    count += 1
+    return count
+
+
+@lru_cache(maxsize=1)
+def _stereotype_patterns() -> tuple[tuple[str, ...], ...]:
+    pipeline = _pipeline()
+    if pipeline is None:
+        return ()
+    lines = [line.split("#", 1)[0].strip() for line in STEREOTYPES_FILE.read_text(encoding="utf-8").splitlines()]
+    patterns = {
+        tuple(token.lemma_.casefold() for token in parsed if not token.is_space and not token.is_punct)
+        for parsed in pipeline.pipe(line for line in lines if line)
+    }
+    return tuple(sorted((pattern for pattern in patterns if pattern), key=len, reverse=True))
+
+
+def stereotype_char_ranges(doc) -> tuple[tuple[int, int], ...]:
+    ranges = []
+    patterns = _stereotype_patterns()
+    contextual_tokens = analyze_contextual_tokens(doc.text, doc) or []
+    lemmas_by_form = contextual_lemma_map((word, category, lemma) for word, lemma, category, *_ in contextual_tokens)
+    for sentence in doc.sents:
+        tokens = [token for token in sentence if not token.is_space and not token.is_punct]
+        lemmas = [
+            (lemmas_by_form.get(token.lower_, token.lemma_) if token.is_alpha else token.lemma_).casefold()
+            for token in tokens
+        ]
+        index = 0
+        while index < len(lemmas):
+            match = next((pattern for pattern in patterns if tuple(lemmas[index:index + len(pattern)]) == pattern), None)
+            if match:
+                ranges.append((tokens[index].idx, tokens[index + len(match) - 1].idx + len(tokens[index + len(match) - 1])))
+                index += len(match)
+            else:
+                index += 1
+    return tuple(ranges)
+
+
+def _stereotype_count(doc) -> int:
+    return len(stereotype_char_ranges(doc))
+
+
+@lru_cache(maxsize=1)
 def _pipeline():
     try:
         import spacy
@@ -597,7 +782,9 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     pos_distribution = {name: pos_counts[name] / pos_total if pos_total else 0 for name in distribution_keys}
     modifier_counts = _noun_modifier_counts(doc)
     adjective_chains = _coordinated_modifier_chains(doc)
-    ternary_count = _ternary_sequence_count(text)
+    ternary_count = _ternary_sequence_count(text, doc)
+    mechanical_antithesis_count = _mechanical_antithesis_count(doc)
+    stereotype_count = _stereotype_count(doc)
     stative = _load_word_list(STATIVE_VERBS_FILE)
     finite_narrative = [t for t in narrative_tokens if t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm")]
     action_verb_ratio = sum((t.lemma_.casefold() not in stative) for t in all_finite_tokens) / all_finite_verbs if all_finite_verbs else 0
@@ -668,6 +855,8 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "adjective_chain_count": len(adjective_chains),
         "adjective_in_chain_count": sum(adjective_chains),
         "ternary_count": ternary_count,
+        "mechanical_antithesis_count": mechanical_antithesis_count,
+        "stereotype_count": stereotype_count,
         "noun_modifier_count": sum(modifier_counts),
         "grammatical_token_count": pos_total,
         "grammatical_verb_count": pos_counts["verbs"],

@@ -1178,7 +1178,7 @@ const RAW_DISPLAY_METRICS = new Set([
   "noun_verb_ratio", "avg_word_length", "avg_sentence_length",
   "median_sentence_length", "sentence_length_p10",
   "sentence_length_p90", "paragraph_length_std_dev", "sentence_length_std_dev",
-  "average_syntactic_depth", "burstiness", "avg_modifiers_per_noun",
+  "average_syntactic_depth", "burstiness", "burstiness_word", "avg_modifiers_per_noun",
   "avg_adjective_chain_length", "right_branching_depth", "emotional_category_entropy",
   "sentence_start_recurrence_distance",
 ]);
@@ -1236,7 +1236,7 @@ function table(books, definitions, withSections = false) {
   }).join("");
   return `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function format(n, key) { if (n == null) return "—"; if (INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(PERCENT_DECIMALS.get(key) ?? 0)} %`; }
+function format(n, key) { if (n == null) return "—"; if (key.endsWith("_count") || INTEGER_DISPLAY_METRICS.has(key)) return Number(n).toLocaleString("fr-FR"); if (["logical_connector_ratio", "temporal_connector_ratio"].includes(key)) return `${Number(n).toFixed(0)} %`; if (RAW_DISPLAY_METRICS.has(key)) return Number(n).toFixed(key === "burstiness" || key === "noun_verb_ratio" ? 2 : 1); return `${(Number(n) * 100).toFixed(PERCENT_DECIMALS.get(key) ?? 0)} %`; }
 function downloadSvg() {
   if (!chart) return;
   const w = 1000, h = 760, cx = 500, cy = 350, radius = 260, count = chart.data.labels.length;
@@ -1267,6 +1267,7 @@ function exportAllTableData() {
   const displayedNumber = (number, key) => {
     if (!Number.isFinite(number)) return null;
     const directed = DISPLAY_INVERTED.has(key) ? 1 - number : number;
+    if (key.endsWith("_count")) return Math.round(directed);
     if (RADAR_PCA.some(([field]) => field === key)) return round1(directed);
     if (!RAW_DISPLAY_METRICS.has(key)) return round1(directed * 100);
     return round1(directed);
@@ -1500,7 +1501,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20261014133356818431000").then(r => r.json()).then(json => {
+fetch("data.json?v=20261014172222833873000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));
@@ -1538,6 +1539,17 @@ fetch("data.json?v=20261014133356818431000").then(r => r.json()).then(json => {
         return sum + (Number.isFinite(raw) && maxima[field] ? weight * raw / maxima[field] : 0);
       }, 0);
     }
+  }
+  const rawMetricKeys = new Set(data.raw_metrics || []);
+  const documentedMetricKeys = new Set((data.metrics || []).map(metric => metric.id));
+  for (const key of data.metric_order || []) {
+    if (!documentedMetricKeys.has(key)
+        || !data.metric_tags?.[key]?.includes("web")
+        || COMPOSITE_FIELDS.has(key)
+        || rawMetricKeys.has(key)) continue;
+    if (!DETAILS.some(([field]) => field === key)) DETAILS.push([key, data.metric_labels?.[key] || key, true]);
+    if (!ALL_METRICS.some(([field]) => field === key)) ALL_METRICS.push([key, data.metric_labels?.[key] || key]);
+    if (!MENU_METRICS.some(([field]) => field === key)) MENU_METRICS.push([key, data.metric_labels?.[key] || key]);
   }
   // Les tests de dispersion des mesures en unité native dépendent des
   // références du corpus. Elles doivent être disponibles avant le filtrage

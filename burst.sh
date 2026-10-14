@@ -1,13 +1,23 @@
-#!/usr/bin/env bash
-# Analyse le fichier Markdown défini dans script/burstiness/config.py et
-# ouvre le résultat dans le navigateur. Aucun paramètre : tout se règle
-# dans config.py.
+#!/bin/sh
+set -eu
 
-set -euo pipefail
+PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PYTHON="$PROJECT_ROOT/venv/bin/python"
+if [ ! -x "$PYTHON" ]; then PYTHON=python3; fi
 
-cd "$(dirname "$0")"
+if [ "$#" -ne 1 ]; then
+  echo "Usage : ./burst.sh chemin/source.md" >&2
+  exit 2
+fi
 
-OUTPUT="$(python3 -m script.burstiness.cli)"
+case "$1" in
+  /*) SOURCE=$1 ;;
+  *) SOURCE=$PWD/$1 ;;
+esac
+cd "$PROJECT_ROOT"
+
+OUTPUT=$("$PYTHON" -m script.burstiness.cli "$SOURCE")
+printf '%s\n' "$OUTPUT"
 
 if command -v open >/dev/null 2>&1; then
   open "$OUTPUT"

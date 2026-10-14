@@ -1,22 +1,12 @@
 """
 Réglages du détecteur de burstiness.
 
-Modifie ces valeurs pour changer le comportement par défaut du script
-(elles peuvent aussi être surchargées en ligne de commande, voir cli.py).
+Modifie ces valeurs pour changer la détection et le rendu.
 """
 
 # Modèle spaCy français disponible pour les appels explicites au mode
 # ``spacy``. Le pipeline de burstiness emploie directement le mode regex.
 SPACY_FRENCH_MODEL = "fr_core_news_lg"
-
-# --- Fichiers ------------------------------------------------------------
-#
-# Fichier Markdown source à analyser.
-SOURCE_FILE = "_wip/source.md"
-
-# Fichier HTML de sortie. Laisser None pour reprendre automatiquement le
-# nom du fichier source avec l'extension .html (ex: _wip/source.html).
-OUTPUT_FILE = None
 
 # --- Unité de longueur -----------------------------------------------
 # Unité utilisée pour mesurer la longueur d'une phrase :

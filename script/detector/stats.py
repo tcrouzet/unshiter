@@ -6,12 +6,12 @@ import gzip
 import math
 import re
 
-from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, EMOTIONS_FILE,
+from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS, EMOTIONALITY_WEIGHTS, DISCURSIVITE_WEIGHTS, STATIVE_VERBS_FILE, TEMPORAL_CONNECTORS_FILE, LOGICAL_CONNECTORS_FILE, FAMILIARITY_MARKERS_FILE, EMOTIONS_FILE, EPISTEMIC_HEDGING_FILE,
     FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, PHONETIC_MIN_RATIO, ANALYSIS_WINDOW_WORDS,
     PHONETIC_MIN_SEQUENCE, TEXT_ENCODING, METRICS)
 from .demonette import family_lexemes, family_map, phonetic_map
 from .morphalou import contextual_lemma_map, lemma_map, lexical_map
-from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth
+from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth, stereotype_char_ranges, ternary_char_ranges
 from .lexical_frequency import frequency_map
 from burstiness.burst_detect import detect_bursts
 from burstiness.sentence_split import iter_blocks as burstiness_blocks, split_sentences_batch as split_burstiness_sentences
@@ -242,7 +242,16 @@ class Metrics:
     def heavily_modified_noun_count(self): return self.syntax["heavily_modified_noun_count"] if self.syntax else 0
     def adjective_chain_count(self): return self.syntax["adjective_chain_count"] if self.syntax else 0
     def adjective_in_chain_count(self): return self.syntax["adjective_in_chain_count"] if self.syntax else 0
-    def ternary_count(self): return self.syntax["ternary_count"] if self.syntax else 0
+    @cached_property
+    def ternary_ranges(self): return ternary_char_ranges(self.text, self.doc)
+    def ternary_count(self): return len(self.ternary_ranges)
+    def mechanical_antithesis_count(self): return self.syntax["mechanical_antithesis_count"] if self.syntax else 0
+    @cached_property
+    def stereotype_ranges(self): return stereotype_char_ranges(self.doc) if self.doc is not None else ()
+    def stereotype_count(self): return len(self.stereotype_ranges)
+    @cached_property
+    def epistemic_hedging_ranges(self): return phrase_marker_ranges(self.text, EPISTEMIC_HEDGING_FILE)
+    def epistemic_hedging_count(self): return len(self.epistemic_hedging_ranges)
     def noun_modifier_count(self): return self.syntax["noun_modifier_count"] if self.syntax else 0
     def grammatical_token_count(self): return self.syntax["grammatical_token_count"] if self.syntax else 0
     def grammatical_verb_count(self): return self.syntax["grammatical_verb_count"] if self.syntax else 0
@@ -486,6 +495,9 @@ class Metrics:
     def heavily_modified_noun_ratio(self): return self.heavily_modified_noun_count() / self.analyzed_noun_count() if self.analyzed_noun_count() else 0
     def adjective_chain_ratio(self): return self.adjective_chain_count() / self.sentence_count() if self.sentence_count() else 0
     def ternary_ratio(self): return self.ternary_count() / self.sentence_count() if self.sentence_count() else 0
+    def mechanical_antithesis_ratio(self): return self.mechanical_antithesis_count() / self.sentence_count() if self.sentence_count() else 0
+    def stereotype_ratio(self): return self.stereotype_count() / self.sentence_count() if self.sentence_count() else 0
+    def epistemic_hedging_ratio(self): return self.epistemic_hedging_count() / self.sentence_count() if self.sentence_count() else 0
     def avg_adjective_chain_length(self): return self.adjective_in_chain_count() / self.adjective_chain_count() if self.adjective_chain_count() else 0
     def incise_ratio(self): return self.incise_count() / self.sentence_count() if self.sentence_count() else 0
     def coordination_accumulation_ratio(self): return self.coordination_accumulation_count() / self.sentence_count() if self.sentence_count() else 0
@@ -635,6 +647,37 @@ def _load_simple_markers(path):
         return []
 
 
+@lru_cache(maxsize=None)
+def _phrase_marker_patterns(path) -> dict[str, tuple[tuple[str, ...], ...]]:
+    grouped: dict[str, list[tuple[str, ...]]] = {}
+    for marker in _load_simple_markers(path):
+        pattern = tuple(tokenize(marker))
+        if pattern:
+            grouped.setdefault(pattern[0], []).append(pattern)
+    return {
+        first: tuple(sorted(patterns, key=len, reverse=True))
+        for first, patterns in grouped.items()
+    }
+
+
+def phrase_marker_ranges(text: str, path) -> tuple[tuple[int, int], ...]:
+    patterns = _phrase_marker_patterns(path)
+    matches = list(WORD_RE.finditer(text))
+    words = [match.group().casefold().replace("’", "'") for match in matches]
+    ranges = []
+    index = 0
+    while index < len(words):
+        match = next(
+            (pattern for pattern in patterns.get(words[index], ())
+             if tuple(words[index:index + len(pattern)]) == pattern),
+            None,
+        )
+        if match:
+            ranges.append((matches[index].start(), matches[index + len(match) - 1].end()))
+            index += len(match)
+        else:
+            index += 1
+    return tuple(ranges)
 def temporal_connector_ratio(text: str, sentence_count: int) -> float:
     return connector_count(text, TEMPORAL_CONNECTORS_FILE) / sentence_count * 100 if sentence_count else 0
 

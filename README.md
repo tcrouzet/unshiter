@@ -24,10 +24,13 @@ Les EPUB peuvent être déposés n’importe où sous `corpus/<id>/`, avec autan
 ```bash
 ./epubs.sh
 ./epubs.sh crouzet
+./epubs.sh ./corpus/bigcorpus/isa.md
 ./epubs.sh --reset
 ```
 
 Sans argument, la commande parcourt tous les dossiers directs de `corpus/`. Avec un identifiant, elle ne traite que ce corpus. Dans les deux cas, elle conserve les mesures présentes et ne calcule que les fichiers modifiés ou les mesures manquantes. Elle supprime aussi les appartenances disparues et signale les publications sans date. Les corrections éditoriales (titre ou année) se font dans `assets/publication.yml` ; les entrées sont conservées lors des actualisations.
+
+Avec le chemin d’un fichier `.md` ou `.epub`, la commande ne prépare et n’analyse que cette œuvre. Le corpus est déduit du chemin sous `corpus/<id>/`.
 
 Avec `--reset`, la commande vide entièrement les tables SQLite d’analyse et de cache, recalcule tous les corpus, Big Five compris, puis régénère `web/data.json`. Les EPUB, les Markdown et `assets/publication.yml` sont conservés.
 
@@ -68,6 +71,26 @@ python3 -m http.server 8000 --directory web
 ```
 
 Puis ouvrir <http://localhost:8000/>.
+
+### Visualiser les détections dans un Markdown
+
+`burst.sh` génère un HTML coloré des séries de phrases consécutives de longueur proche, puis l’ouvre dans le navigateur :
+
+```bash
+./burst.sh ./corpus/bigcorpus/isa.md
+```
+
+Le chemin du Markdown est obligatoire. Le script écrit `_wip/<nom-source>-burst.html` et l’ouvre dans le navigateur. L’unité de longueur et la tolérance sont définies dans `script/burstiness/config.py`.
+
+`analyse.sh` montre directement dans un Markdown les passages retenus par une mesure :
+
+```bash
+./analyse.sh ./corpus/bigcorpus/isa.md stereotype_count
+./analyse.sh ./corpus/bigcorpus/isa.md epistemic_hedging_count
+./analyse.sh ./corpus/bigcorpus/isa.md ternary_count
+```
+
+Le script écrit `_wip/<nom-source>.html` et l’ouvre dans le navigateur. Les occurrences mesurées sont surlignées. La flèche en bas à droite parcourt les occurrences ; leur survol ou leur clic indique leur distance avec l’occurrence précédente et suivante, en pourcentage des caractères du manuscrit.
 
 ## Organisation du projet
 
@@ -761,6 +784,17 @@ Entropie de Shannon brute, en bits, calculée sur les huit comptages allant de l
 ##### Taux de modalité généralisante (modal_generalization_ratio)
 [Nombre de modaux généralisants](#modal_generalization_count) divisé par le [nombre total de verbes](#verb_count).
 
+<a id="mechanical_antithesis_ratio"></a>
+##### Antithèses (mechanical_antithesis_ratio)
+[Nombre d'antithèses mécaniques](#mechanical_antithesis_count) / [nombre de phrases](#sentence_count).
+
+<a id="stereotype_ratio"></a>
+##### Stéréotypes (stereotype_ratio)
+[Stéréotypes](#stereotype_count)  / [nombre de phrases](#sentence_count).
+
+<a id="epistemic_hedging_ratio"></a>
+##### Prudence épistémique (epistemic_hedging_ratio)
+[Occurrences atténuation épistémique et de méta-discours](#epistemic_hedging_count) / [nombre de phrases](#sentence_count).
 
 
 
@@ -1184,6 +1218,18 @@ Nombre d’occurrences rattachées à la catégorie « Manifestations somatiques
 Nombre de manifestations somatiques intensifiées ou qualifiées.
 
 <a id="ternary_count"></a>
-### Séquences ternaires (ternary_count)
-Séquences de trois adjectifs qui s'enchaînent. Par exemple : "il est grand, élancé, vif.".
+##### Séquences ternaires (ternary_count)
+Séquences de trois éléments qui s'enchaînent (tricolon). Par exemple : "il est grand, élancé, vif.".
+
+<a id="mechanical_antithesis_count"></a>
+##### Antithèses mécaniques (mechanical_antithesis_count)
+Nombre d'occurrences de constructions corrélatives figées du type « non seulement… mais aussi/encore », diverses formes listées dans `assets/dictionnaires/antithesis-markers.txt`. Les paires amorce|charnière sont recherchées à partir du lexique ; pour chaque occurrence trouvée, les deux membres encadrant la charnière sont comparés par leur patron POS, et seules les paires suffisamment symétriques (même séquence déterminant/nom/adjectif de part et d'autre) sont retenues comme antithèse mécanique au sens strict.
+
+<a id="stereotype_count"></a>
+##### Stéréotypes (stereotype_count)
+Compte les occurrences de formules figées de manifestation somatique de l'émotion comme « serrer les poings » ou « les yeux écarquillés », voir `assets/dictionnaires/stereotypes.txt`.
+
+<a id="epistemic_hedging_count"></a>
+##### Prudence épistémique (epistemic_hedging_count)
+Compte les occurrences de marqueurs figés d'atténuation épistémique et de méta-discours — « on pourrait dire que », « il convient de souligner que », voir `assets/dictionnaires/epistemic-hedging.txt`.
 <!-- STATS:END -->

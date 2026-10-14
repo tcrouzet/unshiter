@@ -100,6 +100,9 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             "parenthesis_ratio": "parenthesis_count",
             "quote_mark_ratio": "quote_mark_count",
             "ternary_ratio": "ternary_count",
+            "mechanical_antithesis_ratio": "mechanical_antithesis_count",
+            "stereotype_ratio": "stereotype_count",
+            "epistemic_hedging_ratio": "epistemic_hedging_count",
         }.items():
             if count in values:
                 derived = values[count] / sentence_count

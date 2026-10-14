@@ -537,6 +537,14 @@ Entropie de Shannon brute, en bits, calculée sur les huit comptages allant de l
 ##### Taux de modalité généralisante (modal_generalization_ratio) #web
 [Nombre de modaux généralisants](#modal_generalization_count) divisé par le [nombre total de verbes](#verb_count).
 
+##### Antithèses (mechanical_antithesis_ratio) #web
+[Nombre d'antithèses mécaniques](#mechanical_antithesis_count) / [nombre de phrases](#sentence_count).
+
+##### Stéréotypes (stereotype_ratio) #web
+[Stéréotypes](#stereotype_count)  / [nombre de phrases](#sentence_count).
+
+##### Prudence épistémique (epistemic_hedging_ratio) #web
+[Occurrences atténuation épistémique et de méta-discours](#epistemic_hedging_count) / [nombre de phrases](#sentence_count).
 
 
 
@@ -857,5 +865,14 @@ Nombre d’occurrences rattachées à la catégorie « Manifestations somatiques
 ##### Manifestations somatiques intensifiées (somatic_intensified_emotion_count)
 Nombre de manifestations somatiques intensifiées ou qualifiées.
 
-### Séquences ternaires (ternary_count)
+##### Séquences ternaires (ternary_count)
 Séquences de trois éléments qui s'enchaînent (tricolon). Par exemple : "il est grand, élancé, vif.".
+
+##### Antithèses mécaniques (mechanical_antithesis_count)
+Nombre d'occurrences de constructions corrélatives figées du type « non seulement… mais aussi/encore », diverses formes listées dans `assets/dictionnaires/antithesis-markers.txt`. Les paires amorce|charnière sont recherchées à partir du lexique ; pour chaque occurrence trouvée, les deux membres encadrant la charnière sont comparés par leur patron POS, et seules les paires suffisamment symétriques (même séquence déterminant/nom/adjectif de part et d'autre) sont retenues comme antithèse mécanique au sens strict.
+
+##### Stéréotypes (stereotype_count)
+Compte les occurrences de formules figées de manifestation somatique de l'émotion comme « serrer les poings » ou « les yeux écarquillés », voir `assets/dictionnaires/stereotypes.txt`.
+
+##### Prudence épistémique (epistemic_hedging_count)
+Compte les occurrences de marqueurs figés d'atténuation épistémique et de méta-discours — « on pourrait dire que », « il convient de souligner que », voir `assets/dictionnaires/epistemic-hedging.txt`.

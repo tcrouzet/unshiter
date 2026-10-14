@@ -7,6 +7,9 @@ chronique-dun-royaume-perdu-devi-ananda.epub: {date: "", author: "Ananda Devi"}
 # Anne Godard
 nous-aussi-anne-godard.epub: {date: ""}
 
+# Auteur inconnu
+crouser_ia.epub: {date: ""}
+
 # Boris Bergmann
 minotaure-boris-bergman.epub: {date: "", author: "Boris Bergmann"}
 
@@ -137,8 +140,8 @@ mon-pere-ce-tueur.epub: {date: "2019"}
 codeh.epub: {date: "2024"}
 rush.epub: {date: "2025"}
 isa.epub: {date: "2026"}
-crouser_ia.epub: {date: ""}
 crouzet.epub: {date: ""}
+crouzet_ia.epub: {date: ""}
 
 # Yannick Haenel
 la-solitude-des-professeurs-est-infinie-haenel-yannick.epub: {date: ""}

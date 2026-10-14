@@ -158,6 +158,11 @@ def missing_export_fields(stats: dict[str, object], excluded: set[str]) -> list[
     ]
 
 
+def ensure_nonempty_export(indexed_books: int, exported_books: list[dict]) -> None:
+    if indexed_books and not exported_books:
+        raise ValueError("Aucune œuvre complète à exporter ; web/data.json existant conservé")
+
+
 def export_json() -> int:
     WEB_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     note_data, note_titles, metric_order, metric_sections, metric_tags, metric_quotes = notes_by_id()
@@ -193,6 +198,7 @@ def export_json() -> int:
     else:
         with sqlite3.connect(EPUB_DATABASE) as db:
             db.row_factory = sqlite3.Row
+            indexed_books = db.execute("SELECT COUNT(*) FROM books").fetchone()[0]
             corpora = [dict(row) for row in db.execute("SELECT id,label FROM corpora ORDER BY id COLLATE NOCASE")]
             books = []
             for book in db.execute("SELECT id,path,title,author,publisher,publication_date,size,sha256 FROM books ORDER BY title COLLATE NOCASE"):
@@ -222,6 +228,7 @@ def export_json() -> int:
                 })
             exported_corpora = {corpus for book in books for corpus in book["corpora"]}
             corpora = [corpus for corpus in corpora if corpus["id"] in exported_corpora]
+            ensure_nonempty_export(indexed_books, books)
         payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "site": site, "palette": chart_palette(), "metrics": metrics, "notes": note_data, "note_titles": note_titles, "metric_labels": metric_labels, "metric_order": metric_order, "metric_sections": metric_sections, "metric_tags": exported_metric_tags, "metric_quotes": metric_quotes, "prompt_min_ratio": PROMPT_MIN_RATIO, "prompt_rare_ratio": PROMPT_RARE_RATIO, "default_radar": radar_ids, "raw_metrics": list(RAW_METRICS), "composite_weights": composite_weights, "corpora": corpora, "books": books}
     WEB_DATA_FILE.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding=TEXT_ENCODING)
     return len(payload["books"])

@@ -1,17 +1,25 @@
 import ast
 import sqlite3
+import tempfile
 import unittest
 from pathlib import Path
 
 from detector.config import NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
+from detector.analyse import build_html as build_analysis_html
 from detector.epub_database import metric_cache_is_valid, reset_champ
 from detector.metrics import cached_metric_values
 from detector.stats import Metrics, normalize_markdown_text
-from detector.web_export import missing_export_fields, site_config
+from detector.web_export import ensure_nonempty_export, missing_export_fields, site_config
 from burstiness.render_html import build_html as build_burstiness_html
+from burstiness.cli import generate as generate_burstiness_html
 
 
 class MetricsTests(unittest.TestCase):
+    def test_empty_web_export_is_rejected_when_database_has_books(self):
+        with self.assertRaises(ValueError):
+            ensure_nonempty_export(1, [])
+        ensure_nonempty_export(0, [])
+
     def test_site_prompt_is_loaded_from_configured_file(self):
         site = site_config()
         self.assertIn("[PLACEHOLDER]", site["prompt_rewriting"])
@@ -84,6 +92,14 @@ class MetricsTests(unittest.TestCase):
         self.assertAlmostEqual(metrics.burstiness_ratio(), 1 - metrics.burstiness_count() / metrics.sentence_count())
         self.assertEqual(metrics.burstiness_word(), metrics.burstiness() * metrics.avg_sentence_length())
 
+    def test_burstiness_cli_uses_source_name_in_wip_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "roman.md"
+            source.write_text("Phrase courte. Autre phrase.", encoding="utf-8")
+            output = generate_burstiness_html(source, Path(directory) / "out")
+            self.assertEqual(output.name, "roman-burst.html")
+            self.assertTrue(output.is_file())
+
     def test_punctuation_total_is_the_sum_of_detailed_counts(self):
         metrics = Metrics('. , : ; ! ? … - – — () « » “ ” "')
         detailed = (
@@ -123,12 +139,68 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(metrics.dialog_word_count(), 2)
 
     def test_ternary_count_requires_exactly_three_parallel_elements(self):
-        self.assertEqual(Metrics("Il est grand, élancé et vif.").ternary_count(), 1)
+        text = "Il est grand, élancé et vif."
+        self.assertEqual(Metrics(text).ternary_count(), 1)
+        rendered = build_analysis_html(text, "ternary_count", "Test")
+        self.assertIn(">Il est grand, élancé et vif.</mark>", rendered)
         self.assertEqual(Metrics("Il court, saute et danse.").ternary_count(), 1)
         self.assertEqual(Metrics("Il parle doucement, clairement et calmement.").ternary_count(), 1)
         self.assertEqual(Metrics("L'homme qui court, qui saute et qui danse.").ternary_count(), 1)
         self.assertEqual(Metrics("Il est grand et vif.").ternary_count(), 0)
         self.assertEqual(Metrics("Il est grand, élancé, vif et calme.").ternary_count(), 0)
+        self.assertEqual(Metrics(
+            "Je ne veux pas m'apitoyer, seulement lui être utile, une troisième béquille sur laquelle elle peut s'appuyer à la moindre défaillance."
+        ).ternary_count(), 0)
+        self.assertEqual(Metrics("Nous n'étions dupes ni l'un ni l'autre.").ternary_count(), 0)
+        self.assertEqual(Metrics("Le passé m'attire, rassurant, familier.").ternary_count(), 0)
+        self.assertEqual(Metrics('Je ne garantis rien.» Je la récupère, épuisée, découragée.').ternary_count(), 0)
+        self.assertEqual(Metrics(
+            "Devant Isa ensanglantée, j'ai réagi mécaniquement, privé d'émotions intempestives."
+        ).ternary_count(), 0)
+        self.assertEqual(Metrics("C'est la vie, merveilleuse et fragile.").ternary_count(), 0)
+        self.assertEqual(Metrics('Je lui ferme les yeux.«Bye bye, Isa.» Ou plutôt:').ternary_count(), 0)
+        self.assertEqual(Metrics("Nous regardions l'étang, encore et encore.").ternary_count(), 0)
+        self.assertEqual(Metrics(
+            "Accorder notre attention à la nature pour délivrer notre esprit du souci de soi.»"
+        ).ternary_count(), 0)
+
+    def test_mechanical_antithesis_requires_matching_pos_patterns(self):
+        self.assertEqual(
+            Metrics("Il défend non seulement une décision difficile, mais aussi une mesure injuste.").mechanical_antithesis_count(),
+            1,
+        )
+        self.assertEqual(
+            Metrics("Il défend non seulement une décision difficile, mais aussi rapidement.").mechanical_antithesis_count(),
+            0,
+        )
+        metrics = Metrics("")
+        metrics.mechanical_antithesis_count = lambda: 2
+        metrics.stereotype_count = lambda: 3
+        metrics.epistemic_hedging_count = lambda: 4
+        metrics.sentence_count = lambda: 10
+        self.assertEqual(metrics.mechanical_antithesis_ratio(), 0.2)
+        self.assertEqual(metrics.stereotype_ratio(), 0.3)
+        self.assertEqual(metrics.epistemic_hedging_ratio(), 0.4)
+
+    def test_stereotype_count_uses_lemmas_and_avoids_nested_matches(self):
+        text = "Il serra les poings. Elle serre les dents. Il avait le souffle court."
+        metrics = Metrics(text)
+        self.assertEqual(metrics.stereotype_count(), 3)
+        rendered = build_analysis_html(text, "stereotype_count", "Test")
+        self.assertEqual(rendered.count("<mark "), 3)
+        self.assertIn("data-distance=", rendered)
+        self.assertIn("Précédente : — · Suivante : +", rendered)
+        self.assertIn("serra les poings</mark>", rendered)
+        self.assertIn('id="next-highlight"', rendered)
+        self.assertIn('id="highlight-distance"', rendered)
+        self.assertIn("scrollIntoView", rendered)
+
+    def test_epistemic_hedging_count_uses_fixed_marker_phrases(self):
+        metrics = Metrics("On pourrait dire que oui. À certains égards, cela dit, rien n'est certain.")
+        self.assertEqual(metrics.epistemic_hedging_count(), 3)
+        rendered = build_analysis_html(metrics.text, "epistemic_hedging_count", "Test")
+        self.assertEqual(rendered.count("<mark "), 3)
+        self.assertIn(">On pourrait dire que</mark>", rendered)
 
     def test_periphrastic_future_ratio_uses_sentence_count(self):
         metrics = Metrics("")
