@@ -213,13 +213,16 @@ class Metrics:
 
     def verb_count(self): return self.syntax["pos_counts"]["all_verbs"] if self.syntax else 0
     def conjugue_verb_count(self): return self.syntax["all_finite_verbs"] if self.syntax else 0
+    def verb_present_count(self): return self.syntax["verb_present_count"] if self.syntax else 0
+    def verb_imp_count(self): return self.syntax["verb_imp_count"] if self.syntax else 0
+    def verb_fut_count(self): return self.syntax["verb_fut_count"] if self.syntax else 0
     def adjective_count(self): return self.syntax["pos_counts"]["adjectives"] if self.syntax else 0
     def adverb_count(self): return self.syntax["pos_counts"]["adverbs"] if self.syntax else 0
     def present_participe_count(self): return self.syntax["present_participles"] if self.syntax else 0
     def past_participe_count(self): return self.syntax["past_participles"] if self.syntax else 0
     def simple_past_count(self): return self.syntax["simple_past"] if self.syntax else 0
+    def passe_compose_count(self): return self.syntax["passe_compose"] if self.syntax else 0
     def va_count(self): return self.syntax["periphrastic_future"] if self.syntax else 0
-    def future_count(self): return self.syntax["simple_future"] if self.syntax else 0
     def subjonctive_count(self): return self.syntax["literary_subjunctive"] if self.syntax else 0
     def negation_count(self): return self.syntax["negation_total"] if self.syntax else 0
     def verb_negation_count(self): return self.syntax["negation_with_ne"] if self.syntax else 0
@@ -234,10 +237,12 @@ class Metrics:
     def modal_generalization_count(self): return self.syntax["modal_generalization_count"] if self.syntax else 0
     def abstract_noun_count(self): return abstract_noun_count(self.contextual_tokens)
     def personal_subject_count(self): return self.syntax["personal_subject_count"] if self.syntax else 0
+    def first_person_subject_count(self): return self.syntax["first_person_subject_count"] if self.syntax else 0
     def analyzed_noun_count(self): return self.syntax["analyzed_noun_count"] if self.syntax else 0
     def heavily_modified_noun_count(self): return self.syntax["heavily_modified_noun_count"] if self.syntax else 0
     def adjective_chain_count(self): return self.syntax["adjective_chain_count"] if self.syntax else 0
     def adjective_in_chain_count(self): return self.syntax["adjective_in_chain_count"] if self.syntax else 0
+    def ternary_count(self): return self.syntax["ternary_count"] if self.syntax else 0
     def noun_modifier_count(self): return self.syntax["noun_modifier_count"] if self.syntax else 0
     def grammatical_token_count(self): return self.syntax["grammatical_token_count"] if self.syntax else 0
     def grammatical_verb_count(self): return self.syntax["grammatical_verb_count"] if self.syntax else 0
@@ -255,14 +260,17 @@ class Metrics:
     def exclamative_sentence_count(self): return self.syntax["exclamative_sentence_count"] if self.syntax else 0
 
     def suspention_point_count(self): return self.text.count("…")
-    def exclamation_point_count(self): return punctuation_pattern_counts(self.text)["exclamation"]
+    def exclamation_point_count(self): return punctuation_pattern_counts(self.punctuation_narrative_text)["exclamation"]
     def question_mark_count(self): return self.text.count("?")
     def semicolons_count(self): return punctuation_pattern_counts(self.text)["semicolon"]
     def period_count(self): return punctuation_pattern_counts(self.text)["point_final"]
     def comma_count(self): return punctuation_pattern_counts(self.text)["virgule"]
     def colon_count(self): return punctuation_pattern_counts(self.text)["colon"]
-    def dash_count(self): return self.text.count("–") + self.text.count("—")
-    def parenthesis_count(self): return len(re.findall(r"[()]", self.text))
+    def dash_count(self):
+        total = self.text.count("–") + self.text.count("—")
+        dialogue_openings = sum(sentence.startswith(("–", "—")) for sentence in self.sentences)
+        return total - dialogue_openings
+    def parenthesis_count(self): return self.text.count("(")
     def quote_mark_count(self):
         return sum(self.text.count(mark) for mark in ("«", "»", "“", "”", '"'))
     def punctuation_mark_count(self):
@@ -400,7 +408,7 @@ class Metrics:
             narrative_text = "".join(chars)
         if syntax:
             verb_ratio_value = syntax["pos_distribution"]["verbs"]
-            literary_ratio = syntax.get("literary_subjunctive", 0) / syntax["finite_verbs"] if syntax.get("finite_verbs") else 0
+            literary_ratio = syntax.get("literary_subjunctive", 0) / syntax["all_finite_verbs"] if syntax.get("all_finite_verbs") else 0
             future_ratio = syntax.get("periphrastic_future_ratio") or 0
             active_ratio = syntax.get("active_voice_ratio") or 0
             dialogue_ratio_value = syntax.get("dialogue_ratio", 0)
@@ -440,6 +448,12 @@ class Metrics:
         chars = list(self.text)
         for start, end in self.dialogue_ranges: chars[start:end] = [" "] * (end - start)
         return "".join(chars)
+    @cached_property
+    def punctuation_narrative_text(self):
+        return "".join(
+            " " * len(part) if part.strip().startswith(("—", "–")) else part
+            for part in re.split(r"(\n\s*\n)", self.text)
+        )
     def _component(self, field):
         return self.shared_metrics[field] if field in self.shared_metrics else getattr(self, field)()
 
@@ -459,10 +473,10 @@ class Metrics:
     def structural_diversity(self): return structural_diversity(self.structures)
     def structural_rhythm(self): return structural_rhythm(self.structures)
     def structural_repetition_rate(self): return structural_repetition_rate(self.structures)
-    def noun_ratio(self): return (self.common_noun_count()+self.proper_noun_count()) / self.grammatical_token_count() if self.grammatical_token_count() else 0
-    def verb_ratio(self): return self.grammatical_verb_count() / self.grammatical_token_count() if self.grammatical_token_count() else 0
-    def adjective_ratio(self): return self.adjective_count() / self.grammatical_token_count() if self.grammatical_token_count() else 0
-    def adverb_ratio(self): return self.adverb_count() / self.grammatical_token_count() if self.grammatical_token_count() else 0
+    def noun_ratio(self): return (self.common_noun_count()+self.proper_noun_count()) / self.word_count() if self.word_count() else 0
+    def verb_ratio(self): return self.grammatical_verb_count() / self.word_count() if self.word_count() else 0
+    def adjective_ratio(self): return self.adjective_count() / self.word_count() if self.word_count() else 0
+    def adverb_ratio(self): return self.adverb_count() / self.word_count() if self.word_count() else 0
     def noun_verb_ratio(self): return (self.common_noun_count()+self.proper_noun_count()) / self.grammatical_verb_count() if self.grammatical_verb_count() else 0
     def function_word_ratio(self): return self.function_word_count() / self.word_count() if self.word_count() else 0
     def nominal_sentence_ratio(self): return self.nominal_sentence_count() / self.sentence_count() if self.sentence_count() else 0
@@ -471,8 +485,9 @@ class Metrics:
     def avg_modifiers_per_noun(self): return self.noun_modifier_count() / self.analyzed_noun_count() if self.analyzed_noun_count() else 0
     def heavily_modified_noun_ratio(self): return self.heavily_modified_noun_count() / self.analyzed_noun_count() if self.analyzed_noun_count() else 0
     def adjective_chain_ratio(self): return self.adjective_chain_count() / self.sentence_count() if self.sentence_count() else 0
+    def ternary_ratio(self): return self.ternary_count() / self.sentence_count() if self.sentence_count() else 0
     def avg_adjective_chain_length(self): return self.adjective_in_chain_count() / self.adjective_chain_count() if self.adjective_chain_count() else 0
-    def incise_density(self): return self.incise_count() / self.sentence_count() if self.sentence_count() else 0
+    def incise_ratio(self): return self.incise_count() / self.sentence_count() if self.sentence_count() else 0
     def coordination_accumulation_ratio(self): return self.coordination_accumulation_count() / self.sentence_count() if self.sentence_count() else 0
     def hapax_ratio(self): return self.hapax_count() / self.unique_lemma_count() if self.unique_lemma_count() else 0
     def lexical_rarity_score(self): return lexical_rarity_score(self.words)
@@ -512,22 +527,28 @@ class Metrics:
     def burstiness_ratio(self):
         return 1 - self.burstiness_count() / self.sentence_count() if self.sentence_count() else 0
     def burstiness(self):
-        return (sum(abs(b-a) for a,b in zip(self.sentence_word_lengths,self.sentence_word_lengths[1:]))/(len(self.sentence_word_lengths)-1)/self.avg_sentence_length()) if len(self.sentence_word_lengths)>1 and self.avg_sentence_length() else 0
+        return (sum(abs(right-left) for left, right in zip(self.sentence_word_lengths, self.sentence_word_lengths[1:])) / (self.sentence_count()-1) / self.avg_sentence_length()) if self.sentence_count()>1 and self.avg_sentence_length() else 0
+    def burstiness_word(self): return self.burstiness() * self.avg_sentence_length()
     def gzip_compression_ratio(self): return self.gzip_byte_count()/self.utf8_byte_count() if self.utf8_byte_count() else 0
     def flesch(self): return 207-1.015*(self.word_count()/max(1,self.sentence_count()))-73.6*(self.syllable_count()/self.word_count()) if self.word_count() else 0
     def metaphorical_comme_ratio(self): return self.methaphore_count()/self.sentence_count() if self.sentence_count() else 0
-    def present_participle_ratio(self): return self.present_participe_count()/self.word_count() if self.word_count() else 0
-    def past_participle_ratio(self): return self.past_participe_count()/self.word_count() if self.word_count() else 0
-    def simple_past_ratio(self): return self.simple_past_count()/self.narrative_verb_count() if self.narrative_verb_count() else 0
-    def literary_subjunctive_ratio(self): return self.subjonctive_count()/self.narrative_verb_count() if self.narrative_verb_count() else 0
+    def present_participle_ratio(self): return self.present_participe_count()/self.sentence_count() if self.sentence_count() else 0
+    def past_participle_ratio(self): return self.past_participe_count()/self.sentence_count() if self.sentence_count() else 0
+    def verb_present_ratio(self): return self.verb_present_count()/self.verb_count() if self.verb_count() else 0
+    def verb_imp_ratio(self): return self.verb_imp_count()/self.verb_count() if self.verb_count() else 0
+    def verb_fut_ratio(self): return self.verb_fut_count()/self.verb_count() if self.verb_count() else 0
+    def simple_past_ratio(self): return self.simple_past_count()/self.verb_count() if self.verb_count() else 0
+    def passe_compose_ratio(self): return self.passe_compose_count()/self.verb_count() if self.verb_count() else 0
+    def literary_subjunctive_ratio(self): return self.subjonctive_count()/self.sentence_count() if self.sentence_count() else 0
     def negation_completeness_ratio(self): return self.verb_negation_count()/self.negation_count() if self.negation_count() else 0
     def periphrastic_future_ratio(self):
-        total=self.va_count()+self.future_count(); return self.va_count()/total if total else 0
+        return self.va_count() / self.sentence_count() if self.sentence_count() else 0
     def oral_familiarity_ratio(self): return oral_familiarity_count(self.narrative_text)/self.word_count()*100 if self.word_count() else 0
-    def action_verb_ratio(self): return self.active_verb_count()/self.narrative_verb_count() if self.narrative_verb_count() else 0
+    def action_verb_ratio(self): return self.active_verb_count()/self.verb_count() if self.verb_count() else 0
     def temporal_connector_ratio(self): return self.temporal_connector_count()/self.sentence_count()*100 if self.sentence_count() else 0
     def personal_subject_ratio(self): return self.personal_subject_count()/self.classifiable_subject_count() if self.classifiable_subject_count() else 0
-    def narrative_past_ratio(self): return self.narrative_past_count()/self.narrative_verb_count() if self.narrative_verb_count() else 0
+    def first_person_subject_ratio(self): return self.first_person_subject_count()/self.sentence_count() if self.sentence_count() else 0
+    def narrative_past_ratio(self): return self.narrative_past_count()/self.verb_count() if self.verb_count() else 0
     def dialogue_ratio(self): return self.dialog_word_count()/self.word_count() if self.word_count() else 0
     def proper_noun_density(self): return self.proper_noun_count()/self.lexical_token_count() if self.lexical_token_count() else 0
     def concrete_noun_ratio(self): return self.concrate_noun_count()/self.common_noun_count() if self.common_noun_count() else 0
@@ -537,7 +558,7 @@ class Metrics:
     def exclamation_ratio(self): return self.exclamation_point_count()/self.sentence_count() if self.sentence_count() else 0
     def exclamative_construction_ratio(self): return self.exclamative_sentence_count()/self.sentence_count() if self.sentence_count() else 0
     def logical_connector_ratio(self): return self.logical_connector_count()/self.sentence_count()*100 if self.sentence_count() else 0
-    def abstract_noun_ratio(self): return self.abstract_noun_count()/self.common_noun_count() if self.common_noun_count() else 0
+    def abstract_noun_ratio(self): return self.abstract_noun_count()/self.word_count() if self.word_count() else 0
     def gnomic_present_ratio(self): return self.gnomic_present_count()/self.conjugue_verb_count() if self.conjugue_verb_count() else 0
     def modal_generalization_ratio(self): return self.modal_generalization_count()/self.verb_count() if self.verb_count() else 0
 

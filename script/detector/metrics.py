@@ -52,9 +52,8 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             values["question_mark_ratio"] = values["question_mark_count"] / sentence_count
         if "logical_connector_count" in values:
             values["logical_connector_ratio"] = values["logical_connector_count"] / sentence_count * 100
-    common_noun_count = values.get("common_noun_count") or 0
-    if common_noun_count and "abstract_noun_count" in values:
-        values["abstract_noun_ratio"] = values["abstract_noun_count"] / common_noun_count
+    if word_count and "abstract_noun_count" in values:
+        values["abstract_noun_ratio"] = values["abstract_noun_count"] / word_count
     conjugue_verb_count = values.get("conjugue_verb_count") or 0
     if conjugue_verb_count and "gnomic_present_count" in values:
         values["gnomic_present_ratio"] = values["gnomic_present_count"] / conjugue_verb_count
@@ -76,8 +75,16 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
         values["emotion_sentence_ratio"] = values["emotion_sentence_count"] / values["sentence_count"] if values["sentence_count"] else 0
     sentence_count = values.get("sentence_count") or 0
     word_count = values.get("word_count") or 0
-    narrative_verbs = values.get("narrative_verb_count") or 0
+    verbs = values.get("verb_count") or 0
+    if "burstiness" in values and "avg_sentence_length" in values:
+        values["burstiness_word"] = values["burstiness"] * values["avg_sentence_length"]
     if sentence_count:
+        if "present_participe_count" in values:
+            values["present_participle_ratio"] = values["present_participe_count"] / sentence_count
+        if "past_participe_count" in values:
+            values["past_participle_ratio"] = values["past_participe_count"] / sentence_count
+        if "subjonctive_count" in values:
+            values["literary_subjunctive_ratio"] = values["subjonctive_count"] / sentence_count
         for ratio, count in {
             "metaphorical_comme_ratio": "methaphore_count",
             "scene_summary_ratio": "summary_sentence_count",
@@ -92,6 +99,7 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             "dash_ratio": "dash_count",
             "parenthesis_ratio": "parenthesis_count",
             "quote_mark_ratio": "quote_mark_count",
+            "ternary_ratio": "ternary_count",
         }.items():
             if count in values:
                 derived = values[count] / sentence_count
@@ -100,32 +108,34 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
             values["temporal_connector_ratio"] = values["temporal_connector_count"] / sentence_count * 100
     if word_count:
         for ratio, count in {
-            "present_participle_ratio": "present_participe_count",
-            "past_participle_ratio": "past_participe_count",
             "dialogue_ratio": "dialog_word_count",
         }.items():
             if count in values:
                 values[ratio] = values[count] / word_count
         if "familiarity_marker_count" in values:
             values["oral_familiarity_ratio"] = values["familiarity_marker_count"] / word_count * 100
-    if narrative_verbs:
+    if verbs:
         for ratio, count in {
-            "simple_past_ratio": "simple_past_count",
-            "literary_subjunctive_ratio": "subjonctive_count",
             "action_verb_ratio": "active_verb_count",
             "narrative_past_ratio": "narrative_past_count",
+            "verb_present_ratio": "verb_present_count",
+            "verb_imp_ratio": "verb_imp_count",
+            "verb_fut_ratio": "verb_fut_count",
+            "simple_past_ratio": "simple_past_count",
+            "passe_compose_ratio": "passe_compose_count",
         }.items():
             if count in values:
-                values[ratio] = values[count] / narrative_verbs
+                values[ratio] = values[count] / verbs
     negations = values.get("negation_count") or 0
     if "verb_negation_count" in values:
         values["negation_completeness_ratio"] = values["verb_negation_count"] / negations if negations else 0
-    futures = (values.get("va_count") or 0) + (values.get("future_count") or 0)
     if "va_count" in values:
-        values["periphrastic_future_ratio"] = values["va_count"] / futures if futures else 0
-    subjects = values.get("classifiable_subject_count") or 0
+        values["periphrastic_future_ratio"] = values["va_count"] / sentence_count if sentence_count else 0
     if "personal_subject_count" in values:
-        values["personal_subject_ratio"] = values["personal_subject_count"] / subjects if subjects else 0
+        classifiable_subject_count = values.get("classifiable_subject_count") or 0
+        values["personal_subject_ratio"] = values["personal_subject_count"] / classifiable_subject_count if classifiable_subject_count else 0
+    if "first_person_subject_count" in values:
+        values["first_person_subject_ratio"] = values["first_person_subject_count"] / sentence_count if sentence_count else 0
     lexical_tokens = values.get("lexical_token_count") or 0
     if "proper_noun_count" in values:
         values["proper_noun_density"] = values["proper_noun_count"] / lexical_tokens if lexical_tokens else 0
@@ -154,23 +164,20 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
     ]
     if all(isinstance(value, (int, float)) for value in punctuation_counts):
         total_punctuation = sum(punctuation_counts)
-        # Le compteur global est persiste : c'est le numerateur brut de la
-        # densite. La somme garde la lecture des anciennes bases compatible.
-        punctuation_mark_count = values.get("punctuation_mark_count", total_punctuation)
-        values["punctuation_ratio"] = punctuation_mark_count / word_count if word_count else 0
+        values["punctuation_mark_count"] = total_punctuation
+        values["punctuation_ratio"] = total_punctuation / word_count if word_count else 0
         values["punctuation_diversity"] = (
             -sum((count / total_punctuation) * math.log2(count / total_punctuation)
                  for count in punctuation_counts if count) / math.log2(len(punctuation_counts))
             if total_punctuation else 0
         )
-    grammatical_total = values.get("grammatical_token_count") or 0
     grammatical_nouns = (values.get("common_noun_count") or 0) + (values.get("proper_noun_count") or 0)
     grammatical_verbs = values.get("grammatical_verb_count") or 0
-    if grammatical_total:
-        values["noun_ratio"] = grammatical_nouns / grammatical_total
-        values["verb_ratio"] = grammatical_verbs / grammatical_total
-        values["adjective_ratio"] = (values.get("adjective_count") or 0) / grammatical_total
-        values["adverb_ratio"] = (values.get("adverb_count") or 0) / grammatical_total
+    if word_count:
+        values["noun_ratio"] = grammatical_nouns / word_count
+        values["verb_ratio"] = grammatical_verbs / word_count
+        values["adjective_ratio"] = (values.get("adjective_count") or 0) / word_count
+        values["adverb_ratio"] = (values.get("adverb_count") or 0) / word_count
     # Les corpus anciens peuvent encore posséder le ratio validé sans son
     # nouveau dénominateur brut. Ne jamais écraser cette valeur par zéro : le
     # ratio sera reconstruit dès que grammatical_verb_count aura été calculé.
@@ -184,7 +191,7 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
         if "adjective_chain_count" in values:
             values["adjective_chain_ratio"] = values["adjective_chain_count"] / sentence_count
         if "incise_count" in values:
-            values["incise_density"] = values["incise_count"] / sentence_count
+            values["incise_ratio"] = values["incise_count"] / sentence_count
         if "coordination_accumulation_count" in values:
             values["coordination_accumulation_ratio"] = values["coordination_accumulation_count"] / sentence_count
     analyzed_nouns = values.get("analyzed_noun_count") or 0

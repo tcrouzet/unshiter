@@ -305,14 +305,6 @@
       {"range": [2.18, 2.99], "action": "Plusieurs subordonnées par phrase en moyenne ({value})."}
     ]
   },
-  "incise_density": {
-    "unit": "%",
-    "brackets": [
-      {"range": [0.04, 0.137], "action": "Peu d'incises ({value}% des phrases)."},
-      {"range": [0.137, 0.233], "action": "Incises occasionnelles ({value}% des phrases)."},
-      {"range": [0.233, 0.33], "action": "Incises fréquentes ({value}% des phrases)."}
-    ]
-  },
   "coordination_accumulation_ratio": {
     "unit": "%",
     "brackets": [

@@ -70,7 +70,7 @@ def modal_generalization_count(doc, generic_subjects: set[str] | None = None) ->
 
 
 def _is_personal_subject(token) -> bool | None:
-    if token.dep_ not in {"nsubj", "nsubj:pass"}: return None
+    if token.dep_ not in {"nsubj", "nsubj:pass", "expl:subj"}: return None
     if token.pos_ == "PROPN": return True
     if token.pos_ != "PRON": return None
     word = token.lower_
@@ -123,11 +123,6 @@ def incise_count(doc) -> int:
                 break
     return count
 
-def incise_density(doc) -> float:
-    sentences = list(doc.sents)
-    return incise_count(doc) / len(sentences) if sentences else 0.0
-
-
 def coordination_accumulation_ratio(doc) -> float:
     """Part des phrases comportant plus de deux coordinations syntaxiques."""
     sentences = list(doc.sents)
@@ -173,6 +168,26 @@ def _coordinated_modifier_chains(doc) -> list[int]:
             if len(chain) > 1:
                 chains.append(len(chain))
     return chains
+
+
+def _ternary_adjective_count(doc) -> int:
+    count = 0
+    morphalou = lexical_map(tuple(token.lower_ for token in doc if token.is_alpha))
+    for sentence in doc.sents:
+        adjectives = {
+            token.i: token for token in sentence
+            if token.pos_ == "ADJ"
+            or morphalou.get(token.lower_, (None, ""))[1].startswith("Adjectif")
+            or ("Part" in token.morph.get("VerbForm") and token.dep_ in {"ROOT", "amod", "advmod", "conj", "xcomp"})
+        }
+        groups = Counter()
+        for token in adjectives.values():
+            anchor = token
+            while anchor.head.i in adjectives and anchor.head != anchor:
+                anchor = anchor.head
+            groups[anchor.head.i if anchor.head != anchor else anchor.i] += 1
+        count += sum(size == 3 for size in groups.values())
+    return count
 
 
 def proper_noun_density(doc) -> float:
@@ -251,7 +266,7 @@ def _paragraph_ranges(text: str) -> list[tuple[int, int]]:
     return ranges
 
 
-DIALOGUE_OPENING_MARKERS = ("—", "–", "«")  # cadratin, demi-cadratin ou guillemet
+DIALOGUE_OPENING_MARKERS = ("—", "–")
 WORD_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?", re.UNICODE)
 
 
@@ -262,10 +277,6 @@ def dialogue_char_ranges(text: str) -> list[tuple[int, int]]:
         offset = end
         if paragraph.strip().startswith(DIALOGUE_OPENING_MARKERS):
             ranges.append((start, end))
-    # Les répliques peuvent aussi être enchâssées dans un paragraphe narratif
-    # (« Mais pourquoi tu m'as appelé ? »). Elles doivent être exclues des
-    # mesures narratives même si le paragraphe ne commence pas par un guillemet.
-    ranges.extend((match.start(), match.end()) for match in re.finditer(r"«[^»]*»", text, re.DOTALL))
     ranges.sort()
     merged = []
     for start, end in ranges:
@@ -417,9 +428,17 @@ def _is_periphrastic_future(token) -> bool:
                 and child.dep_ in {"xcomp", "ccomp"} for child in token.children))
 
 
-def _is_simple_future(token) -> bool:
-    return (token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm")
-            and "Fut" in token.morph.get("Tense") and "Ind" in token.morph.get("Mood"))
+def _is_passe_compose(token) -> bool:
+    if token.pos_ not in {"VERB", "AUX"} or "Part" not in token.morph.get("VerbForm") or "Past" not in token.morph.get("Tense"):
+        return False
+    return any(
+        child.lemma_.casefold() in {"avoir", "être"}
+        and child.dep_ in {"aux", "aux:tense"}
+        and "Fin" in child.morph.get("VerbForm")
+        and "Pres" in child.morph.get("Tense")
+        and "Ind" in child.morph.get("Mood")
+        for child in token.children
+    )
 
 
 def _comparison_markers() -> tuple[str, ...]:
@@ -518,7 +537,11 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     passive_sentences = sum(any(_is_passive_predicate(token) for token in predicates) for predicates in sentence_predicates)
     comparison_sentences = sum(_contains_comparison(sentence) for sentence in sentences)
     finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in narrative_tokens)
-    all_finite_verbs = sum(token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm") for token in doc)
+    all_finite_tokens = [
+        token for token in doc
+        if token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm")
+    ]
+    all_finite_verbs = len(all_finite_tokens)
     present_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Pres" in token.morph.get("Tense") for token in doc)
     past_participles = sum(token.pos_ in {"VERB", "AUX"} and "Part" in token.morph.get("VerbForm") and "Past" in token.morph.get("Tense") for token in doc)
     # Les formes en -it sont parfois homographes du présent (retentit,
@@ -544,9 +567,21 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         # Une forme identique au présent et au passé simple n'est retenue
         # que si un autre passé de la phrase confirme le contexte narratif.
         return [token for token in candidates if not _is_present_simple_past_homograph(token) or has_other_past]
-    simple_past_tokens = [token for sentence in narrative_sentences for token in reliable_simple_past(sentence)]
+    simple_past_tokens = [token for sentence in sentences for token in reliable_simple_past(sentence)]
     simple_past = len(simple_past_tokens)
-    literary_subjunctive = sum(_is_literary_subjunctive(token) for token in narrative_tokens)
+    passe_compose_tokens = [token for token in doc if _is_passe_compose(token)]
+    passe_compose_auxiliaries = {
+        child.i
+        for token in passe_compose_tokens
+        for child in token.children
+        if child.lemma_.casefold() in {"avoir", "être"}
+        and child.dep_ in {"aux", "aux:tense"}
+        and "Fin" in child.morph.get("VerbForm")
+        and "Pres" in child.morph.get("Tense")
+        and "Ind" in child.morph.get("Mood")
+    }
+    passe_compose = len(passe_compose_tokens)
+    literary_subjunctive = sum(_is_literary_subjunctive(token) for token in doc)
     # Le modèle peut étiqueter une forme littéraire comme NOUN/Part : elle
     # reste néanmoins un verbe fini pour les ratios de temps.
     finite_verbs += sum(1 for token in narrative_tokens if (_is_simple_past(token) or _is_literary_subjunctive(token)) and not (token.pos_ in {"VERB", "AUX"} and "Fin" in token.morph.get("VerbForm")))
@@ -557,14 +592,12 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     all_negation_totals = [sentence_negation_stats(sentence) for sentence in sentences]
     negation_sentence_ratio = (sum(total > 0 for total, _with_ne in all_negation_totals) / len(sentences)
                                if sentences else 0)
-    periphrastic_future = sum(_is_periphrastic_future(token) for token in narrative_tokens)
-    simple_future = sum(_is_simple_future(token) for token in narrative_tokens)
-    future_total = periphrastic_future + simple_future
+    periphrastic_future = sum(_is_periphrastic_future(token) for token in doc)
     pos_counts = {
         "common_nouns": sum(token.pos_ == "NOUN" for token in doc),
         "proper_nouns": sum(token.pos_ == "PROPN" for token in doc),
-        "all_verbs": sum(token.pos_ in {"VERB", "AUX"} for token in doc),
-        "verbs": finite_verbs,
+        "all_verbs": all_finite_verbs,
+        "verbs": all_finite_verbs,
         "adjectives": sum(token.pos_ == "ADJ" for token in doc),
         "adverbs": sum(token.pos_ == "ADV" for token in doc),
     }
@@ -573,14 +606,18 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     pos_distribution = {name: pos_counts[name] / pos_total if pos_total else 0 for name in distribution_keys}
     modifier_counts = _noun_modifier_counts(doc)
     adjective_chains = _coordinated_modifier_chains(doc)
+    ternary_count = _ternary_adjective_count(doc)
     stative = _load_word_list(STATIVE_VERBS_FILE)
     finite_narrative = [t for t in narrative_tokens if t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm")]
-    action_verb_ratio = sum((t.lemma_.casefold() not in stative) for t in finite_narrative) / len(finite_narrative) if finite_narrative else 0
-    subjects = [_is_personal_subject(t) for t in doc if t.dep_ in {"nsubj", "nsubj:pass"}]
+    action_verb_ratio = sum((t.lemma_.casefold() not in stative) for t in all_finite_tokens) / all_finite_verbs if all_finite_verbs else 0
+    subjects = [_is_personal_subject(t) for t in doc if t.dep_ in {"nsubj", "nsubj:pass", "expl:subj"}]
     decided_subjects = [x for x in subjects if x is not None]
-    personal_subject_ratio = sum(decided_subjects) / len(decided_subjects) if decided_subjects else 0
-    narrative_past_count = sum("Past" in t.morph.get("Tense") for t in finite_narrative)
-    narrative_past_ratio = narrative_past_count / len(finite_narrative) if finite_narrative else 0
+    first_person_subject_count = sum(
+        any(token.dep_ in {"nsubj", "nsubj:pass"} and "1" in token.morph.get("Person") for token in sentence)
+        for sentence in sentences
+    )
+    narrative_past_count = sum("Past" in t.morph.get("Tense") for t in all_finite_tokens)
+    narrative_past_ratio = narrative_past_count / all_finite_verbs if all_finite_verbs else 0
     tense_shift_count, tense_transition_count = _tense_shift_counts_doc(text, doc)
     negative_sentence_count = sum(total > 0 for total, _with_ne in all_negation_totals)
     exclamative_sentence_count = sum(_is_exclamative_sentence(s) for s in sentences)
@@ -609,9 +646,13 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "tense_transition_count": tense_transition_count,
         "finite_verbs": finite_verbs,
         "all_finite_verbs": all_finite_verbs,
+        "verb_present_count": sum("Pres" in token.morph.get("Tense") and token.i not in passe_compose_auxiliaries for token in all_finite_tokens),
+        "verb_imp_count": sum("Imp" in token.morph.get("Tense") for token in all_finite_tokens),
+        "verb_fut_count": sum("Fut" in token.morph.get("Tense") for token in all_finite_tokens),
         "present_participles": present_participles,
         "past_participles": past_participles,
         "simple_past": simple_past,
+        "passe_compose": passe_compose,
         "literary_subjunctive": literary_subjunctive,
         "negation_total": negation_total,
         "negation_with_ne": negation_with_ne,
@@ -619,24 +660,23 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "negation_ratio": negation_sentence_ratio,
         "negative_sentence_count": negative_sentence_count,
         "periphrastic_future": periphrastic_future,
-        "simple_future": simple_future,
-        "future_total": future_total,
-        "periphrastic_future_ratio": periphrastic_future / future_total if future_total else None,
         "dialogue_ratio": sum(len(WORD_RE.findall(text[start:end])) for start, end in dialogue_ranges) / len(WORD_RE.findall(text)) if WORD_RE.findall(text) else 0,
         "dialog_word_count": sum(len(WORD_RE.findall(text[start:end])) for start, end in dialogue_ranges),
         "concrete_noun_count": sum(token.pos_ == "NOUN" and not _is_abstract_noun(token.lemma_) for token in doc),
         "narrative_verb_count": len(finite_narrative),
-        "action_verb_count": sum(t.lemma_.casefold() not in stative for t in finite_narrative),
+        "action_verb_count": sum(t.lemma_.casefold() not in stative for t in all_finite_tokens),
         "gnomic_present_count": gnomic_present_count,
         "modal_generalization_count": modal_generalization_count(doc),
-        "personal_subject_count": sum(decided_subjects),
+        "personal_subject_count": sum(value is True for value in decided_subjects),
         "classifiable_subject_count": len(decided_subjects),
+        "first_person_subject_count": first_person_subject_count,
         "narrative_past_count": narrative_past_count,
         "lexical_token_count": sum(not token.is_space and not token.is_punct for token in doc),
         "analyzed_noun_count": len(modifier_counts),
         "heavily_modified_noun_count": sum(c >= 2 for c in modifier_counts),
         "adjective_chain_count": len(adjective_chains),
         "adjective_in_chain_count": sum(adjective_chains),
+        "ternary_count": ternary_count,
         "noun_modifier_count": sum(modifier_counts),
         "grammatical_token_count": pos_total,
         "grammatical_verb_count": pos_counts["verbs"],
@@ -647,12 +687,10 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
         "adjective_chain_ratio": len(adjective_chains) / len(sentences) if sentences else 0,
         "avg_adjective_chain_length": sum(adjective_chains) / len(adjective_chains) if adjective_chains else 0,
         "action_verb_ratio": action_verb_ratio,
-        "personal_subject_ratio": personal_subject_ratio,
         "narrative_past_ratio": narrative_past_ratio,
         "gnomic_present_ratio": gnomic_present_ratio,
         "exclamative_construction_ratio": exclamative_sentence_count / len(sentences) if sentences else 0,
         "exclamative_sentence_count": exclamative_sentence_count,
-        "incise_density": incise_density(doc),
         "coordination_accumulation_ratio": coordination_accumulation_ratio(doc),
         "right_branching_depth": right_branching_depth(doc),
         "modal_generalization_ratio": modal_generalization_ratio(doc),

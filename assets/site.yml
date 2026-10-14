@@ -9,5 +9,6 @@ default:
   - les-particules-elementaires-michel-houellebecq.epub
   - vies-minuscules-michon-pierre.epub
   - isa.epub
-prompt: "Tu es un éditeur spécialisé dans la réécriture littéraire. Tu respectes scrupuleusement les règles suivantes."
+prompt_rewriting: "./assets/prompt_rewriting.md"
+prompt_writing: "./assets/prompt_writing.md"
 prompt_ids: false

@@ -27,6 +27,8 @@ PUBLICATION_FILE = ASSETS_DIR / "publication.yml"
 WIKIPEDIA_CACHE_FILE = ASSETS_DIR / "wikipedia-cache.json"
 EPUB_DATABASE = ASSETS_DIR / "unshiter.sqlite3"
 ANALYSIS_WINDOW_WORDS = 1_000
+PROMPT_MIN_RATIO = 0.01
+PROMPT_RARE_RATIO = 0.02
 EPUB_MIN_TEXT_CHARS = 5_000
 EPUB_ANALYSIS_VERSION = "first-window-clean-body-v65-markdown-normalization-punctuation-count"
 TESTS_DIR = PROJECT_ROOT / "tests"
@@ -175,7 +177,6 @@ ORNATENESS_WEIGHTS = {
     "adjective_chain_ratio": 0.15,
     "sentence_start_recurrence_distance": 0.11,
     "right_branching_depth": 0.20,
-    "incise_density": 0.095,
     "coordination_accumulation_ratio": 0.095,
 }
 

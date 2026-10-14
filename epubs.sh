@@ -67,10 +67,11 @@ else
     echo "Usage : ./epubs.sh [--reset|corpus|fichier.epub|fichier.md]" >&2
     exit 2
   fi
-  case "$1" in
-    "$PROJECT_ROOT"/corpus/*|corpus/*)
-      relative=${1#"$PROJECT_ROOT"/corpus/}
-      relative=${relative#corpus/}
+  relative_path=${1#"$PROJECT_ROOT"/}
+  relative_path=${relative_path#./}
+  case "$relative_path" in
+    corpus/*)
+      relative=${relative_path#corpus/}
       corpus_id=${relative%%/*}
       ;;
     *) corpus_id=${UNSHITER_CORPUS:-crouzet} ;;

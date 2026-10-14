@@ -30,7 +30,7 @@ const DETAILS = [
   ["proper_noun_density", null, true],
   ["concrete_noun_ratio", null, true],
   ["tense_shift_rate", null, true],
-  ["scene_summary_ratio", null, true], ["incise_density", null, true], ["coordination_accumulation_ratio", null, true], ["right_branching_depth", null, true], ["punctuation_variety_score", null, true], ["modal_generalization_ratio", null, true],
+  ["scene_summary_ratio", null, true], ["coordination_accumulation_ratio", null, true], ["right_branching_depth", null, true], ["punctuation_variety_score", null, true], ["modal_generalization_ratio", null, true],
   ["global_repetition_ratio", null, true], ["local_phonetic_repetition_ratio", null, true], ["global_phonetic_repetition_ratio", null, true], ["absolute_repetition_rate", null, true],
   ["present_participle_ratio", null, true], ["past_participle_ratio", null, true],
   ["simple_past_ratio", null, true], ["literary_subjunctive_ratio", null, true], ["negation_completeness_ratio", null, true], ["negation_ratio", null, true], ["periphrastic_future_ratio", null, true], ["oral_familiarity_ratio", null, true], ["dialogue_ratio", null, true], ["avg_modifiers_per_noun", null, true], ["heavily_modified_noun_ratio", null, true], ["lexical_rarity_score", null, true], ["adjective_chain_ratio", null, true], ["avg_adjective_chain_length", null, true],
@@ -1248,57 +1248,13 @@ function downloadSvg() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="white"/><text x="${cx}" y="30" text-anchor="middle" font-family="system-ui" font-size="22" font-weight="600">${safeTitle}</text><g stroke="#ddd8d2" fill="none">${[25,50,75,100].map(v => `<circle cx="${cx}" cy="${cy}" r="${radius*v/100}"/>`).join("")}</g>${polygons}${labels}</svg>`;
   const a = document.createElement("a"); a.download = "unshiter-radar.svg"; a.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-function exportStylePrompt() {
-  fetch("style-interpretation-prompt.md").then(response => response.text()).then(content => {
-    const href = URL.createObjectURL(new Blob([content], { type: "text/markdown" }));
-    const link = document.createElement("a"); link.href = href; link.download = "style-interpretation-prompt.md"; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
+function buildStyleExport(templateKey = "prompt_rewriting") {
+  return RewritePrompt.buildExport({
+    data,
+    books: selected(),
+    readValue: value,
+    template: data.site?.[templateKey],
   });
-}
-function buildStyleExport() {
-  const round2 = value => Number.isFinite(value) ? Math.round(value * 100) / 100 : value;
-  const books = selected();
-  const metrics = {};
-  for (const [field, label] of Object.entries(data.metric_labels || {})) {
-    const entry = noteEntry(field);
-    metrics[field] = { id: entry.id, label, title: entry.title || label, definition: data.notes?.[entry.id] || "" };
-  }
-  const tableOrder = [
-    ["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"],
-    ["punctuation_ratio", "punctuation_diversity", "structural_diversity", "structural_rhythm", "average_syntactic_depth", "sentence_start_diversity", "sentence_start_recurrence_distance", "burstiness", "noun_verb_ratio", "local_repetition_ratio"],
-    ["local_phonetic_repetition_ratio", "global_phonetic_repetition_ratio", "absolute_repetition_rate", "trigram_repetition", "function_word_ratio", "noun_ratio", "verb_ratio", "adjective_ratio", "adverb_ratio", "present_participle_ratio", "past_participle_ratio", "simple_past_ratio", "literary_subjunctive_ratio", "negation_completeness_ratio", "negation_ratio", "periphrastic_future_ratio", "oral_familiarity_ratio", "dialogue_ratio", "avg_modifiers_per_noun", "heavily_modified_noun_ratio", "lexical_rarity_score", "adjective_chain_ratio", "avg_adjective_chain_length", "action_verb_ratio", "temporal_connector_ratio", "personal_subject_ratio", "narrative_past_ratio", "emotion_word_ratio", "emotion_sentence_ratio", "joy_emotion_ratio", "sadness_emotion_ratio", "fear_emotion_ratio", "anger_emotion_ratio", "surprise_emotion_ratio", "disgust_emotion_ratio", "contempt_emotion_ratio", "somatic_emotion_ratio", "emotional_category_entropy", "intensifier_adjective_ratio", "emotion_intensification_ratio", "ellipsis_ratio", "question_mark_ratio", "exclamation_ratio", "exclamative_construction_ratio", "logical_connector_ratio", "abstract_noun_ratio", "gnomic_present_ratio", "relative_clause_ratio", "nominal_sentence_ratio", "active_voice_ratio", "metaphorical_comme_ratio", "hapax_ratio"],
-    ["document_char_count", "word_count", "sentence_count", "paragraph_count", "avg_word_length", "avg_sentence_length", "median_sentence_length", "sentence_length_p10", "sentence_length_p90", "paragraph_length_std_dev", "sentence_length_std_dev", "avg_paragraph_length"],
-  ];
-  // L’export reprend toutes les mesures affichées dans les tableaux, quelle
-  // que soit la sélection courante à gauche.
-  const orderedFields = [...new Set(tableOrder.flat().concat(Object.keys(metrics)))].filter(field => metrics[field]);
-  const nonNormalizable = TECHNICAL_KEYS;
-  // Export brut du corpus sélectionné : une seule valeur moyenne par mesure.
-  // Les noms d’œuvres et d’auteurs restent dans l’interface, pas dans ce fichier.
-  for (const field of orderedFields) {
-    const info = metrics[field];
-    const values = books.map(book => Number(book.analyses?.[0]?.stats?.[info.id])).filter(Number.isFinite);
-    const corpusValues = data.books.flatMap(book => (book.analyses || []).map(analysis => Number(analysis.stats?.[info.id]))).filter(Number.isFinite);
-    const rawValue = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-    info.value = round2(rawValue);
-    if (rawValue != null && corpusValues.length) {
-      const rank = 1 + corpusValues.filter(value => value < rawValue).length;
-      info["rank-in-corpus"] = `${rank}/${corpusValues.length}`;
-    }
-    const sigmaPoints = dispersion(corpusValues, field) ?? 0;
-    info.dispersion = round2(sigmaPoints);
-    info.dispersion_significant = sigmaPoints >= DISPERSION_SIGNIFICANCE_POINTS;
-    if (!nonNormalizable.has(field)) {
-      info.corpus_min = corpusValues.length ? Math.min(...corpusValues) : null;
-      info.corpus_max = corpusValues.length ? Math.max(...corpusValues) : null;
-      // Cet export encode la position entre les deux bornes afin que la valeur
-      // réelle puisse être reconstruite exactement par le générateur.
-      if (rawValue != null && corpusValues.length) {
-        const minimum = Math.min(...corpusValues), maximum = Math.max(...corpusValues);
-        info.value = maximum === minimum ? 0 : (rawValue - minimum) / (maximum - minimum);
-      }
-    }
-  }
-  return { metrics: orderedFields.map(field => { const { label, ...entry } = metrics[field]; return entry; }) };
 }
 function saveGeneratedFile(name, content, type) {
   const href = URL.createObjectURL(new Blob([content], { type }));
@@ -1357,88 +1313,14 @@ function exportAllTableData() {
 function exportPromptAndData() {
   saveGeneratedFile("style-interpretation-data.json", JSON.stringify(buildStyleExport(), null, 2), "application/json");
 }
-function generateRewritePrompt(exported, rules, metricOrder, metricSections, header = "", debug = false) {
-  const excluded = new Set(["classicism_score", "baroque_score", "narrativity_score", "emotionality_score", "discursivite_score"]);
-  const byId = new Map((exported?.metrics || []).map(metric => [metric.id, metric]));
-  const linesBySection = new Map();
-  const round2 = value => Math.round(value * 100) / 100;
-  const hasBounds = metric => Number.isFinite(metric?.corpus_min) && Number.isFinite(metric?.corpus_max);
-  const realValue = metric => metric.corpus_min + Number(metric.value) * (metric.corpus_max - metric.corpus_min);
-  const linkedChildren = metric => {
-    const links = [...String(metric.definition || "").matchAll(/\[([^\]]+)\]\(#([a-z][a-z0-9_]*)\)/g)]
-      .map(match => ({ label: match[1], id: match[2], metric: byId.get(match[2]) }))
-      .filter(child => child.metric && !hasBounds(child.metric));
-    return links.length >= 3 ? links : [];
-  };
-  for (const id of metricOrder || []) {
-    const metric = byId.get(id), section = metricSections?.[id];
-    if (!metric || !section || excluded.has(id) || metric.dispersion_significant !== true) continue;
-    const children = linkedChildren(metric);
-    const family = children.length >= 3;
-    if (!family && !hasBounds(metric)) continue;
-    let action = "";
-    if (hasBounds(metric) && Number.isFinite(Number(metric.value))) {
-      const value = realValue(metric);
-      const bracket = (rules?.[id]?.brackets || []).find(item => Array.isArray(item.range) && value >= item.range[0] && value <= item.range[1]);
-      if (bracket?.action) action = bracket.action.replaceAll("{value}", String(round2(value)));
-    }
-    let familyDetail = "";
-    if (family) {
-      const total = children.reduce((sum, child) => sum + Math.max(0, Number(child.metric.value) || 0), 0);
-      const shares = children
-        .map(child => ({ ...child, share: total ? Math.max(0, Number(child.metric.value) || 0) / total * 100 : 0 }))
-        .sort((left, right) => right.share - left.share || left.id.localeCompare(right.id));
-      const present = shares
-        .filter(child => child.share >= 3)
-      const absent = shares.filter(child => Number(child.metric.value) === 0);
-      const ruleCommon = rules?.[id]?.common;
-      if (typeof ruleCommon === "string") {
-        const commonUnit = rules?.[id]?.common_unit;
-        familyDetail = ruleCommon.replace(/\{([a-z][a-z0-9_]*)\}/g, (placeholder, ratioId) =>
-          hasBounds(byId.get(ratioId)) && Number.isFinite(Number(byId.get(ratioId).value))
-            ? String(commonUnit === "absolute"
-              ? round2(realValue(byId.get(ratioId)))
-              : Math.floor(realValue(byId.get(ratioId)) * 100))
-            : placeholder
-        );
-      } else {
-        const details = [];
-        if (present.length) details.push(`Répartition : ${present.map(child => `${child.label} ${round2(child.share)} %`).join(", ")}.`);
-        if (absent.length) details.push(`Absents : ${absent.map(child => child.label).join(", ")}.`);
-        familyDetail = details.join(" ");
-      }
-      if (!action && familyDetail) familyDetail = `${String(metric.title || id).replace(/\*\*/g, "")} : ${familyDetail}`;
-    }
-    const guidance = [action, familyDetail].filter(Boolean).join(" ") || "";
-    const definition = String(metric.definition || "")
-      .replace(/\[([^\]]+)\]\(#[a-z][a-z0-9_]*\)/g, "$1")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/\*\*([^*]+)\*\*/g, "$1")
-      .trim();
-    const title = String(metric.title || id).replace(/\*\*/g, "");
-    const content = guidance ? `${title} — ${definition}\n${guidance}` : "";
-    const line = content ? `${debug ? `[${id}] ` : ""}${content}` : "";
-    if (!line) continue;
-    if (!linesBySection.has(section)) linesBySection.set(section, []);
-    linesBySection.get(section).push(line);
-  }
-  const sectionOrder = [...new Set((metricOrder || []).map(id => metricSections?.[id]).filter(Boolean))];
-  const body = sectionOrder
-    .filter(section => linesBySection.has(section))
-    .map(section => `## ${section}\n${linesBySection.get(section).join("\n")}`)
-    .join("\n\n");
-  return [String(header || "").trim(), body].filter(Boolean).join("\n\n");
-}
-function exportRewritePrompt() {
-  const exported = buildStyleExport();
-  const args = [exported, data.rewrite_rules || {}, data.metric_order || [], data.metric_sections || {}, data.site?.prompt || ""];
-  const prompt = generateRewritePrompt(...args);
-  const showIds = ["true", "1", "yes", "oui"].includes(String(data.site?.prompt_ids || "").toLowerCase());
-  const debugPrompt = generateRewritePrompt(...args, showIds);
+function exportGeneratedPrompt(templateKey, title) {
+  const exported = buildStyleExport(templateKey);
+  const prompt = RewritePrompt.generate(exported);
   const dialog = document.getElementById("rewrite-prompt-dialog");
   const output = document.getElementById("rewrite-prompt-output");
   if (!dialog || !output) return;
-  output.value = debugPrompt;
+  dialog.querySelector("h2").textContent = title;
+  output.value = prompt;
   output.dataset.copyValue = prompt;
   dialog.showModal();
 }
@@ -1580,9 +1462,9 @@ function controls() {
   document.addEventListener("click", event => { const button = event.target.closest(".metric-help, .metric-flip, .table-note-help, .note-link"); if (!button) return; event.preventDefault(); event.stopPropagation(); const note = document.getElementById("metric-note"); if (button.classList.contains("note-link")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } if (button.classList.contains("table-note-help")) { document.getElementById("metric-note-text").innerHTML = renderNote(button.dataset.noteId); note.hidden = false; return; } const key = metricKey(button.dataset.key); if (button.classList.contains("metric-help")) { const id = button.dataset.noteId || noteEntry(key).id; document.getElementById("metric-note-text").innerHTML = id == null ? "<p>Note non référencée.</p>" : renderNote(id); note.hidden = false; } else { flippedAxes.has(key) ? flippedAxes.delete(key) : flippedAxes.add(key); storageSet("unshiter-flipped", JSON.stringify([...flippedAxes].map(publicMetricId))); const row = button.closest(".metric-row"); row.querySelector("span").textContent = metricLabel(key); draw(); } });
   const limitsButton = document.getElementById("corpus-profile"), authorsButton = document.getElementById("author-profile"), authorLimitsButton = document.getElementById("author-limits"), worksButton = document.getElementById("works-profile");
   const exportBox = document.createElement("div"); exportBox.className = "prompt-exports";
-  const promptButton = document.createElement("button"); promptButton.type = "button"; promptButton.id = "export-style-prompt"; promptButton.textContent = "Prompt d’analyse"; exportBox.appendChild(promptButton); promptButton.addEventListener("click", exportStylePrompt);
   const promptFilesButton = document.createElement("button"); promptFilesButton.type = "button"; promptFilesButton.id = "export-style-files"; promptFilesButton.textContent = "Données pour analyse"; exportBox.appendChild(promptFilesButton); promptFilesButton.addEventListener("click", exportPromptAndData);
-  const rewriteButton = document.createElement("button"); rewriteButton.type = "button"; rewriteButton.id = "export-rewrite-prompt"; rewriteButton.textContent = "Prompt de réécriture"; exportBox.appendChild(rewriteButton); rewriteButton.addEventListener("click", exportRewritePrompt);
+  const rewriteButton = document.createElement("button"); rewriteButton.type = "button"; rewriteButton.id = "export-rewrite-prompt"; rewriteButton.textContent = "Prompt de réécriture"; exportBox.appendChild(rewriteButton); rewriteButton.addEventListener("click", () => exportGeneratedPrompt("prompt_rewriting", "Prompt de réécriture"));
+  const writingButton = document.createElement("button"); writingButton.type = "button"; writingButton.id = "export-writing-prompt"; writingButton.textContent = "Prompt d’écriture"; exportBox.appendChild(writingButton); writingButton.addEventListener("click", () => exportGeneratedPrompt("prompt_writing", "Prompt d’écriture"));
   const allDataButton = document.createElement("button"); allDataButton.type = "button"; allDataButton.id = "all-data-download"; allDataButton.textContent = "All data"; exportBox.appendChild(allDataButton); allDataButton.addEventListener("click", exportAllTableData);
   document.querySelector("aside")?.appendChild(exportBox);
   document.body.insertAdjacentHTML("beforeend", '<dialog id="rewrite-prompt-dialog" class="rewrite-prompt-dialog"><div class="rewrite-prompt-heading"><h2>Prompt de réécriture</h2><button type="button" id="rewrite-prompt-close" aria-label="Fermer">×</button></div><textarea id="rewrite-prompt-output" readonly></textarea><div class="rewrite-prompt-actions"><button type="button" id="rewrite-prompt-copy">Copier</button></div></dialog>');
@@ -1618,7 +1500,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20260923203536630768000").then(r => r.json()).then(json => {
+fetch("data.json?v=20261014133356818431000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

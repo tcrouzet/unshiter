@@ -62,11 +62,15 @@ la-princesse-de-cleves-madame-de-la-fayette.epub: {date: "1678"}
 a-la-recherche-du-temps-perdu-i-marcel-proust.epub: {date: "1913", title: "Du côté de chez Swan"}
 a-la-recherche-du-temps-perdu-xiv-marcel-proust.epub: {date: "1922", title: "Le temps retrouvé"}
 
+# Marcet Proust
+proust.epub: {date: ""}
+
 # Marguerite Duras
 un-barrage-contre-le-pacifique-marguerite-duras.epub: {date: "1950"}
 le-ravissement-de-lol-v-stein-marguerite-duras.epub: {date: "1964"}
 l-ete-80-marguerite-duras.epub: {date: "1980"}
 l-amant-duras-marguerite.epub: {date: "1984"}
+duras.epub: {date: ""}
 
 # Michel Houellebecq
 extension-du-domaine-de-la-lutte-houellebecq-michel.epub: {date: "1994"}
@@ -107,6 +111,7 @@ fourth-wing-tome-1.epub: {date: "2023"}
 
 # Romain Gary
 l-angoisse-du-roi-salomon-emile-ajar-romain-gary.epub: {date: "2013", author: "Romain Gary"}
+gary.epub: {date: ""}
 
 # Sonia Devillers
 le-fabuleux-piano-sonia-devillers.epub: {date: ""}
@@ -120,6 +125,7 @@ de-lautre-cote-du-lac-sylvain-prudhomme.epub: {date: ""}
 
 # Thélyson Orélien
 cetait-ca-ou-mourir-thelyson-orelien.epub: {date: "2026"}
+orelien.epub: {date: ""}
 
 # Thierry Crouzet
 4emetheorie.epub: {date: "2013"}
@@ -131,6 +137,8 @@ mon-pere-ce-tueur.epub: {date: "2019"}
 codeh.epub: {date: "2024"}
 rush.epub: {date: "2025"}
 isa.epub: {date: "2026"}
+crouser_ia.epub: {date: ""}
+crouzet.epub: {date: ""}
 
 # Yannick Haenel
 la-solitude-des-professeurs-est-infinie-haenel-yannick.epub: {date: ""}
