@@ -78,7 +78,7 @@ Tentent de capturer les diverses caractéristiques d'un texte.
 
 #### Ponctuation
 
-##### Signes de ponctuation (punctuation_mark_count) #web
+##### Signes de ponctuation (punctuation_mark_count)
 Somme des nombres de [points](#period_count), [virgules](#comma_count), [deux-points](#colon_count), [points-virgules](#semicolons_count), [points d’exclamation](#exclamation_point_count), [points d’interrogation](#question_mark_count), [points de suspension](#suspention_point_count), [tirets](#dash_count), [parenthèses](#parenthesis_count) et [guillemets](#quote_mark_count).
 
 ##### **Densité de ponctuations** / Sparsité de ponctuations (punctuation_ratio) #web

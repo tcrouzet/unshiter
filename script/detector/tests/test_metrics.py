@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from detector.config import NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
-from detector.analyse import build_html as build_analysis_html
+from detector.analyse import analyse_file, build_html as build_analysis_html, repetition_highlights
 from detector.epub_database import metric_cache_is_valid, reset_champ
 from detector.metrics import cached_metric_values
 from detector.stats import Metrics, normalize_markdown_text
@@ -99,6 +99,34 @@ class MetricsTests(unittest.TestCase):
             output = generate_burstiness_html(source, Path(directory) / "out")
             self.assertEqual(output.name, "roman-burst.html")
             self.assertTrue(output.is_file())
+
+    def test_repetition_analysis_groups_inflected_forms_and_reuses_colors(self):
+        text = (
+            "La chambre jouxte plusieurs chambres. Je veux faire ce qu'il faisait et ce que vous faisiez. "
+            + "…" * 1600 + " Une route rejoint deux routes."
+        )
+        highlights = repetition_highlights(text, 1500)
+        marked = [(text[start:end].casefold(), lemma, color) for start, end, lemma, color in highlights]
+        self.assertEqual([word for word, _lemma, _color in marked], ["chambre", "chambres", "faire", "faisait", "faisiez", "route", "routes"])
+        self.assertEqual({lemma for word, lemma, _color in marked if word.startswith("chambre")}, {"chambre"})
+        self.assertEqual({lemma for word, lemma, _color in marked if word in {"faire", "faisait", "faisiez"}}, {"faire"})
+        self.assertNotIn(marked[0][2], {color for word, _lemma, color in marked if word in {"faire", "faisait", "faisiez"}})
+        self.assertEqual(marked[0][2], marked[-1][2])
+        rendered = build_analysis_html(text, "repetitions", "Test")
+        self.assertIn("répétitions lexicales à 1500 caractères", rendered)
+        self.assertIn('data-group="faire"', rendered)
+        self.assertIn('mark.selected { background: #111 !important; color: white; }', rendered)
+        self.assertNotIn("cursor: help", rendered)
+
+    def test_analysis_omits_yaml_front_matter_and_names_metric(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "roman.md"
+            source.write_text("---\ntitle: Secret\n---\n\nLa chambre rejoint les chambres.", encoding="utf-8")
+            output = analyse_file(source, "repetitions", Path(directory) / "out")
+            rendered = output.read_text(encoding="utf-8")
+            self.assertEqual(output.name, "roman_repetitions.html")
+            self.assertNotIn("title: Secret", rendered)
+            self.assertIn("La <mark", rendered)
 
     def test_punctuation_total_is_the_sum_of_detailed_counts(self):
         metrics = Metrics('. , : ; ! ? … - – — () « » “ ” "')

@@ -496,7 +496,7 @@ if (typeof Chart !== "undefined") Chart.register({ id: "mdsLabelsAndLinks", afte
       if (points.length > 1) {
         ctx.font = focused ? "600 14px system-ui" : "12px system-ui";
         ctx.fillStyle = dataset.borderColor || "#3f3a36";
-        ctx.fillText(dataset.label, center.x + 9, center.y - 9);
+        ctx.fillText(dataset.label, center.x + 10, center.y);
       }
     }
     ctx.globalAlpha = 1;
@@ -506,7 +506,7 @@ if (typeof Chart !== "undefined") Chart.register({ id: "mdsLabelsAndLinks", afte
     ctx.textBaseline = "middle";
     points.forEach((point, index) => {
       const label = dataset.data[index]?.label;
-      if (label) ctx.fillText(label, point.x + 8, point.y - 8);
+      if (label) ctx.fillText(label, point.x + 10, point.y);
     });
   });
   ctx.restore();
@@ -1501,7 +1501,7 @@ function controls() {
   authorLimitsButton.addEventListener("click", () => { corpusProfile = true; authorProfile = false; authorLimits = true; storageSet("unshiter-view-mode", "author-limits"); draw(); saveNeighborhoodState(); });
   worksButton.addEventListener("click", () => { authorProfile = false; corpusProfile = false; authorLimits = false; storageSet("unshiter-view-mode", "works"); showWorksMode(); draw(); saveNeighborhoodState(); });
 }
-fetch("data.json?v=20261014172222833873000").then(r => r.json()).then(json => {
+fetch("data.json?v=20261014174144491661000").then(r => r.json()).then(json => {
   data = json;
   const corpusSelect = document.getElementById("corpus-select");
   const availableCorpora = (data.corpora || []).filter(corpus => data.books.some(book => (book.corpora || []).includes(corpus.id)));

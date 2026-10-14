@@ -5,8 +5,8 @@ PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PYTHON="$PROJECT_ROOT/venv/bin/python"
 if [ ! -x "$PYTHON" ]; then PYTHON=python3; fi
 
-if [ "$#" -ne 2 ]; then
-  echo "Usage : ./analyse.sh chemin/source.md nom_metric" >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo "Usage : ./analyse.sh chemin/source.md nom_metric [empan_caracteres]" >&2
   exit 2
 fi
 
@@ -16,7 +16,7 @@ case "$1" in
 esac
 cd "$PROJECT_ROOT"
 
-OUTPUT=$(PYTHONPATH="$PROJECT_ROOT/script" "$PYTHON" -m detector.analyse "$SOURCE" "$2")
+OUTPUT=$(PYTHONPATH="$PROJECT_ROOT/script" "$PYTHON" -m detector.analyse "$SOURCE" "$2" ${3:+"$3"})
 printf '%s\n' "$OUTPUT"
 
 if command -v open >/dev/null 2>&1; then
