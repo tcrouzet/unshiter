@@ -858,4 +858,4 @@ Nombre d’occurrences rattachées à la catégorie « Manifestations somatiques
 Nombre de manifestations somatiques intensifiées ou qualifiées.
 
 ### Séquences ternaires (ternary_count)
-Séquences de trois adjectifs qui s'enchaînent. Par exemple : "il est grand, élancé, vif.".
+Séquences de trois éléments qui s'enchaînent (tricolon). Par exemple : "il est grand, élancé, vif.".

@@ -170,23 +170,14 @@ def _coordinated_modifier_chains(doc) -> list[int]:
     return chains
 
 
-def _ternary_adjective_count(doc) -> int:
+def _ternary_sequence_count(text: str) -> int:
     count = 0
-    morphalou = lexical_map(tuple(token.lower_ for token in doc if token.is_alpha))
-    for sentence in doc.sents:
-        adjectives = {
-            token.i: token for token in sentence
-            if token.pos_ == "ADJ"
-            or morphalou.get(token.lower_, (None, ""))[1].startswith("Adjectif")
-            or ("Part" in token.morph.get("VerbForm") and token.dep_ in {"ROOT", "amod", "advmod", "conj", "xcomp"})
-        }
-        groups = Counter()
-        for token in adjectives.values():
-            anchor = token
-            while anchor.head.i in adjectives and anchor.head != anchor:
-                anchor = anchor.head
-            groups[anchor.head.i if anchor.head != anchor else anchor.i] += 1
-        count += sum(size == 3 for size in groups.values())
+    sentences = re.split(r"(?<=[.!?…])(?:\s+|$)", text)
+    for sentence in sentences:
+        for clause in re.split(r"[;:—–]", sentence):
+            groups = re.split(r"\s*(?:,|\b(?:et|ou|ni)\b)\s*", clause, flags=re.I)
+            if len(groups) == 3 and all(re.search(r"\w", group) for group in groups):
+                count += 1
     return count
 
 
@@ -606,7 +597,7 @@ def analyze_syntax(text: str, doc=None) -> dict[str, object] | None:
     pos_distribution = {name: pos_counts[name] / pos_total if pos_total else 0 for name in distribution_keys}
     modifier_counts = _noun_modifier_counts(doc)
     adjective_chains = _coordinated_modifier_chains(doc)
-    ternary_count = _ternary_adjective_count(doc)
+    ternary_count = _ternary_sequence_count(text)
     stative = _load_word_list(STATIVE_VERBS_FILE)
     finite_narrative = [t for t in narrative_tokens if t.pos_ in {"VERB", "AUX"} and "Fin" in t.morph.get("VerbForm")]
     action_verb_ratio = sum((t.lemma_.casefold() not in stative) for t in all_finite_tokens) / all_finite_verbs if all_finite_verbs else 0

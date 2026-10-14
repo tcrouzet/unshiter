@@ -122,8 +122,11 @@ class MetricsTests(unittest.TestCase):
         metrics = Metrics("« Citation seule. »\n\n— Réplique brève.")
         self.assertEqual(metrics.dialog_word_count(), 2)
 
-    def test_ternary_count_requires_exactly_three_adjectives(self):
+    def test_ternary_count_requires_exactly_three_parallel_elements(self):
         self.assertEqual(Metrics("Il est grand, élancé et vif.").ternary_count(), 1)
+        self.assertEqual(Metrics("Il court, saute et danse.").ternary_count(), 1)
+        self.assertEqual(Metrics("Il parle doucement, clairement et calmement.").ternary_count(), 1)
+        self.assertEqual(Metrics("L'homme qui court, qui saute et qui danse.").ternary_count(), 1)
         self.assertEqual(Metrics("Il est grand et vif.").ternary_count(), 0)
         self.assertEqual(Metrics("Il est grand, élancé, vif et calme.").ternary_count(), 0)
 
