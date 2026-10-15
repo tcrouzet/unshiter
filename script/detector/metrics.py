@@ -69,6 +69,9 @@ def cached_metric_values(connection, book_id: int, window_index: int = 0) -> dic
     unique_lemma_count = values.get("unique_lemma_count") or 0
     if "hapax_count" in values:
         values["hapax_ratio"] = values["hapax_count"] / unique_lemma_count if unique_lemma_count else 0
+    bigram_count = values.get("bigram_count") or 0
+    if "hapax_bigram_count" in values:
+        values["hapax_bigram_ratio"] = values["hapax_bigram_count"] / bigram_count if bigram_count else 0
     if "emotion_word_count" in values:
         values["emotion_word_ratio"] = values["emotion_word_count"] / lexical_word_count if lexical_word_count else 0
     if "sentence_count" in values and "emotion_sentence_count" in values:

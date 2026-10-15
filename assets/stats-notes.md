@@ -305,6 +305,8 @@ Dans chaque bloc successif de 1 000 mots, le nombre de lemmes distincts est div
 ##### **Rareté lexicale** (lexical_rarity_score)
 Moyenne de `-log10` des fréquences Lexique383. Une valeur élevée indique un vocabulaire moins fréquent ; Lexique383 ne distingue pas le vocabulaire littéraire du vocabulaire technique.
 
+##### **Taux d'hapax bigrammes** / Taux de récurrence bigrammes (hapax_bigram_ratio) #web
+[Nombre de bigrammes hapax](#hapax_bigram_count) divisé par le [nombre de bigrammes distincts](#bigram_count). Un taux élevé signifie que le texte enchaîne beaucoup de paires de lemmes qu'il n'utilise ensuite plus jamais ; un taux bas signifie que les transitions entre lemmes sont concentrées sur peu de bigrammes, réemployés souvent.
 
 
 #### Rythme, longueurs et lisibilité
@@ -876,3 +878,9 @@ Compte les occurrences de formules figées de manifestation somatique de l'émot
 
 ##### Prudence épistémique (epistemic_hedging_count)
 Compte les occurrences de marqueurs figés d'atténuation épistémique et de méta-discours — « on pourrait dire que », « il convient de souligner que », voir `assets/dictionnaires/epistemic-hedging.txt`.
+
+##### Hapax de bigrammes (hapax_bigram_count)
+Bigrammes qui n'apparaissent qu'une fois. Un nombre élevé signale un texte riche en associations de lemmes peu prévisibles, qu'il n'a besoin de réemployer nulle part ailleurs ; un nombre bas signale un texte dont les transitions entre deux lemmes consécutifs sont peu variées, concentrées sur un petit répertoire de paires fréquentes.
+
+##### Bigrammes (bigram_count)
+Compte le nombre de de bigrammes distincts du document, paire de deux lemmes consécutifs. Comme pour les [trigrammes](#trigram_repetition), chaque mot est d'abord remplacé par son lemme désambiguïsé par spaCy selon son rôle dans la phrase (`marche` verbe devient `marcher`, `marche` nom reste `marche`), Morphalou servant de repli lorsque l'analyse contextuelle est indisponible.

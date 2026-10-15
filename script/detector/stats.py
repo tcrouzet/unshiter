@@ -10,7 +10,7 @@ from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS
     FUNCTION_WORDS_FILE, DURATION_MARKERS_FILE, PHONETIC_MIN_RATIO, ANALYSIS_WINDOW_WORDS,
     PHONETIC_MIN_SEQUENCE, TEXT_ENCODING, METRICS)
 from .demonette import family_lexemes, family_map, phonetic_map
-from .morphalou import contextual_lemma_map, lemma_map, lexical_map
+from .morphalou import lemma_map, lexical_map
 from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth, stereotype_char_ranges, ternary_char_ranges
 from .lexical_frequency import frequency_map
 from burstiness.burst_detect import detect_bursts
@@ -210,6 +210,8 @@ class Metrics:
     def absolute_repetition_rate(self):
         return self.absolute_repetition_count() / self.repetition_word_count() if self.repetition_word_count() else 0
     def trigram_repetition(self): return _trigram_repetition(self.trigram_lemma_values)
+    def bigram_count(self): return _bigram_count(self.trigram_lemma_values)
+    def hapax_bigram_count(self): return _hapax_bigram_count(self.trigram_lemma_values)
 
     def verb_count(self): return self.syntax["pos_counts"]["all_verbs"] if self.syntax else 0
     def conjugue_verb_count(self): return self.syntax["all_finite_verbs"] if self.syntax else 0
@@ -502,6 +504,7 @@ class Metrics:
     def incise_ratio(self): return self.incise_count() / self.sentence_count() if self.sentence_count() else 0
     def coordination_accumulation_ratio(self): return self.coordination_accumulation_count() / self.sentence_count() if self.sentence_count() else 0
     def hapax_ratio(self): return self.hapax_count() / self.unique_lemma_count() if self.unique_lemma_count() else 0
+    def hapax_bigram_ratio(self): return self.hapax_bigram_count() / self.bigram_count() if self.bigram_count() else 0
     def lexical_rarity_score(self): return lexical_rarity_score(self.words)
     def sentence_start_diversity(self):
         counts = Counter(self.sentence_start_structures)
@@ -1121,11 +1124,18 @@ def _trigram_repetition(words: list[str]) -> float:
     return sum(value > 1 for value in grams.values()) / len(grams) if grams else 0
 
 
+def _hapax_bigram_count(words: list[str]) -> int:
+    return sum(count == 1 for count in Counter(zip(words, words[1:])).values())
+
+
+def _bigram_count(words: list[str]) -> int:
+    return len(set(zip(words, words[1:])))
+
+
 def _trigram_lemmas(words: list[str], contextual_tokens: list[object] | None = None) -> list[str]:
     """Lemmatise en contexte, avec Morphalou comme repli déterministe."""
     if contextual_tokens and isinstance(contextual_tokens[0], tuple):
-        contextual = contextual_lemma_map((token[0], token[2], token[1]) for token in contextual_tokens)
-        return [contextual.get(token[0], token[1]) for token in contextual_tokens]
+        return [token[1] for token in contextual_tokens]
     mapping = lemma_map(words)
     return [mapping.get(word, word) for word in words]
 

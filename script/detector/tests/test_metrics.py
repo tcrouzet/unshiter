@@ -8,7 +8,7 @@ from detector.config import NON_PERSISTED_METRICS, METRICS, PERSISTED_METRICS
 from detector.analyse import analyse_file, build_html as build_analysis_html, repetition_highlights
 from detector.epub_database import metric_cache_is_valid, reset_champ
 from detector.metrics import cached_metric_values
-from detector.stats import Metrics, normalize_markdown_text
+from detector.stats import Metrics, _bigram_count, _hapax_bigram_count, _trigram_lemmas, normalize_markdown_text
 from detector.web_export import ensure_nonempty_export, missing_export_fields, site_config
 from burstiness.render_html import build_html as build_burstiness_html
 from burstiness.cli import generate as generate_burstiness_html
@@ -46,6 +46,28 @@ class MetricsTests(unittest.TestCase):
         for field in METRICS:
             with self.subTest(field=field):
                 getattr(metrics, field)()
+
+    def test_hapax_bigrams_use_contextual_lemmas_over_the_whole_document(self):
+        contextual = [
+            ("marche", "marcher", "verbe", 0, 6),
+            ("marche", "marche", "nom", 7, 13),
+            ("marche", "marcher", "verbe", 14, 20),
+        ]
+        self.assertEqual(_trigram_lemmas(["marche"] * 3, contextual), ["marcher", "marche", "marcher"])
+        self.assertEqual(_bigram_count(["a", "b", "a", "b", "c"]), 3)
+        self.assertEqual(_hapax_bigram_count(["a", "b", "a", "b", "c"]), 2)
+        metrics = Metrics("Texte sans importance")
+        metrics.__dict__["trigram_lemma_values"] = ["a", "b", "a", "b", "c"]
+        self.assertEqual(metrics.bigram_count(), 3)
+        self.assertEqual(metrics.hapax_bigram_count(), 2)
+        self.assertEqual(metrics.hapax_bigram_ratio(), 2 / 3)
+        connection = sqlite3.connect(":memory:")
+        connection.execute("CREATE TABLE metric_cache (book_id INTEGER, window_index INTEGER, metric_name TEXT, value_json TEXT)")
+        connection.executemany(
+            "INSERT INTO metric_cache VALUES (1,0,?,?)",
+            [("bigram_count", "3"), ("hapax_bigram_count", "2")],
+        )
+        self.assertEqual(cached_metric_values(connection, 1)["hapax_bigram_ratio"], 2 / 3)
 
     def test_derived_metrics_are_never_persisted(self):
         self.assertFalse(set(NON_PERSISTED_METRICS) & set(PERSISTED_METRICS))
