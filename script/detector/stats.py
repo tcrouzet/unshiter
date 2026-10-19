@@ -11,7 +11,8 @@ from .config import (ORNATENESS_WEIGHTS, CLASSICISM_WEIGHTS, NARRATIVITY_WEIGHTS
     PHONETIC_MIN_SEQUENCE, TEXT_ENCODING, METRICS)
 from .demonette import family_lexemes, family_map, phonetic_map
 from .morphalou import lemma_map, lexical_map
-from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth, stereotype_char_ranges, ternary_char_ranges
+from .syntax_depth import _pipeline, analyze_contextual_tokens, analyze_syntax, dialogue_char_ranges, right_branching_depth as _right_branching_depth, stereotype_char_ranges
+from .structure import analyze_structure
 from .lexical_frequency import frequency_map
 from burstiness.burst_detect import detect_bursts
 from burstiness.sentence_split import iter_blocks as burstiness_blocks, split_sentences_batch as split_burstiness_sentences
@@ -98,7 +99,11 @@ class Metrics:
 
     @cached_property
     def syntax(self):
-        return analyze_syntax(self.text, self.doc)
+        return analyze_syntax(self.text, self.doc, structure=self.structure_analysis)
+
+    @cached_property
+    def structure_analysis(self):
+        return analyze_structure(self.text, self.doc)
 
     @cached_property
     def contextual_tokens(self):
@@ -245,7 +250,7 @@ class Metrics:
     def adjective_chain_count(self): return self.syntax["adjective_chain_count"] if self.syntax else 0
     def adjective_in_chain_count(self): return self.syntax["adjective_in_chain_count"] if self.syntax else 0
     @cached_property
-    def ternary_ranges(self): return ternary_char_ranges(self.text, self.doc)
+    def ternary_ranges(self): return self.structure_analysis[1]
     def ternary_count(self): return len(self.ternary_ranges)
     def mechanical_antithesis_count(self): return self.syntax["mechanical_antithesis_count"] if self.syntax else 0
     @cached_property
@@ -426,7 +431,7 @@ class Metrics:
         else:
             _, verb_ratio_value, _, _ = _grammatical_ratios(self.words)
             literary_ratio = future_ratio = active_ratio = dialogue_ratio_value = 0
-        structures = sentence_structure_signatures(split_structure_units(self.text))
+        structures = self.structures
         return (
             CLASSICISM_WEIGHTS["literary_subjunctive_ratio"] * literary_ratio
             + CLASSICISM_WEIGHTS["periphrastic_future_ratio"] * future_ratio
@@ -445,7 +450,7 @@ class Metrics:
     @cached_property
     def paragraph_word_lengths(self): return [len(tokenize(p)) for p in self.paragraphs]
     @cached_property
-    def structures(self): return sentence_structure_signatures(split_structure_units(self.text))
+    def structures(self): return self.structure_analysis[0]
     @cached_property
     def sentence_start_structures(self):
         starts = []
@@ -994,19 +999,7 @@ def _emotion_category_intensification_profile(doc) -> tuple[dict[str, int], dict
     return intensified_counts, emotional_counts
 WORD_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?", re.UNICODE)
 PUNCTUATION_MARK_RE = re.compile(r'[.,;:!?…—–()«»“”"]')
-STRUCTURE_TOKEN_RE = re.compile(r"[\wÀ-ÖØ-öø-ÿ]+(?:['’][\wÀ-ÖØ-öø-ÿ]+)?|\.\.\.|[…,.!?;:—–()«»\"-]", re.UNICODE)
 STRUCTURE_PUNCTUATION = {",", "."}
-IGNORED_STRUCTURE_PUNCTUATION = {"...", "…", "!", "?", ";", ":", "—", "–", "-", "(", ")", "«", "»", '"'}
-ELIDED_PREFIXES = {"c", "d", "j", "l", "m", "n", "qu", "s", "t"}
-ELIDED_CATEGORIES = {
-    "c": "pronom", "d": "préposition", "j": "pronom", "l": "déterminant",
-    "m": "pronom", "n": "adverbe", "qu": "conjonction", "s": "pronom", "t": "pronom",
-}
-SUBORDINATORS = {
-    "afin", "ainsi", "alors", "bien", "comme", "comment", "lorsque", "parce",
-    "pendant", "pourquoi", "puisque", "quand", "que", "quoique", "si", "tandis",
-}
-SUBJECT_PRONOUNS = {"ça", "elle", "elles", "il", "ils", "je", "j", "nous", "on", "tu", "vous"}
 
 
 def _is_function_word(word: str, category: str = "", lemma: str = "") -> bool:
@@ -1061,15 +1054,6 @@ def split_sentences(text: str) -> list[str]:
     protected = re.sub(r"\b(M|Mme|Mlle|Dr|Pr|etc|env|vol)\.", lambda m: m.group(0)[:-1] + "․", text, flags=re.I)
     protected = re.sub(r"\b([A-ZÀ-Ý])\.", r"\1․", protected)
     return [s.replace("․", ".").strip() for s in re.split(r"(?<=[.!?])(?:\s+|$)", protected) if s.strip()]
-
-
-def split_structure_units(text: str) -> list[str]:
-    """Découpe syntaxique : ponctuation de fin ou saut de ligne."""
-    units = []
-    for line in text.splitlines():
-        if line.strip():
-            units.extend(split_sentences(line))
-    return units
 
 
 def _syllables(word: str) -> int:
@@ -1338,124 +1322,6 @@ def filtered_lemmas(words: list[str]) -> list[str]:
     return result
 
 
-def _structure_tokens(sentence: str) -> list[str]:
-    tokens = []
-    for raw_token in STRUCTURE_TOKEN_RE.findall(sentence.lower().replace("’", "'")):
-        if "'" in raw_token:
-            prefix, rest = raw_token.split("'", 1)
-            if prefix in ELIDED_PREFIXES and rest:
-                tokens.extend((prefix, rest))
-                continue
-        tokens.append(raw_token)
-    return tokens
-
-
-def sentence_structure_signatures(sentences: list[str]) -> list[str]:
-    """Encode toutes les phrases en patrons syntaxiques comparables."""
-    sentence_tokens = [_structure_tokens(sentence) for sentence in sentences]
-    all_words = [token for tokens in sentence_tokens for token in tokens if token not in STRUCTURE_PUNCTUATION | IGNORED_STRUCTURE_PUNCTUATION]
-    mapping = lexical_map(all_words)
-    signatures = []
-    for words in sentence_tokens:
-        tokens = []
-        previous_category = ""
-        for word_index, word in enumerate(words):
-            if word in IGNORED_STRUCTURE_PUNCTUATION:
-                continue
-            if word in STRUCTURE_PUNCTUATION:
-                tokens.append(word)
-                previous_category = ""
-                continue
-            following_categories = [
-                mapping.get(candidate, (candidate, ""))[1].lower()
-                for candidate in words[word_index + 1:]
-                if candidate not in STRUCTURE_PUNCTUATION | IGNORED_STRUCTURE_PUNCTUATION
-            ]
-            pour_infinitive = word == "pour" and any(category.startswith("verbe") for category in following_categories)
-            if word in SUBORDINATORS or pour_infinitive:
-                category = "subordination"
-            elif word in SUBJECT_PRONOUNS:
-                category = "pronom"
-            else:
-                category = ELIDED_CATEGORIES.get(word, mapping.get(word, (word, "inconnu"))[1].lower())
-            if category.startswith("nom"):
-                category = "nom"
-            elif category.startswith("adjectif"):
-                category = "adjectif"
-            elif category.startswith("verbe"):
-                category = "verbe"
-            if category in {"déterminant", "préposition"}:
-                continue
-            # Morphalou conserve parfois le nom pour une forme ambiguë comme
-            # « rigole » ; après un pronom sujet, cette forme est verbale.
-            if category == "nom" and previous_category == "pronom":
-                category = "verbe"
-            # Les suites « il se », « je me » décrivent le même sujet verbal
-            # que « il », « je » pour cette comparaison de structures.
-            if category == "pronom" and previous_category == "pronom":
-                continue
-            if category == "verbe" and previous_category == "verbe":
-                continue
-            tokens.append(category.upper())
-            previous_category = category
-        if tokens:
-            signatures.append(_syntactic_signature(tokens))
-    return signatures
-
-
-def _syntactic_clause(tokens: list[str]) -> list[str]:
-    """Résume une proposition grammaticale en rôles syntaxiques."""
-    if not tokens:
-        return []
-    if tokens[0] == "SUBORDINATION":
-        return ["PROPOSITION_SUBORDONNÉE"]
-    # Une coordination placée après une virgule relie deux propositions
-    # principales, mais ne fait pas partie de leur structure interne.
-    if tokens[0] == "CONJONCTION":
-        tokens = tokens[1:]
-        if not tokens:
-            return []
-    if "VERBE" not in tokens:
-        return ["INCONNU"] if tokens == ["INCONNU"] else ["COMPLÉMENT"]
-    verb_index = tokens.index("VERBE")
-    result = []
-    if verb_index:
-        result.append("SUJET")
-    result.append("VERBE")
-    tail = tokens[verb_index + 1:]
-    if tail:
-        # Une coordination ouvre une nouvelle proposition ; les groupes
-        # nominaux, adjectivaux ou inconnus sont ramenés à COMPLÉMENT.
-        separators = [index for index, token in enumerate(tail) if token in {"CONJONCTION", "SUBORDINATION"}]
-        if separators:
-            conjunction = separators[0]
-            if tail[:conjunction]:
-                result.append("COMPLÉMENT")
-            marker = tail[conjunction]
-            if marker == "SUBORDINATION":
-                result.append("PROPOSITION_SUBORDONNÉE")
-            else:
-                result.append("CONJONCTION")
-                result.extend(_syntactic_clause(tail[conjunction + 1:]))
-        else:
-            result.append("COMPLÉMENT")
-    return result
-
-
-def _syntactic_signature(tokens: list[str]) -> str:
-    result = []
-    clause = []
-    for token in tokens:
-        if token in STRUCTURE_PUNCTUATION:
-            result.extend(_syntactic_clause(clause))
-            result.append(token)
-            clause = []
-        else:
-            clause.append(token)
-    result.extend(_syntactic_clause(clause))
-    return " ".join(result)
-
-
 def structural_repetition_rate(signatures: list[str]) -> float:
     """Part des phrases appartenant à une structure utilisée plusieurs fois."""
     eligible = [signature for signature in signatures if structure_is_eligible(signature)]
@@ -1491,9 +1357,10 @@ def structural_subpatterns(signature: str) -> list[str]:
     for token in signature.split():
         if token in STRUCTURE_PUNCTUATION:
             flush(token)
-        elif token == "PROPOSITION_SUBORDONNÉE":
+        elif token in {"PROPOSITION_SUBORDONNÉE", "SUBORDONNÉE"}:
+            marker = current.pop() if token == "SUBORDONNÉE" and current and current[-1].islower() else None
             flush()
-            units.append(token)
+            units.append(f"{marker} {token}" if marker else token)
         elif token == "CONJONCTION":
             flush()
             current.append(token)

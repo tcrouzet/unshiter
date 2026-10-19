@@ -214,6 +214,45 @@ class MetricsTests(unittest.TestCase):
             "Accorder notre attention à la nature pour délivrer notre esprit du souci de soi.»"
         ).ternary_count(), 0)
 
+    def test_structure_and_tricolons_share_frames_and_nested_nominal_groups(self):
+        text = "Dans la rue, devant le pont, il regarde la mer, le ciel et les arbres."
+        metrics = Metrics(text)
+        self.assertEqual(metrics.structures, ["CADRATIF , CADRATIF , SUJET VERBE , NOM , NOM , NOM ."])
+        self.assertEqual([text[start:end] for start, end in metrics.ternary_ranges], ["la mer, le ciel et les arbres."])
+        self.assertEqual(metrics.ternary_count(), metrics.syntax["ternary_count"])
+        continuation = "Il est fils de marin, né à Paris, élevé au goût du sel, du rhum clair et de l'école publique."
+        self.assertEqual(Metrics(continuation).ternary_count(), 0)
+
+    def test_structure_removes_attached_elaboration_and_compares_hinges(self):
+        text = "Il était sec, maigre, tordu comme un arbre qui a grandi dans le vent."
+        metrics = Metrics(text)
+        self.assertEqual(metrics.structures, ["SUJET VERBE COMPLÉMENT , COMPLÉMENT , COMPLÉMENT ."])
+        self.assertEqual([text[start:end] for start, end in metrics.ternary_ranges], ["Il était sec, maigre, tordu"])
+        repeated = "Il reste, comme si la vie revenait, comme si la nuit tombait, comme si le jour naissait."
+        self.assertEqual(Metrics(repeated).ternary_count(), 1)
+        different = repeated.replace("comme si la nuit tombait", "quand la nuit tombait")
+        self.assertEqual(Metrics(different).ternary_count(), 0)
+
+    def test_ternary_groups_of_six_and_document_boundaries(self):
+        text = "Il parle, il marche, il chante, elle rit, elle danse, elle rêve."
+        metrics = Metrics(text)
+        self.assertEqual(metrics.ternary_count(), 2)
+        self.assertEqual([text[start:end] for start, end in metrics.ternary_ranges], ["Il parle, il marche, il chante", "elle rit, elle danse, elle rêve."])
+        bounded = "# sec, maigre, grand\n\nsec, maigre\n\ngrand\n\nIl est sec, maigre, grand."
+        self.assertEqual(Metrics(bounded).ternary_count(), 1)
+        for empty in ("", "!", "# titre"):
+            with self.subTest(text=empty):
+                self.assertEqual(Metrics(empty).ternary_count(), 0)
+
+    def test_structural_measures_compare_roles_instead_of_vocabulary(self):
+        regular = Metrics("Le chat dort. Le chien dort.")
+        self.assertEqual(regular.structural_diversity(), 0)
+        self.assertEqual(regular.structural_rhythm(), 0)
+        self.assertEqual(regular.structural_repetition_rate(), 1)
+        varied = Metrics("Le chat dort. Quand la nuit tombe, nous ouvrons la porte.")
+        self.assertGreater(varied.structural_diversity(), 0)
+        self.assertGreater(varied.structural_rhythm(), 0)
+
     def test_mechanical_antithesis_requires_matching_pos_patterns(self):
         self.assertEqual(
             Metrics("Il défend non seulement une décision difficile, mais aussi une mesure injuste.").mechanical_antithesis_count(),
@@ -251,6 +290,20 @@ class MetricsTests(unittest.TestCase):
         rendered = build_analysis_html(metrics.text, "epistemic_hedging_count", "Test")
         self.assertEqual(rendered.count("<mark "), 3)
         self.assertIn(">On pourrait dire que</mark>", rendered)
+
+    def test_stereotypes_filter_function_words_and_keep_longest_match(self):
+        for text, expected in (
+            ("Son cœur cognait dans sa poitrine.", "cœur cognait dans sa poitrine"),
+            ("Elle serrait ses poings de douleur.", "serrait ses poings de douleur"),
+            ("Ses yeux se remplirent de larmes.", "yeux se remplirent de larmes"),
+        ):
+            with self.subTest(text=text):
+                metrics = Metrics(text)
+                self.assertEqual(metrics.stereotype_count(), 1)
+                self.assertEqual([text[start:end] for start, end in metrics.stereotype_ranges], [expected])
+        for text in ("Il serra. Les poings restèrent immobiles.", "Il serra doucement les poings."):
+            with self.subTest(text=text):
+                self.assertEqual(Metrics(text).stereotype_count(), 0)
 
     def test_periphrastic_future_ratio_uses_sentence_count(self):
         metrics = Metrics("")

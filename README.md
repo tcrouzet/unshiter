@@ -112,7 +112,7 @@ Le modèle français `fr_core_news_lg` de [spaCy](https://spacy.io/models/fr) se
 
 <a id="note_morphalou"></a>
 ##### Morphalou (note_morphalou)
-[Morphalou 3.1](https://repository.ortolang.fr/api/content/morphalou/2/LISEZ_MOI.html) est un lexique morphologique du français utilisé pour relier les formes fléchies à leurs lemmes et catégories grammaticales. Il sert de repli ou de contrôle lorsque l’analyse contextuelle ne suffit pas. Comme il décrit des formes hors contexte, une graphie ambiguë peut correspondre à plusieurs analyses possibles.
+[Morphalou 3.1](https://repository.ortolang.fr/api/content/morphalou/2/LISEZ_MOI.html) est un lexique morphologique du français utilisé pour relier les formes fléchies à leurs lemmes et catégories grammaticales ([téléchargement](https://repository.ortolang.fr/api/content/morphalou/latest/Morphalou3.1_formatCSV_toutEnUn.zip)). Il sert de repli ou de contrôle lorsque l’analyse contextuelle ne suffit pas. Comme il décrit des formes hors contexte, une graphie ambiguë peut correspondre à plusieurs analyses possibles.
 
 <a id="note_lexique383"></a>
 ##### Lexique 3.83 (note_lexique383)
